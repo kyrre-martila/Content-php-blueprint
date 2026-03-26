@@ -21,10 +21,6 @@ final class Env
         }
 
         foreach ($lines as $line) {
-            if ($line === false) {
-                continue;
-            }
-
             $trimmed = trim($line);
 
             if ($trimmed === '' || str_starts_with($trimmed, '#')) {
@@ -53,13 +49,21 @@ final class Env
 
     public static function get(string $key, ?string $default = null): ?string
     {
-        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        if (array_key_exists($key, $_ENV) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
+            return $_ENV[$key];
+        }
 
-        if ($value === false || $value === null || $value === '') {
+        if (array_key_exists($key, $_SERVER) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
+            return $_SERVER[$key];
+        }
+
+        $value = getenv($key);
+
+        if ($value === false || $value === '') {
             return $default;
         }
 
-        return (string) $value;
+        return $value;
     }
 
     public static function required(string $key): string
