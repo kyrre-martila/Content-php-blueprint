@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use JsonException;
+
 final class Response
 {
     /**
@@ -14,6 +16,30 @@ final class Response
         private readonly int $status = 200,
         private readonly array $headers = ['Content-Type' => 'text/html; charset=utf-8']
     ) {
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public static function json(array $payload, int $status = 200): self
+    {
+        try {
+            $body = json_encode($payload, JSON_THROW_ON_ERROR);
+        } catch (JsonException $jsonException) {
+            $body = '{"error":"json_encoding_failed"}';
+            $status = 500;
+        }
+
+        return new self(
+            $body,
+            $status,
+            ['Content-Type' => 'application/json; charset=utf-8']
+        );
+    }
+
+    public static function html(string $body, int $status = 200): self
+    {
+        return new self($body, $status, ['Content-Type' => 'text/html; charset=utf-8']);
     }
 
     public function send(): void

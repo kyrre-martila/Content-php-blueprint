@@ -4,16 +4,28 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Http\Controller\HealthController;
+use App\Http\Controller\HomeController;
+
 final class Kernel
 {
     public function handle(Request $request): Response
     {
-        $body = sprintf(
-            '<h1>Content PHP Blueprint</h1><p>Bootstrapped successfully.</p><p>%s %s</p>',
-            htmlspecialchars($request->method(), ENT_QUOTES, 'UTF-8'),
-            htmlspecialchars($request->uri(), ENT_QUOTES, 'UTF-8')
-        );
+        $router = $this->buildRouter();
 
-        return new Response($body);
+        return $router->dispatch($request);
+    }
+
+    private function buildRouter(): Router
+    {
+        $router = new Router();
+
+        $homeController = new HomeController();
+        $healthController = new HealthController();
+
+        $router->get('/', [$homeController, 'index']);
+        $router->get('/health', [$healthController, 'show']);
+
+        return $router;
     }
 }

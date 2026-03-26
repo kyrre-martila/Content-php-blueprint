@@ -8,24 +8,37 @@ final class Request
 {
     /**
      * @param array<string, mixed> $query
-     * @param array<string, mixed> $request
+     * @param array<string, mixed> $post
+     * @param array<string, mixed> $cookies
+     * @param array<string, mixed> $files
      * @param array<string, mixed> $server
      */
     public function __construct(
         private readonly string $method,
-        private readonly string $uri,
+        private readonly string $path,
         private readonly array $query,
-        private readonly array $request,
+        private readonly array $post,
+        private readonly array $cookies,
+        private readonly array $files,
         private readonly array $server
     ) {
     }
 
     public static function capture(): self
     {
-        $method = isset($_SERVER['REQUEST_METHOD']) ? (string) $_SERVER['REQUEST_METHOD'] : 'GET';
-        $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
+        $server = $_SERVER;
+        $method = isset($server['REQUEST_METHOD']) ? (string) $server['REQUEST_METHOD'] : 'GET';
+        $uri = isset($server['REQUEST_URI']) ? (string) $server['REQUEST_URI'] : '/';
 
-        return new self($method, $uri, $_GET, $_POST, $_SERVER);
+        return new self(
+            strtoupper($method),
+            self::normalizePath($uri),
+            $_GET,
+            $_POST,
+            $_COOKIE,
+            $_FILES,
+            $server
+        );
     }
 
     public function method(): string
@@ -33,9 +46,9 @@ final class Request
         return $this->method;
     }
 
-    public function uri(): string
+    public function path(): string
     {
-        return $this->uri;
+        return $this->path;
     }
 
     /**
@@ -49,9 +62,25 @@ final class Request
     /**
      * @return array<string, mixed>
      */
-    public function bodyParams(): array
+    public function postParams(): array
     {
-        return $this->request;
+        return $this->post;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function cookies(): array
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function files(): array
+    {
+        return $this->files;
     }
 
     /**
@@ -60,5 +89,23 @@ final class Request
     public function serverParams(): array
     {
         return $this->server;
+    }
+
+    private static function normalizePath(string $uri): string
+    {
+        $path = parse_url($uri, PHP_URL_PATH);
+        $normalizedPath = is_string($path) && $path !== '' ? $path : '/';
+
+        if (!str_starts_with($normalizedPath, '/')) {
+            $normalizedPath = '/' . $normalizedPath;
+        }
+
+        $normalizedPath = preg_replace('#/+#', '/', $normalizedPath) ?? $normalizedPath;
+
+        if (strlen($normalizedPath) > 1) {
+            $normalizedPath = rtrim($normalizedPath, '/');
+        }
+
+        return $normalizedPath === '' ? '/' : $normalizedPath;
     }
 }
