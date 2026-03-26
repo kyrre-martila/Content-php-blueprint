@@ -23,7 +23,7 @@
     },
     "scripts": {
         "test": "pest",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=512M",
         "migrate": "phinx migrate -c phinx.php",
         "migrate:rollback": "phinx rollback -c phinx.php",
         "migrate:status": "phinx status -c phinx.php",

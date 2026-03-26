@@ -17,6 +17,7 @@ use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
+use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
@@ -55,19 +56,32 @@ final class Kernel
         $authController = new AuthController($renderer, $loginUser, $authSession, $this->session);
         $dashboardController = new DashboardController($renderer, $authSession);
         $requireAuth = new RequireAuthMiddleware($authSession);
+        $csrf = new CsrfMiddleware($this->session);
 
         $router->get('/', [$homeController, 'index']);
         $router->get('/health', [$healthController, 'show']);
 
-        $router->get('/admin/login', [$authController, 'showLogin']);
-        $router->post('/admin/login', [$authController, 'login']);
-        $router->post('/admin/logout', static fn (Request $request): Response => $requireAuth(
+        $router->get('/admin/login', static fn (Request $request): Response => $csrf(
             $request,
-            [$authController, 'logout']
+            [$authController, 'showLogin']
         ));
-        $router->get('/admin', static fn (Request $request): Response => $requireAuth(
+        $router->post('/admin/login', static fn (Request $request): Response => $csrf(
             $request,
-            [$dashboardController, 'index']
+            [$authController, 'login']
+        ));
+        $router->post('/admin/logout', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$authController, 'logout']
+            )
+        ));
+        $router->get('/admin', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$dashboardController, 'index']
+            )
         ));
 
         if ($this->contentItemRepository !== null && $this->contentTypeRepository !== null) {
@@ -85,25 +99,40 @@ final class Kernel
                 $this->session
             );
 
-            $router->get('/admin/content', static fn (Request $request): Response => $requireAuth(
+            $router->get('/admin/content', static fn (Request $request): Response => $csrf(
                 $request,
-                [$contentAdminController, 'index']
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$contentAdminController, 'index']
+                )
             ));
-            $router->get('/admin/content/create', static fn (Request $request): Response => $requireAuth(
+            $router->get('/admin/content/create', static fn (Request $request): Response => $csrf(
                 $request,
-                [$contentAdminController, 'create']
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$contentAdminController, 'create']
+                )
             ));
-            $router->post('/admin/content/create', static fn (Request $request): Response => $requireAuth(
+            $router->post('/admin/content/create', static fn (Request $request): Response => $csrf(
                 $request,
-                [$contentAdminController, 'store']
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$contentAdminController, 'store']
+                )
             ));
-            $router->get('/admin/content/{id}/edit', static fn (Request $request): Response => $requireAuth(
+            $router->get('/admin/content/{id}/edit', static fn (Request $request): Response => $csrf(
                 $request,
-                [$contentAdminController, 'edit']
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$contentAdminController, 'edit']
+                )
             ));
-            $router->post('/admin/content/{id}/edit', static fn (Request $request): Response => $requireAuth(
+            $router->post('/admin/content/{id}/edit', static fn (Request $request): Response => $csrf(
                 $request,
-                [$contentAdminController, 'update']
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$contentAdminController, 'update']
+                )
             ));
 
             $contentController = new ContentController(

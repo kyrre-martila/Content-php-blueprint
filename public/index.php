@@ -12,6 +12,8 @@ use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
 use App\Infrastructure\Database\PdoFactory;
+use App\Infrastructure\Error\ErrorHandler;
+use App\Infrastructure\Logging\Logger;
 use App\Infrastructure\Support\Env;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
@@ -26,50 +28,37 @@ if (!is_file($autoload)) {
 require $autoload;
 
 $projectRoot = dirname(__DIR__);
+Env::load($projectRoot . '/.env');
 
-try {
-    Env::load($projectRoot . '/.env');
+$logger = new Logger($projectRoot . '/storage/logs');
+$errorHandler = new ErrorHandler(Env::bool('APP_DEBUG', false), $logger);
+$errorHandler->register();
 
-    $configLoader = new ConfigLoader($projectRoot . '/config');
-    $config = new ConfigRepository($configLoader->load());
+$configLoader = new ConfigLoader($projectRoot . '/config');
+$config = new ConfigRepository($configLoader->load());
 
-    /** @var array<string, mixed> $connectionConfig */
-    $connectionConfig = $config->get('database.connections.mysql', []);
+$logger->info('Bootstrapping HTTP kernel.', ['env' => (string) $config->get('app.env', 'production')]);
 
-    $pdo = (new PdoFactory())->create($connectionConfig);
-    $connection = new Connection($pdo);
+/** @var array<string, mixed> $connectionConfig */
+$connectionConfig = $config->get('database.connections.mysql', []);
 
-    $contentTypeRepository = new MySqlContentTypeRepository($connection);
-    $contentItemRepository = new MySqlContentItemRepository($connection);
-    $userRepository = new MySqlUserRepository($connection);
+$pdo = (new PdoFactory())->create($connectionConfig);
+$connection = new Connection($pdo);
 
-    /** @var array<string, mixed> $sessionConfig */
-    $sessionConfig = $config->get('app.session', []);
+$contentTypeRepository = new MySqlContentTypeRepository($connection);
+$contentItemRepository = new MySqlContentItemRepository($connection);
+$userRepository = new MySqlUserRepository($connection);
 
-    $kernel = new Kernel(
-        $projectRoot,
-        new SessionManager($sessionConfig),
-        $userRepository,
-        $contentItemRepository,
-        $contentTypeRepository
-    );
+/** @var array<string, mixed> $sessionConfig */
+$sessionConfig = $config->get('app.session', []);
 
-    $response = $kernel->handle(Request::capture());
-    $response->send();
-} catch (\Throwable $throwable) {
-    $isDebug = Env::bool('APP_DEBUG', false);
+$kernel = new Kernel(
+    $projectRoot,
+    new SessionManager($sessionConfig),
+    $userRepository,
+    $contentItemRepository,
+    $contentTypeRepository
+);
 
-    http_response_code(500);
-    header('Content-Type: text/plain; charset=utf-8');
-
-    if ($isDebug) {
-        echo $throwable->getMessage();
-        echo PHP_EOL;
-        echo $throwable->getTraceAsString();
-        exit(1);
-    }
-
-    error_log($throwable->getMessage());
-    echo 'Application bootstrapping failed.';
-    exit(1);
-}
+$response = $kernel->handle(Request::capture());
+$response->send();
