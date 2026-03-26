@@ -15,6 +15,7 @@ $layout = 'layouts/default.php';
     <?php endif; ?>
 
     <form method="post" action="/admin/content/create" novalidate>
+        <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
         <label for="title">Title</label>
         <input id="title" type="text" name="title" value="<?= $e((string) ($old['title'] ?? '')) ?>" required>
         <?php if (isset($errors['title'])): ?>

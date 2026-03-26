@@ -12,6 +12,7 @@ $layout = 'layouts/default.php';
     <?php endif; ?>
 
     <form method="post" action="/admin/login">
+        <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
         <label for="email">Email</label>
         <input id="email" type="email" name="email" autocomplete="username" required>
 

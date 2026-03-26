@@ -93,6 +93,15 @@ final class Request
         return $this->server;
     }
 
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return $this->attributes;
+    }
+
     public function attribute(string $name): ?string
     {
         return $this->attributes[$name] ?? null;
@@ -113,6 +122,17 @@ final class Request
             $this->server,
             $attributes
         );
+    }
+
+    /**
+     * @param array<string, string> $attributes
+     */
+    public function withAddedAttributes(array $attributes): self
+    {
+        return $this->withAttributes([
+            ...$this->attributes,
+            ...$attributes,
+        ]);
     }
 
     private static function normalizePath(string $uri): string
