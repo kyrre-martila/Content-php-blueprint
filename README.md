@@ -2,7 +2,7 @@
 
 Framework-light PHP 8.3+ blueprint for structured content websites with explicit layered architecture.
 
-## Installation
+## Developer setup
 
 1. Install dependencies:
    ```bash
@@ -66,6 +66,55 @@ php -S 127.0.0.1:8000 -t public
 ```
 
 Then open `http://127.0.0.1:8000`.
+
+## Deployment strategy
+
+This project supports two deployment entrypoint layouts:
+
+1. **Recommended setup (preferred):**
+   - Web root points to `public/`
+   - Requests execute `public/index.php` directly
+
+2. **Compatibility setup (shared hosting fallback):**
+   - Web root points to the project root
+   - Root `index.php` delegates execution to `public/index.php`
+
+Why `public/` is preferred:
+
+- Keeps non-public files outside the document root
+- Reduces accidental exposure of config, source, and migration files
+- Matches modern PHP deployment hardening practices
+
+Why compatibility mode exists:
+
+- Some shared hosting plans do not allow changing the web root
+- The root `index.php` keeps deployment possible in those environments without changing application architecture
+
+## Production deployment (planned workflow)
+
+Planned direction for production releases:
+
+- Deploy from **release zip packages**, not from a full developer checkout
+- Release zips should include:
+  - `vendor/`
+  - compiled/autoloaded Composer artifacts
+  - production-optimized dependencies
+
+Production servers should **not** require running Composer.
+
+Future install wizard plan:
+
+- Route placeholder: `/install`
+- Wizard responsibilities:
+  - environment checks
+  - database configuration
+  - migration execution
+  - initial admin user creation
+
+Important distinction:
+
+- **Deployment** = shipping files to the server
+- **Installation** = first-run system configuration and bootstrap
 
 ## Test commands
 
