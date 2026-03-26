@@ -17,7 +17,7 @@ $role = is_array($authUser) && is_string($authUser['role'] ?? null)
     <p>Welcome, <?= $e($displayName) ?>.</p>
     <p>Role: <strong><?= $e($role) ?></strong></p>
 
-    <p>Admin content CRUD screens will be added next.</p>
+    <p><a href="/admin/content">Manage content items</a></p>
 
     <form method="post" action="/admin/logout">
         <button type="submit">Logout</button>
