@@ -759,3 +759,19 @@ strict standards
 clean file placement  
 AI-readable documentation  
 production readiness from day one
+
+## Install wizard v1 implemented
+
+Installer v1 now provides a browser route at `/install` with explicit responsibilities:
+
+- environment validation
+- migration execution
+- initial admin bootstrap
+- install-state activation through existing `InstallState` detection rules
+
+Planned future improvements:
+
+- multi-step wizard UX
+- configuration persistence UI
+- broader extension and platform checks
+- module/bootstrap setup hooks

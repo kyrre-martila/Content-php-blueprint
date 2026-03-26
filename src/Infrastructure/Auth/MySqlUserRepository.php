@@ -8,6 +8,7 @@ use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Auth\Role;
 use App\Domain\Auth\User;
 use App\Infrastructure\Database\Connection;
+use RuntimeException;
 
 final class MySqlUserRepository implements UserRepositoryInterface
 {
@@ -57,6 +58,73 @@ SQL,
         );
 
         return $row === null ? null : $this->mapUser($row);
+    }
+
+
+    public function createInitialAdmin(string $email, string $plainPassword): void
+    {
+        $normalizedEmail = mb_strtolower(trim($email));
+        $passwordHash = password_hash($plainPassword, PASSWORD_DEFAULT);
+
+        if (!is_string($passwordHash)) {
+            throw new RuntimeException('Failed to hash admin password.');
+        }
+
+        $this->connection->transaction(function (Connection $connection) use ($normalizedEmail, $passwordHash): void {
+            $connection->execute(
+                <<<'SQL'
+INSERT INTO roles (name, slug, description)
+VALUES (:name, :slug, :description)
+ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    description = VALUES(description)
+SQL,
+                [
+                    'name' => 'Admin',
+                    'slug' => Role::ADMIN,
+                    'description' => 'Administrative access for site management',
+                ]
+            );
+
+            $roleRow = $connection->fetchOne(
+                <<<'SQL'
+SELECT id
+FROM roles
+WHERE slug = :slug
+LIMIT 1
+SQL,
+                ['slug' => Role::ADMIN]
+            );
+
+            if ($roleRow === null) {
+                throw new RuntimeException('Admin role could not be created.');
+            }
+
+            $roleId = $roleRow['id'] ?? null;
+
+            if (!is_int($roleId) && !(is_string($roleId) && ctype_digit($roleId))) {
+                throw new RuntimeException('Admin role id is invalid.');
+            }
+
+            $connection->execute(
+                <<<'SQL'
+INSERT INTO users (role_id, email, password_hash, display_name, is_active)
+VALUES (:role_id, :email, :password_hash, :display_name, :is_active)
+ON DUPLICATE KEY UPDATE
+    role_id = VALUES(role_id),
+    password_hash = VALUES(password_hash),
+    display_name = VALUES(display_name),
+    is_active = VALUES(is_active)
+SQL,
+                [
+                    'role_id' => (int) $roleId,
+                    'email' => $normalizedEmail,
+                    'password_hash' => $passwordHash,
+                    'display_name' => 'Initial Admin',
+                    'is_active' => true,
+                ]
+            );
+        });
     }
 
     /**

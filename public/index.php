@@ -40,28 +40,49 @@ $config = new ConfigRepository($configLoader->load());
 
 $logger->info('Bootstrapping HTTP kernel.', ['env' => (string) $config->get('app.env', 'production')]);
 
-/** @var array<string, mixed> $connectionConfig */
-$connectionConfig = $config->get('database.connections.mysql', []);
-
-$pdo = (new PdoFactory())->create($connectionConfig);
-$connection = new Connection($pdo);
-
-$contentTypeRepository = new MySqlContentTypeRepository($connection);
-$contentItemRepository = new MySqlContentItemRepository($connection);
-$userRepository = new MySqlUserRepository($connection);
-
 /** @var array<string, mixed> $sessionConfig */
 $sessionConfig = $config->get('app.session', []);
 /** @var string $migrationsTable */
 $migrationsTable = (string) $config->get('database.migrations.table', 'phinxlog');
 
+$installState = null;
+$connection = null;
+$installationRequired = false;
+
+try {
+    /** @var array<string, mixed> $connectionConfig */
+    $connectionConfig = $config->get('database.connections.mysql', []);
+
+    $pdo = (new PdoFactory())->create($connectionConfig);
+    $connection = new Connection($pdo);
+    $installState = new InstallState($connection, $migrationsTable);
+} catch (\RuntimeException $runtimeException) {
+    $installationRequired = true;
+    $logger->warning('Database bootstrap unavailable, forcing install flow.', [
+        'error' => $runtimeException->getMessage(),
+    ]);
+}
+
+if ($connection === null) {
+    $temporaryConnection = new Connection((new \PDO('sqlite::memory:')));
+    $userRepository = new MySqlUserRepository($temporaryConnection);
+    $contentItemRepository = null;
+    $contentTypeRepository = null;
+} else {
+    $contentTypeRepository = new MySqlContentTypeRepository($connection);
+    $contentItemRepository = new MySqlContentItemRepository($connection);
+    $userRepository = new MySqlUserRepository($connection);
+}
+
 $kernel = new Kernel(
     $projectRoot,
     new SessionManager($sessionConfig),
     $userRepository,
-    new InstallState($connection, $migrationsTable),
+    $installState,
     $contentItemRepository,
-    $contentTypeRepository
+    $contentTypeRepository,
+    $installationRequired,
+    $migrationsTable
 );
 
 $response = $kernel->handle(Request::capture());

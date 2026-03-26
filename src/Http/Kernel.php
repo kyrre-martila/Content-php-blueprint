@@ -17,6 +17,7 @@ use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
+use App\Http\Controller\InstallController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Application\InstallState;
@@ -33,7 +34,9 @@ final class Kernel
         private readonly UserRepositoryInterface $userRepository,
         private readonly ?InstallState $installState = null,
         private readonly ?ContentItemRepositoryInterface $contentItemRepository = null,
-        private readonly ?ContentTypeRepositoryInterface $contentTypeRepository = null
+        private readonly ?ContentTypeRepositoryInterface $contentTypeRepository = null,
+        private readonly bool $installationRequired = false,
+        private readonly string $migrationsTable = 'phinxlog'
     ) {
     }
 
@@ -51,11 +54,19 @@ final class Kernel
 
     private function shouldRedirectToInstall(Request $request): bool
     {
-        if ($this->installState === null || $this->installState->isInstalled()) {
+        if (!$this->isSetupDependentAdminPath($request->path())) {
             return false;
         }
 
-        return $this->isSetupDependentAdminPath($request->path());
+        if ($this->installationRequired) {
+            return true;
+        }
+
+        if ($this->installState === null) {
+            return false;
+        }
+
+        return !$this->installState->isInstalled();
     }
 
     private function isSetupDependentAdminPath(string $path): bool
@@ -80,6 +91,26 @@ final class Kernel
 
         $router->get('/', [$homeController, 'index']);
         $router->get('/health', [$healthController, 'show']);
+
+        if ($this->installationRequired || $this->installState?->isInstalled() !== true) {
+            $installController = new InstallController(
+                $this->projectRoot,
+                $renderer,
+                $this->installState,
+                $this->migrationsTable
+            );
+
+            $router->get('/install', static fn (Request $request): Response => $csrf(
+                $request,
+                [$installController, 'show']
+            ));
+            $router->post('/install', static fn (Request $request): Response => $csrf(
+                $request,
+                [$installController, 'install']
+            ));
+        } else {
+            $router->get('/install', static fn (Request $request): Response => Response::redirect('/'));
+        }
 
         $router->get('/admin/login', static fn (Request $request): Response => $csrf(
             $request,
