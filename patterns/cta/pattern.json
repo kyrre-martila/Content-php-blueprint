@@ -1,0 +1,19 @@
+{
+  "name": "Call to action",
+  "slug": "cta",
+  "description": "Action section with message and optional image slot",
+  "fields": [
+    {
+      "name": "message",
+      "type": "textarea"
+    },
+    {
+      "name": "button_text",
+      "type": "text"
+    },
+    {
+      "name": "image",
+      "type": "image"
+    }
+  ]
+}

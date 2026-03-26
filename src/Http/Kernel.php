@@ -23,6 +23,8 @@ use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\Pattern\PatternRegistry;
+use App\Infrastructure\Pattern\PatternRenderer;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -81,7 +83,9 @@ final class Kernel
         $homeController = new HomeController();
         $healthController = new HealthController();
         $templatesPath = $this->projectRoot . '/templates';
-        $renderer = new TemplateRenderer($templatesPath);
+        $patternRegistry = new PatternRegistry($this->projectRoot . '/patterns');
+        $patternRenderer = new PatternRenderer($patternRegistry);
+        $renderer = new TemplateRenderer($templatesPath, $patternRenderer);
         $authSession = new AuthSession($this->session);
         $loginUser = new LoginUser($this->userRepository, $authSession);
         $authController = new AuthController($renderer, $loginUser, $authSession, $this->session);

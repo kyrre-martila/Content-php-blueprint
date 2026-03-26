@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\View;
 
+use App\Infrastructure\Pattern\PatternRenderer;
 use RuntimeException;
 
 final class TemplateRenderer
 {
-    public function __construct(private readonly string $templatesBasePath)
-    {
+    public function __construct(
+        private readonly string $templatesBasePath,
+        private readonly ?PatternRenderer $patternRenderer = null
+    ) {
     }
 
     /**
@@ -28,6 +31,18 @@ final class TemplateRenderer
         $unusedLayout = null;
 
         return $this->renderFile($layoutPath, [...$data, 'content' => $content], $unusedLayout);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function renderPattern(string $slug, array $data = []): string
+    {
+        if ($this->patternRenderer === null) {
+            return '';
+        }
+
+        return $this->patternRenderer->render($slug, $data);
     }
 
     private function resolveLayoutPath(string $layout): string
@@ -53,9 +68,10 @@ final class TemplateRenderer
 
         ob_start();
 
-        $renderTemplate = static function (string $__templatePath, array $__data, ?string &$__layout): void {
+        $renderTemplate = static function (string $__templatePath, array $__data, ?string &$__layout, self $__renderer): void {
             extract($__data, EXTR_SKIP);
 
+            $renderer = $__renderer;
             $e = static fn (string $value): string => htmlspecialchars(
                 $value,
                 ENT_QUOTES | ENT_SUBSTITUTE,
@@ -69,7 +85,7 @@ final class TemplateRenderer
             }
         };
 
-        $renderTemplate($templatePath, $data, $layout);
+        $renderTemplate($templatePath, $data, $layout, $this);
 
         $output = ob_get_clean();
 
