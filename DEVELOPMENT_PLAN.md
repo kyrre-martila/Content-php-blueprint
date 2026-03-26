@@ -656,6 +656,22 @@ deployment = delivering built release artifacts to hosting
 installation = placing files/config in the target environment correctly  
 first-run setup = guided initialization of app settings, database, and admin account  
 
+### Install detection lifecycle
+
+Boot sequence target behavior:
+
+application boot  
+detect install state  
+if not installed, redirect protected setup-dependent routes (for example admin) to /install  
+once setup completes, installer must be locked and normal routes remain active  
+
+Planned installer responsibilities:
+
+environment checks  
+database migration execution  
+initial admin account bootstrap  
+configuration persistence for runtime use  
+
 ---
 
 ## Version 0.1 Scope

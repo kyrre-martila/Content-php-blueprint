@@ -19,6 +19,7 @@ use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
+use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\View\TemplateRenderer;
@@ -30,6 +31,7 @@ final class Kernel
         private readonly string $projectRoot,
         private readonly SessionManager $session,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly ?InstallState $installState = null,
         private readonly ?ContentItemRepositoryInterface $contentItemRepository = null,
         private readonly ?ContentTypeRepositoryInterface $contentTypeRepository = null
     ) {
@@ -37,10 +39,23 @@ final class Kernel
 
     public function handle(Request $request): Response
     {
+        if ($this->shouldRedirectToInstall($request)) {
+            return Response::redirect('/install');
+        }
+
         $this->session->start();
         $router = $this->buildRouter();
 
         return $router->dispatch($request);
+    }
+
+    private function shouldRedirectToInstall(Request $request): bool
+    {
+        if ($this->installState === null || $this->installState->isInstalled()) {
+            return false;
+        }
+
+        return $request->path() === '/admin' || str_starts_with($request->path(), '/admin/');
     }
 
     private function buildRouter(): Router

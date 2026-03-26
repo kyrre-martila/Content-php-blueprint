@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Kernel;
 use App\Http\Request;
+use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\MySqlUserRepository;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigLoader;
@@ -56,6 +57,7 @@ $kernel = new Kernel(
     $projectRoot,
     new SessionManager($sessionConfig),
     $userRepository,
+    new InstallState($connection),
     $contentItemRepository,
     $contentTypeRepository
 );
