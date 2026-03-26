@@ -55,7 +55,12 @@ final class Kernel
             return false;
         }
 
-        return $request->path() === '/admin' || str_starts_with($request->path(), '/admin/');
+        return $this->isSetupDependentAdminPath($request->path());
+    }
+
+    private function isSetupDependentAdminPath(string $path): bool
+    {
+        return $path === '/admin' || str_starts_with($path, '/admin/');
     }
 
     private function buildRouter(): Router

@@ -52,12 +52,14 @@ $userRepository = new MySqlUserRepository($connection);
 
 /** @var array<string, mixed> $sessionConfig */
 $sessionConfig = $config->get('app.session', []);
+/** @var string $migrationsTable */
+$migrationsTable = (string) $config->get('database.migrations.table', 'phinxlog');
 
 $kernel = new Kernel(
     $projectRoot,
     new SessionManager($sessionConfig),
     $userRepository,
-    new InstallState($connection),
+    new InstallState($connection, $migrationsTable),
     $contentItemRepository,
     $contentTypeRepository
 );
