@@ -42,6 +42,11 @@ final class Response
         return new self($body, $status, ['Content-Type' => 'text/html; charset=utf-8']);
     }
 
+    public static function redirect(string $location, int $status = 302): self
+    {
+        return new self('', $status, ['Location' => $location]);
+    }
+
     public function send(): void
     {
         http_response_code($this->status);
