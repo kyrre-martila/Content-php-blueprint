@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Http;
 
 use App\Admin\Controller\AuthController;
+use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Application\Auth\LoginUser;
+use App\Application\Content\CreateContentItem;
+use App\Application\Content\ListContentItems;
+use App\Application\Content\UpdateContentItem;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
@@ -67,6 +71,41 @@ final class Kernel
         ));
 
         if ($this->contentItemRepository !== null && $this->contentTypeRepository !== null) {
+            $listContentItems = new ListContentItems($this->contentItemRepository, $this->contentTypeRepository);
+            $createContentItem = new CreateContentItem($this->contentItemRepository, $this->contentTypeRepository);
+            $updateContentItem = new UpdateContentItem($this->contentItemRepository, $this->contentTypeRepository);
+            $contentAdminController = new ContentAdminController(
+                $renderer,
+                $this->contentTypeRepository,
+                $this->contentItemRepository,
+                $listContentItems,
+                $createContentItem,
+                $updateContentItem,
+                $authSession,
+                $this->session
+            );
+
+            $router->get('/admin/content', static fn (Request $request): Response => $requireAuth(
+                $request,
+                [$contentAdminController, 'index']
+            ));
+            $router->get('/admin/content/create', static fn (Request $request): Response => $requireAuth(
+                $request,
+                [$contentAdminController, 'create']
+            ));
+            $router->post('/admin/content/create', static fn (Request $request): Response => $requireAuth(
+                $request,
+                [$contentAdminController, 'store']
+            ));
+            $router->get('/admin/content/{id}/edit', static fn (Request $request): Response => $requireAuth(
+                $request,
+                [$contentAdminController, 'edit']
+            ));
+            $router->post('/admin/content/{id}/edit', static fn (Request $request): Response => $requireAuth(
+                $request,
+                [$contentAdminController, 'update']
+            ));
+
             $contentController = new ContentController(
                 $this->contentItemRepository,
                 new TemplateResolver($templatesPath),
