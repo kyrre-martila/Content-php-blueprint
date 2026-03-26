@@ -38,11 +38,13 @@ final class Router
     public function dispatch(Request $request): Response
     {
         foreach ($this->routes as $route) {
-            if (!$route->matches($request->method(), $request->path())) {
+            $parameters = $route->match($request->method(), $request->path());
+
+            if ($parameters === null) {
                 continue;
             }
 
-            return $route->run($request);
+            return $route->run($request->withAttributes($parameters));
         }
 
         return Response::html('<h1>404 Not Found</h1>', 404);

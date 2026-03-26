@@ -40,7 +40,7 @@ try {
     $contentTypeRepository = new MySqlContentTypeRepository($connection);
     $contentItemRepository = new MySqlContentItemRepository($connection);
 
-    $kernel = new Kernel($contentItemRepository, $contentTypeRepository);
+    $kernel = new Kernel($projectRoot, $contentItemRepository, $contentTypeRepository);
     $response = $kernel->handle(Request::capture());
     $response->send();
 } catch (\Throwable $throwable) {
