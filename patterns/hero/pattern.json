@@ -1,0 +1,19 @@
+{
+  "name": "Hero section",
+  "slug": "hero",
+  "description": "Large hero section with heading, text, and button",
+  "fields": [
+    {
+      "name": "headline",
+      "type": "text"
+    },
+    {
+      "name": "subheadline",
+      "type": "textarea"
+    },
+    {
+      "name": "button_text",
+      "type": "text"
+    }
+  ]
+}

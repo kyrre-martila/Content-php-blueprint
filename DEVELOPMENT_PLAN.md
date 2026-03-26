@@ -775,3 +775,27 @@ Planned future improvements:
 - configuration persistence UI
 - broader extension and platform checks
 - module/bootstrap setup hooks
+
+## Pattern architecture v1 implemented
+
+Pattern architecture v1 now provides a minimal foundation with clear responsibilities:
+
+- filesystem scanning of `patterns/*` directories via `PatternRegistry`
+- metadata loading and validation from `pattern.json`
+- safe rendering layer via `PatternRenderer`
+- template integration through `TemplateRenderer::renderPattern()`
+
+Current implementation focus:
+
+- deterministic registry loading
+- invalid pattern tolerance (ignored safely without crashing)
+- field-type support for `text`, `textarea`, and `image` (future-ready)
+- explicit field passing into pattern templates
+
+Future roadmap:
+
+- pattern editor UI
+- pattern versioning
+- pattern inheritance
+- pattern composition
+- deeper pattern schema validation and tooling

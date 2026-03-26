@@ -1,0 +1,15 @@
+{
+  "name": "Text block",
+  "slug": "text-block",
+  "description": "Simple text content block with heading and body",
+  "fields": [
+    {
+      "name": "title",
+      "type": "text"
+    },
+    {
+      "name": "body",
+      "type": "textarea"
+    }
+  ]
+}

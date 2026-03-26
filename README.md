@@ -164,3 +164,23 @@ Deployment and installation are different steps:
 
 - **Deployment** copies application files to the server.
 - **Installation** initializes runtime state (database schema and first admin account).
+
+## Pattern system
+
+Patterns are reusable presentation blocks that live in `patterns/` and are loaded directly from the filesystem.
+
+Key properties:
+
+- filesystem-based (`patterns/{slug}/pattern.json` + `pattern.php`)
+- reusable and structured through typed field metadata
+- safe for editors to use because they can only select approved developer-defined patterns
+- developer- or AI-authored as version-controlled repository code
+- version-controlled with the rest of the application source
+
+### Templates vs patterns vs content
+
+- **Templates** (`templates/`) define page-level layout and route-oriented rendering structure.
+- **Patterns** (`patterns/`) define small reusable presentation sections rendered inside templates.
+- **Content** is editor-managed data (for example page title, slug, status, field values) persisted through content repositories.
+
+This keeps presentation extensible for developers while preserving predictable editor-safe behavior.
