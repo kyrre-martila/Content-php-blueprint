@@ -1,0 +1,97 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Domain\Content\ContentItem;
+use App\Domain\Content\ContentType;
+use App\Domain\Content\Slug;
+use App\Infrastructure\Content\MySqlContentItemRepository;
+use App\Infrastructure\Content\MySqlContentTypeRepository;
+use App\Infrastructure\Database\Connection;
+
+function buildConnectionForRepositoryTests(): Connection
+{
+    $pdo = new PDO('sqlite::memory:');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+    $pdo->exec(
+        'CREATE TABLE content_types (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            description TEXT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE content_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content_type_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL,
+            body TEXT NULL,
+            published_at TEXT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(content_type_id) REFERENCES content_types(id)
+        )'
+    );
+
+    return new Connection($pdo);
+}
+
+it('persists and reads content types', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $repository = new MySqlContentTypeRepository($connection);
+
+    $articleType = new ContentType('article', 'Article', 'templates/pages/article.php');
+
+    $repository->save($articleType);
+
+    $found = $repository->findByName('article');
+
+    expect($found)->not->toBeNull()
+        ->and($found?->name())->toBe('article')
+        ->and($found?->label())->toBe('Article')
+        ->and($found?->defaultTemplate())->toBe('templates/pages/article.php')
+        ->and($repository->findAll())->toHaveCount(1);
+});
+
+it('persists updates and queries content items by id slug and type', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+
+    $contentType = new ContentType('article', 'Article', 'templates/pages/article.php');
+    $typeRepository->save($contentType);
+
+    $initialItem = ContentItem::draft(
+        id: null,
+        type: $contentType,
+        title: 'Hello World',
+        slug: Slug::fromString('hello-world'),
+        createdAt: new DateTimeImmutable('2026-03-20 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
+    );
+
+    $savedItem = $itemRepository->save($initialItem);
+
+    expect($savedItem->id())->toBeInt()
+        ->and($itemRepository->findById($savedItem->id() ?? 0)?->slug()->value())->toBe('hello-world')
+        ->and($itemRepository->findBySlug(Slug::fromString('hello-world'))?->title())->toBe('Hello World')
+        ->and($itemRepository->findByType($contentType))->toHaveCount(1);
+
+    $updated = $savedItem
+        ->withTitle('Updated Title', new DateTimeImmutable('2026-03-21 10:00:00'))
+        ->withSlug(Slug::fromString('hello-world-updated'), new DateTimeImmutable('2026-03-21 10:00:00'));
+
+    $updatedSaved = $itemRepository->save($updated);
+
+    expect($updatedSaved->title())->toBe('Updated Title')
+        ->and($updatedSaved->slug()->value())->toBe('hello-world-updated')
+        ->and($itemRepository->findBySlug(Slug::fromString('hello-world')))->toBeNull();
+});

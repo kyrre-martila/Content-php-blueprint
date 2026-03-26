@@ -6,6 +6,10 @@ use App\Http\Kernel;
 use App\Http\Request;
 use App\Infrastructure\Config\ConfigLoader;
 use App\Infrastructure\Config\ConfigRepository;
+use App\Infrastructure\Content\MySqlContentItemRepository;
+use App\Infrastructure\Content\MySqlContentTypeRepository;
+use App\Infrastructure\Database\Connection;
+use App\Infrastructure\Database\PdoFactory;
 use App\Infrastructure\Support\Env;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
@@ -25,9 +29,18 @@ try {
     Env::load($projectRoot . '/.env');
 
     $configLoader = new ConfigLoader($projectRoot . '/config');
-    new ConfigRepository($configLoader->load());
+    $config = new ConfigRepository($configLoader->load());
 
-    $kernel = new Kernel();
+    /** @var array<string, mixed> $connectionConfig */
+    $connectionConfig = $config->get('database.connections.mysql', []);
+
+    $pdo = (new PdoFactory())->create($connectionConfig);
+    $connection = new Connection($pdo);
+
+    $contentTypeRepository = new MySqlContentTypeRepository($connection);
+    $contentItemRepository = new MySqlContentItemRepository($connection);
+
+    $kernel = new Kernel($contentItemRepository, $contentTypeRepository);
     $response = $kernel->handle(Request::capture());
     $response->send();
 } catch (\Throwable $throwable) {
