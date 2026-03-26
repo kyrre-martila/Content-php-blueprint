@@ -536,20 +536,125 @@ These allow AI to operate deterministically inside the repository.
 
 ---
 
-## Deployment Strategy
+## AI-First Workflow
 
-Supports:
+Intended workflow:
 
-shared hosting  
-VPS  
-Docker (optional)  
+clone blueprint repository  
+let AI generate first site version  
+let AI create or extend content types, templates, and patterns  
+hand off content operations to editors through safe admin/editor tools  
+allow advanced users to extend presentation through dev mode  
 
-Production deployment checklist:
+Separation rules:
 
-composer install --no-dev --optimize-autoloader  
-run migrations  
-configure .env  
-ensure writable storage  
+AI-generated structure and templates are managed as repository code  
+editor-managed content is managed through approved content fields  
+developer-managed presentation logic remains in templates/components/pattern code  
+
+Long-term operating model:
+
+AI builds the system  
+Humans refine it  
+Editors run it  
+
+---
+
+## Pattern System
+
+Patterns are first-class building blocks of page composition.
+
+Patterns are:
+
+reusable, developer-defined presentation sections  
+safe for editors to insert into pages  
+aligned with the project design system  
+controlled through typed configuration and template mapping  
+
+Patterns are NOT:
+
+freeform drag-and-drop layout construction  
+unrestricted HTML/CSS editing for editors  
+
+Ownership model:
+
+editors select and order approved patterns  
+developers create and evolve the pattern catalog  
+AI may generate new patterns when it follows repository rules and naming conventions  
+
+Target behavior is similar to WordPress patterns, but inside a stricter layered architecture.
+
+---
+
+## Editor Mode
+
+Editor mode is a safe inline content-editing mode for non-technical users.
+
+Editor mode principles:
+
+edit text and approved fields directly while viewing the page  
+limit edits to content fields explicitly exposed by schema/template mapping  
+prevent layout-breaking capabilities for normal editor roles  
+keep template, routing, and pattern implementation under developer control  
+
+This preserves editor-safe defaults while reducing admin friction for routine updates.
+
+---
+
+## Dev Mode
+
+Dev mode is an advanced, role-gated mode for site-building and presentation work.
+
+Dev mode may expose controlled editing for:
+
+patterns  
+templates  
+components  
+CSS  
+JS  
+design tokens  
+template-to-content mapping where appropriate  
+
+Dev mode must NOT expose unrestricted editing of:
+
+core domain logic  
+auth internals  
+persistence internals  
+low-level application core  
+
+Operational requirements:
+
+all dev mode changes should be version-aware  
+changes should be auditable  
+rollback/history should be designed in from the start  
+
+---
+
+## Deployment and Installation Strategy
+
+Recommended hosting mode:
+
+web root points to public/  
+
+Compatibility mode (optional):
+
+root index.php delegates to public/index.php for limited shared-hosting scenarios  
+
+Release direction:
+
+production releases should be distributable as ready-to-upload zip packages  
+production runtime should not require Composer on the server  
+
+Future onboarding direction:
+
+install wizard should guide first-run setup and environment validation  
+setup flow should be as simple as realistically possible on standard PHP hosting  
+
+Terminology distinction:
+
+deployment = delivering built release artifacts to hosting  
+installation = placing files/config in the target environment correctly  
+first-run setup = guided initialization of app settings, database, and admin account  
 
 ---
 
@@ -577,6 +682,9 @@ skills structure
 
 ## Version 0.2 Planned Features
 
+pattern architecture (registry, schema, rendering contracts)  
+editor mode foundation (safe inline field editing)  
+dev mode foundation (role-gated presentation editing)  
 redirect manager  
 SEO fields  
 draft/publish workflow  
@@ -584,11 +692,16 @@ scheduled publishing
 media transformations  
 navigation builder  
 site settings editor  
+release packaging pipeline (zip artifact for production uploads)  
+install wizard foundation (first-run setup flow)  
 
 ---
 
 ## Version 0.3 Planned Features
 
+full pattern library lifecycle tooling  
+editor mode expansion (workflow and review features)  
+dev mode expansion (audit history, rollback UX, diff tooling)  
 multisite support  
 localization support  
 plugin modules  
