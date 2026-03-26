@@ -9,6 +9,9 @@ use InvalidArgumentException;
 
 final class ContentItem
 {
+    /**
+     * @param list<array{pattern: string, data: array<string, string>}> $patternBlocks
+     */
     public function __construct(
         private readonly ?int $id,
         private readonly ContentType $type,
@@ -16,7 +19,8 @@ final class ContentItem
         private readonly Slug $slug,
         private readonly ContentStatus $status,
         private readonly DateTimeImmutable $createdAt,
-        private readonly DateTimeImmutable $updatedAt
+        private readonly DateTimeImmutable $updatedAt,
+        private readonly array $patternBlocks = []
     ) {
         if (trim($this->title) === '') {
             throw new InvalidArgumentException('Content item title cannot be empty.');
@@ -77,6 +81,14 @@ final class ContentItem
         return $this->updatedAt;
     }
 
+    /**
+     * @return list<array{pattern: string, data: array<string, string>}>
+     */
+    public function patternBlocks(): array
+    {
+        return $this->patternBlocks;
+    }
+
     public function isPublished(): bool
     {
         return $this->status->isPublished();
@@ -91,7 +103,8 @@ final class ContentItem
             $this->slug,
             $status,
             $this->createdAt,
-            $updatedAt
+            $updatedAt,
+            $this->patternBlocks
         );
     }
 
@@ -109,7 +122,8 @@ final class ContentItem
             $this->slug,
             $this->status,
             $this->createdAt,
-            $updatedAt
+            $updatedAt,
+            $this->patternBlocks
         );
     }
 
@@ -122,7 +136,8 @@ final class ContentItem
             $slug,
             $this->status,
             $this->createdAt,
-            $updatedAt
+            $updatedAt,
+            $this->patternBlocks
         );
     }
 }

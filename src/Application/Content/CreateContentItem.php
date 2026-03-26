@@ -74,7 +74,8 @@ final class CreateContentItem
             $slug,
             $status,
             $now,
-            $now
+            $now,
+            $input->patternBlocks
         );
 
         return ContentItemValidationResult::valid($this->contentItems->save($contentItem));

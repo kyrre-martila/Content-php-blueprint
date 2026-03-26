@@ -184,3 +184,22 @@ Key properties:
 - **Content** is editor-managed data (for example page title, slug, status, field values) persisted through content repositories.
 
 This keeps presentation extensible for developers while preserving predictable editor-safe behavior.
+
+## Pattern blocks in content items
+
+Content items can include a `pattern_blocks` payload that stores structured pattern composition per entry.
+
+Key behavior:
+
+- patterns define allowed fields and field types from `pattern.json`
+- each block stores `{ "pattern": "slug", "data": { ... } }`
+- block data is persisted as JSON in the content item record
+- frontend rendering outputs blocks sequentially using `PatternRenderer`
+
+Editor workflow:
+
+1. Open create/edit content item in admin.
+2. Select a pattern for each block from registered patterns.
+3. Fill the generated pattern fields.
+4. Save content item.
+5. Visit the content page to see pattern blocks rendered in saved order.

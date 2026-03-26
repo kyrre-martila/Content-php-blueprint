@@ -6,12 +6,16 @@ namespace App\Application\Content\Dto;
 
 final class ContentItemInput
 {
+    /**
+     * @param list<array{pattern: string, data: array<string, string>}> $patternBlocks
+     */
     public function __construct(
         public readonly string $title,
         public readonly string $slug,
         public readonly string $status,
         public readonly string $contentType,
-        public readonly ?string $body = null
+        public readonly ?string $body = null,
+        public readonly array $patternBlocks = []
     ) {
     }
 }
