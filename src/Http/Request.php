@@ -12,6 +12,7 @@ final class Request
      * @param array<string, mixed> $cookies
      * @param array<string, mixed> $files
      * @param array<string, mixed> $server
+     * @param array<string, string> $attributes
      */
     public function __construct(
         private readonly string $method,
@@ -20,7 +21,8 @@ final class Request
         private readonly array $post,
         private readonly array $cookies,
         private readonly array $files,
-        private readonly array $server
+        private readonly array $server,
+        private readonly array $attributes = []
     ) {
     }
 
@@ -89,6 +91,28 @@ final class Request
     public function serverParams(): array
     {
         return $this->server;
+    }
+
+    public function attribute(string $name): ?string
+    {
+        return $this->attributes[$name] ?? null;
+    }
+
+    /**
+     * @param array<string, string> $attributes
+     */
+    public function withAttributes(array $attributes): self
+    {
+        return new self(
+            $this->method,
+            $this->path,
+            $this->query,
+            $this->post,
+            $this->cookies,
+            $this->files,
+            $this->server,
+            $attributes
+        );
     }
 
     private static function normalizePath(string $uri): string

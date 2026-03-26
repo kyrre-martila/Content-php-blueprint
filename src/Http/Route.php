@@ -29,10 +29,33 @@ final class Route
         );
     }
 
-    public function matches(string $method, string $path): bool
+    /**
+     * @return array<string, string>|null
+     */
+    public function match(string $method, string $path): ?array
     {
-        return $this->method === self::normalizeMethod($method)
-            && $this->path === self::normalizePath($path);
+        if ($this->method !== self::normalizeMethod($method)) {
+            return null;
+        }
+
+        $matches = [];
+        $result = preg_match($this->toRegex(), self::normalizePath($path), $matches);
+
+        if ($result !== 1) {
+            return null;
+        }
+
+        $parameters = [];
+
+        foreach ($matches as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            $parameters[$key] = $value;
+        }
+
+        return $parameters;
     }
 
     public function run(Request $request): Response
@@ -44,6 +67,17 @@ final class Route
         }
 
         return $response;
+    }
+
+    private function toRegex(): string
+    {
+        $pattern = preg_replace_callback(
+            '/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/',
+            static fn (array $matches): string => '(?P<' . $matches[1] . '>[^/]+)',
+            $this->path
+        ) ?? $this->path;
+
+        return '#^' . $pattern . '$#';
     }
 
     private static function normalizeMethod(string $method): string
