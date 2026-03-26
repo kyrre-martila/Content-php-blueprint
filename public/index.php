@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Kernel;
 use App\Http\Request;
+use App\Infrastructure\Auth\MySqlUserRepository;
+use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigLoader;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
@@ -39,8 +41,19 @@ try {
 
     $contentTypeRepository = new MySqlContentTypeRepository($connection);
     $contentItemRepository = new MySqlContentItemRepository($connection);
+    $userRepository = new MySqlUserRepository($connection);
 
-    $kernel = new Kernel($projectRoot, $contentItemRepository, $contentTypeRepository);
+    /** @var array<string, mixed> $sessionConfig */
+    $sessionConfig = $config->get('app.session', []);
+
+    $kernel = new Kernel(
+        $projectRoot,
+        new SessionManager($sessionConfig),
+        $userRepository,
+        $contentItemRepository,
+        $contentTypeRepository
+    );
+
     $response = $kernel->handle(Request::capture());
     $response->send();
 } catch (\Throwable $throwable) {
