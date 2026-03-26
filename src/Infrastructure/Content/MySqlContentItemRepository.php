@@ -11,6 +11,7 @@ use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
 use App\Infrastructure\Database\Connection;
 use DateTimeImmutable;
+use JsonException;
 use RuntimeException;
 
 final class MySqlContentItemRepository implements ContentItemRepositoryInterface
@@ -95,13 +96,14 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         $contentTypeId = $this->findContentTypeIdByMachineName($contentItem->type()->name());
 
         $insertedId = $this->connection->insertAndGetId(
-            'INSERT INTO content_items (content_type_id, title, slug, status, created_at, updated_at)
-             VALUES (:content_type_id, :title, :slug, :status, :created_at, :updated_at)',
+            'INSERT INTO content_items (content_type_id, title, slug, status, pattern_blocks, created_at, updated_at)
+             VALUES (:content_type_id, :title, :slug, :status, :pattern_blocks, :created_at, :updated_at)',
             [
                 'content_type_id' => $contentTypeId,
                 'title' => $contentItem->title(),
                 'slug' => $contentItem->slug()->value(),
                 'status' => $contentItem->status()->value,
+                'pattern_blocks' => $this->encodePatternBlocks($contentItem->patternBlocks()),
                 'created_at' => $contentItem->createdAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $contentItem->updatedAt()->format('Y-m-d H:i:s'),
             ]
@@ -136,6 +138,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                  title = :title,
                  slug = :slug,
                  status = :status,
+                 pattern_blocks = :pattern_blocks,
                  updated_at = :updated_at
              WHERE id = :id',
             [
@@ -144,6 +147,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 'title' => $contentItem->title(),
                 'slug' => $contentItem->slug()->value(),
                 'status' => $contentItem->status()->value,
+                'pattern_blocks' => $this->encodePatternBlocks($contentItem->patternBlocks()),
                 'updated_at' => $contentItem->updatedAt()->format('Y-m-d H:i:s'),
             ]
         );
@@ -182,6 +186,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ci.title,
                     ci.slug,
                     ci.status,
+                    ci.pattern_blocks,
                     ci.created_at,
                     ci.updated_at,
                     ct.slug AS type_slug,
@@ -212,7 +217,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             Slug::fromString($this->rowString($row, 'slug')),
             ContentStatus::fromString($this->rowString($row, 'status')),
             new DateTimeImmutable($this->rowString($row, 'created_at')),
-            new DateTimeImmutable($this->rowString($row, 'updated_at'))
+            new DateTimeImmutable($this->rowString($row, 'updated_at')),
+            $this->decodePatternBlocks($row['pattern_blocks'] ?? null)
         );
     }
 
@@ -242,5 +248,69 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         }
 
         return (int) $value;
+    }
+
+    /**
+     * @param list<array{pattern: string, data: array<string, string>}> $blocks
+     */
+    private function encodePatternBlocks(array $blocks): string
+    {
+        try {
+            return json_encode($blocks, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Failed to encode content item pattern blocks as JSON.', 0, $exception);
+        }
+    }
+
+    /**
+     * @return list<array{pattern: string, data: array<string, string>}>
+     */
+    private function decodePatternBlocks(mixed $value): array
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Stored pattern blocks JSON is invalid.', 0, $exception);
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $validated = [];
+
+        foreach ($decoded as $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+
+            $pattern = $block['pattern'] ?? null;
+            $data = $block['data'] ?? null;
+
+            if (!is_string($pattern) || trim($pattern) === '' || !is_array($data)) {
+                continue;
+            }
+
+            $normalizedData = [];
+
+            foreach ($data as $key => $fieldValue) {
+                if (!is_string($key) || !is_scalar($fieldValue)) {
+                    continue;
+                }
+
+                $normalizedData[$key] = (string) $fieldValue;
+            }
+
+            $validated[] = [
+                'pattern' => trim($pattern),
+                'data' => $normalizedData,
+            ];
+        }
+
+        return $validated;
     }
 }

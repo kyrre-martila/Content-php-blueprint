@@ -150,6 +150,7 @@ final class Kernel
                 $listContentItems,
                 $createContentItem,
                 $updateContentItem,
+                $patternRegistry,
                 $authSession,
                 $this->session
             );
@@ -193,7 +194,8 @@ final class Kernel
             $contentController = new ContentController(
                 $this->contentItemRepository,
                 new TemplateResolver($templatesPath),
-                $renderer
+                $renderer,
+                $patternRenderer
             );
 
             $router->get('/{slug}', [$contentController, 'show']);

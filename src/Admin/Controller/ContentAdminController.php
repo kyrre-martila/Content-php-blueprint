@@ -14,6 +14,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\View\TemplateRenderer;
 
 final class ContentAdminController
@@ -25,6 +26,7 @@ final class ContentAdminController
         private readonly ListContentItems $listContentItems,
         private readonly CreateContentItem $createContentItem,
         private readonly UpdateContentItem $updateContentItem,
+        private readonly PatternRegistry $patternRegistry,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session
     ) {
@@ -53,6 +55,7 @@ final class ContentAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
+                'availablePatterns' => $this->patternRegistry->all(),
                 'errors' => [],
                 'old' => [
                     'title' => '',
@@ -60,6 +63,7 @@ final class ContentAdminController
                     'status' => '',
                     'content_type' => '',
                     'body' => '',
+                    'pattern_blocks' => [],
                 ],
             ]
         );
@@ -102,6 +106,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
+                'availablePatterns' => $this->patternRegistry->all(),
                 'errors' => [],
                 'old' => [
                     'title' => $item->title(),
@@ -109,6 +114,7 @@ final class ContentAdminController
                     'status' => $item->status()->value,
                     'content_type' => $item->type()->name(),
                     'body' => '',
+                    'pattern_blocks' => $item->patternBlocks(),
                 ],
             ]
         );
@@ -145,7 +151,8 @@ final class ContentAdminController
             is_string($post['slug'] ?? null) ? $post['slug'] : '',
             is_string($post['status'] ?? null) ? $post['status'] : '',
             is_string($post['content_type'] ?? null) ? $post['content_type'] : '',
-            is_string($post['body'] ?? null) ? $post['body'] : null
+            is_string($post['body'] ?? null) ? $post['body'] : null,
+            $this->extractPatternBlocks($post['pattern_blocks'] ?? null)
         );
     }
 
@@ -171,6 +178,7 @@ final class ContentAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
+                'availablePatterns' => $this->patternRegistry->all(),
                 'errors' => $errors,
                 'old' => [
                     'title' => $input->title,
@@ -178,6 +186,7 @@ final class ContentAdminController
                     'status' => $input->status,
                     'content_type' => $input->contentType,
                     'body' => $input->body ?? '',
+                    'pattern_blocks' => $input->patternBlocks,
                 ],
             ]
         );
@@ -203,6 +212,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
+                'availablePatterns' => $this->patternRegistry->all(),
                 'errors' => $errors,
                 'old' => [
                     'title' => $input->title,
@@ -210,10 +220,58 @@ final class ContentAdminController
                     'status' => $input->status,
                     'content_type' => $input->contentType,
                     'body' => $input->body ?? '',
+                    'pattern_blocks' => $input->patternBlocks,
                 ],
             ]
         );
 
         return Response::html($html, 422);
+    }
+
+    /**
+     * @return list<array{pattern: string, data: array<string, string>}>
+     */
+    private function extractPatternBlocks(mixed $rawBlocks): array
+    {
+        if (!is_array($rawBlocks)) {
+            return [];
+        }
+
+        $availablePatterns = $this->patternRegistry->all();
+        $blocks = [];
+
+        foreach ($rawBlocks as $rawBlock) {
+            if (!is_array($rawBlock)) {
+                continue;
+            }
+
+            $slug = $rawBlock['pattern'] ?? null;
+
+            if (!is_string($slug) || !isset($availablePatterns[$slug])) {
+                continue;
+            }
+
+            $pattern = $availablePatterns[$slug];
+            $rawData = $rawBlock['data'] ?? [];
+
+            if (!is_array($rawData)) {
+                $rawData = [];
+            }
+
+            $data = [];
+
+            foreach ($pattern['fields'] as $field) {
+                $name = $field['name'];
+                $value = $rawData[$name] ?? '';
+                $data[$name] = is_scalar($value) ? trim((string) $value) : '';
+            }
+
+            $blocks[] = [
+                'pattern' => $slug,
+                'data' => $data,
+            ];
+        }
+
+        return $blocks;
     }
 }

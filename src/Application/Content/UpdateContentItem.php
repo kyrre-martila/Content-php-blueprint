@@ -82,7 +82,8 @@ final class UpdateContentItem
             $slug,
             $status,
             $existing->createdAt(),
-            new DateTimeImmutable()
+            new DateTimeImmutable(),
+            $input->patternBlocks
         );
 
         return ContentItemValidationResult::valid($this->contentItems->save($updatedContentItem));

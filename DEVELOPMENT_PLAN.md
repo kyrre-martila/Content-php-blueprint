@@ -799,3 +799,20 @@ Future roadmap:
 - pattern inheritance
 - pattern composition
 - deeper pattern schema validation and tooling
+
+## Pattern composition inside content items implemented
+
+Implemented capabilities:
+
+- each content item now stores ordered `pattern_blocks` JSON
+- admin create/edit form builds pattern field inputs from pattern metadata
+- only valid registered patterns are exposed to editors through `PatternRegistry`
+- frontend content rendering composes block output sequentially via `PatternRenderer`
+
+Future roadmap:
+
+- drag-drop ordering
+- pattern preview mode
+- pattern validation rules
+- pattern nesting
+- pattern locking
