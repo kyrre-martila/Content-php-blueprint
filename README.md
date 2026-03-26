@@ -149,3 +149,18 @@ vendor/bin/phpstan analyse -c phpstan.neon.dist
 - File-based logging channels under `storage/logs/`.
 - CSRF protection on all admin POST routes.
 - Expanded docs and reusable AI skill workflows under `docs/` and `skills/`.
+
+## Installation via browser
+
+Use this flow after deployment is complete (files are already uploaded and web root is configured):
+
+1. Upload/deploy project files to the server.
+2. Open `/install` in your browser.
+3. Fill in database connection settings.
+4. Provide initial admin email and password.
+5. Submit to run migrations, create the first admin user, and finalize installation.
+
+Deployment and installation are different steps:
+
+- **Deployment** copies application files to the server.
+- **Installation** initializes runtime state (database schema and first admin account).

@@ -39,6 +39,12 @@ SQL,
             return false;
         }
 
-        return (int) ($result['table_count'] ?? 0) > 0;
+        $tableCount = $result['table_count'] ?? 0;
+
+        if (is_int($tableCount)) {
+            return $tableCount > 0;
+        }
+
+        return is_string($tableCount) && ctype_digit($tableCount) && (int) $tableCount > 0;
     }
 }
