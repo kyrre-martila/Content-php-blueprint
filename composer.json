@@ -4,7 +4,8 @@
     "type": "project",
     "license": "proprietary",
     "require": {
-        "php": "^8.3"
+        "php": "^8.3",
+        "robmorgan/phinx": "^0.16.10"
     },
     "require-dev": {
         "pestphp/pest": "^3.0",
@@ -22,7 +23,11 @@
     },
     "scripts": {
         "test": "pest",
-        "analyse": "phpstan analyse"
+        "analyse": "phpstan analyse",
+        "migrate": "phinx migrate -c phinx.php",
+        "migrate:rollback": "phinx rollback -c phinx.php",
+        "migrate:status": "phinx status -c phinx.php",
+        "migrate:create": "phinx create -c phinx.php"
     },
     "config": {
         "sort-packages": true,
