@@ -9,28 +9,36 @@ use Throwable;
 
 final class InstallState
 {
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly string $migrationsTable = 'phinxlog'
+    ) {
     }
 
     public function isInstalled(): bool
     {
+        return $this->tableExists($this->migrationsTable)
+            && $this->tableExists('users')
+            && $this->tableExists('content_types');
+    }
+
+    private function tableExists(string $table): bool
+    {
         try {
             $result = $this->connection->fetchOne(
                 <<<'SQL'
-SELECT COUNT(*) AS admin_count
-FROM users
-WHERE email = :email
+SELECT COUNT(*) AS table_count
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = :table
 LIMIT 1
 SQL,
-                ['email' => 'admin@example.com']
+                ['table' => $table]
             );
         } catch (Throwable) {
             return false;
         }
 
-        $adminCount = (int) ($result['admin_count'] ?? 0);
-
-        return $adminCount > 0;
+        return (int) ($result['table_count'] ?? 0) > 0;
     }
 }

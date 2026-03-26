@@ -13,6 +13,8 @@ Framework-light PHP 8.3+ blueprint for structured content websites with explicit
    cp .env.example .env
    ```
 
+This section is for local development where Composer and developer tooling are available.
+
 ## Environment setup
 
 Set at minimum in `.env`:
@@ -71,11 +73,11 @@ Then open `http://127.0.0.1:8000`.
 
 This project supports two deployment entrypoint layouts:
 
-1. **Recommended setup (preferred):**
+1. **Recommended mode (preferred):**
    - Web root points to `public/`
    - Requests execute `public/index.php` directly
 
-2. **Compatibility setup (shared hosting fallback):**
+2. **Compatibility mode (shared hosting fallback):**
    - Web root points to the project root
    - Root `index.php` delegates execution to `public/index.php`
 
@@ -89,6 +91,16 @@ Why compatibility mode exists:
 
 - Some shared hosting plans do not allow changing the web root
 - The root `index.php` keeps deployment possible in those environments without changing application architecture
+
+## Future installation workflow
+
+Planned first-run lifecycle:
+
+- **Deployment** delivers files to the target server.
+- **Installation** prepares required runtime prerequisites (for example DB connectivity and schema readiness).
+- **First-run setup** initializes project-specific state (for example initial admin account and installer lock state).
+
+The future `/install` flow will handle setup tasks after deployment, not replace deployment itself.
 
 ## Production deployment (planned workflow)
 
@@ -114,7 +126,8 @@ Future install wizard plan:
 Important distinction:
 
 - **Deployment** = shipping files to the server
-- **Installation** = first-run system configuration and bootstrap
+- **Installation** = preparing runtime prerequisites and running setup actions
+- **First-run setup** = initial bootstrap state (admin account, install lock, and persisted config where supported)
 
 ## Test commands
 

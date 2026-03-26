@@ -665,9 +665,12 @@ detect install state
 if not installed, redirect protected setup-dependent routes (for example admin) to /install  
 once setup completes, installer must be locked and normal routes remain active  
 
+Install-state decision should stay lightweight and explicit (for example required-table detection aligned with migrations).
+
 Planned installer responsibilities:
 
 environment checks  
+database setup and connectivity validation  
 database migration execution  
 initial admin account bootstrap  
 configuration persistence for runtime use  
