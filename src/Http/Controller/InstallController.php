@@ -89,6 +89,14 @@ final class InstallController
             return $this->renderInstallForm($request, $input, $errors, $throwable->getMessage(), $checks, 500);
         }
 
+        try {
+            $this->markInstallationCompleted($connection);
+        } catch (Throwable $throwable) {
+            $errors['install_state'] = 'Could not finalize installation state.';
+
+            return $this->renderInstallForm($request, $input, $errors, $throwable->getMessage(), $checks, 500);
+        }
+
         $installState = new InstallState($connection, $this->migrationsTable);
 
         if (!$installState->isInstalled()) {
@@ -184,6 +192,19 @@ final class InstallController
 
         $manager = new Manager($config, new ArrayInput([]), new BufferedOutput());
         $manager->migrate('installer');
+    }
+
+    private function markInstallationCompleted(Connection $connection): void
+    {
+        $connection->execute(
+            <<<'SQL'
+INSERT INTO settings (id, install_completed)
+VALUES (1, :install_completed)
+ON DUPLICATE KEY UPDATE
+    install_completed = VALUES(install_completed)
+SQL,
+            ['install_completed' => true]
+        );
     }
 
     /**
