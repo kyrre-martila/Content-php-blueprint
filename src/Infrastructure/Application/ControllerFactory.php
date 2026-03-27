@@ -87,6 +87,7 @@ final class ControllerFactory
         EditHistoryLogger $devModeHistory,
         ?InstallState $installState,
         bool $installationRequired,
+        bool $repositoriesAvailable,
         string $migrationsTable,
         ?EditorContentService $editorContentService
     ): array {
@@ -108,7 +109,8 @@ final class ControllerFactory
         $sitemapController = null;
 
         if (
-            $contentItemRepository !== null
+            $repositoriesAvailable
+            && $contentItemRepository !== null
             && $contentTypeRepository !== null
             && $editorContentService !== null
         ) {

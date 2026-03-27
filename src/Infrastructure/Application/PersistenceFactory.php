@@ -7,8 +7,9 @@ namespace App\Infrastructure\Application;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
-use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Auth\MySqlUserRepository;
+use App\Infrastructure\Auth\UnavailableUserRepository;
+use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
@@ -24,11 +25,19 @@ final class PersistenceFactory
     }
 
     /**
+     * Build persistence services for runtime.
+     *
+     * Boundary rules:
+     * - If MySQL bootstrap fails, we DO NOT create temporary/fake repositories.
+     * - Database-backed repositories are marked unavailable and callers must gate construction.
+     *
      * @return array{
      *   migrationsTable: string,
      *   connection: ?Connection,
      *   installState: ?InstallState,
      *   installationRequired: bool,
+     *   persistenceUnavailableReason: ?string,
+     *   repositoriesAvailable: bool,
      *   userRepository: UserRepositoryInterface,
      *   contentItemRepository: ?ContentItemRepositoryInterface,
      *   contentTypeRepository: ?ContentTypeRepositoryInterface
@@ -42,6 +51,7 @@ final class PersistenceFactory
         $connection = null;
         $installState = null;
         $installationRequired = false;
+        $persistenceUnavailableReason = null;
 
         try {
             /** @var array<string, mixed> $connectionConfig */
@@ -51,18 +61,22 @@ final class PersistenceFactory
             $installState = new InstallState($connection, $migrationsTable);
         } catch (\RuntimeException $runtimeException) {
             $installationRequired = true;
-            $this->logger->warning('Database bootstrap unavailable, forcing install flow.', [
-                'error' => $runtimeException->getMessage(),
+            $persistenceUnavailableReason = $runtimeException->getMessage();
+
+            $this->logger->warning('Database bootstrap unavailable; database-backed repositories are disabled.', [
+                'error' => $persistenceUnavailableReason,
             ]);
         }
 
-        $repositories = $this->buildRepositories($connection);
+        $repositories = $this->buildRepositories($connection, $persistenceUnavailableReason);
 
         return [
             'migrationsTable' => $migrationsTable,
             'connection' => $connection,
             'installState' => $installState,
             'installationRequired' => $installationRequired,
+            'persistenceUnavailableReason' => $persistenceUnavailableReason,
+            'repositoriesAvailable' => $connection !== null,
             'userRepository' => $repositories['userRepository'],
             'contentItemRepository' => $repositories['contentItemRepository'],
             'contentTypeRepository' => $repositories['contentTypeRepository'],
@@ -76,13 +90,13 @@ final class PersistenceFactory
      *   contentTypeRepository: ?ContentTypeRepositoryInterface
      * }
      */
-    private function buildRepositories(?Connection $connection): array
+    private function buildRepositories(?Connection $connection, ?string $unavailableReason): array
     {
         if ($connection === null) {
-            $temporaryConnection = new Connection((new \PDO('sqlite::memory:')));
-
             return [
-                'userRepository' => new MySqlUserRepository($temporaryConnection),
+                'userRepository' => new UnavailableUserRepository(
+                    $unavailableReason ?? 'Database bootstrap failed before repositories were available.'
+                ),
                 'contentItemRepository' => null,
                 'contentTypeRepository' => null,
             ];
