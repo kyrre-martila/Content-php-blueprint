@@ -157,7 +157,7 @@ Installation responsibilities:
 
 Install state is considered complete only when all checks pass:
 
-- required tables exist (`users`, `content_types`, `settings`)
+- required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`)
 - admin/superadmin user exists
 - install flag evaluates true
 

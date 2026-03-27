@@ -17,16 +17,16 @@ final class InstallState
 
     public function isInstalled(): bool
     {
-        return $this->requiredTablesExist()
+        return $this->tablesExist()
             && $this->adminUserExists()
-            && $this->installFlagIsTrue();
+            && $this->installFlagExists();
     }
 
-    private function requiredTablesExist(): bool
+    private function tablesExist(): bool
     {
-        return $this->tableExists('users')
-            && $this->tableExists('content_types')
-            && $this->tableExists('settings');
+        return $this->tableExists($this->migrationsTable)
+            && $this->tableExists('users')
+            && $this->tableExists('content_types');
     }
 
     private function adminUserExists(): bool
@@ -54,8 +54,12 @@ SQL
         return is_string($adminCount) && ctype_digit($adminCount) && (int) $adminCount > 0;
     }
 
-    private function installFlagIsTrue(): bool
+    private function installFlagExists(): bool
     {
+        if (!$this->tableExists('settings')) {
+            return false;
+        }
+
         try {
             $result = $this->connection->fetchOne(
                 <<<'SQL'
