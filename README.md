@@ -115,7 +115,7 @@ During installation, Blueprint also runs a demo seeder that creates a small exam
 
 Install-state checks require all of the following:
 
-- required tables exist (`users`, `content_types`, `settings`)
+- required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`)
 - at least one admin/superadmin user exists
 - install flag is true in `settings.install_completed`
 
