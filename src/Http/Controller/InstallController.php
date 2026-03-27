@@ -90,6 +90,8 @@ final class InstallController
         }
 
         try {
+            $this->createSettingsRecord($connection);
+            $this->runBlueprintDemoSeeder($input);
             $this->markInstallationCompleted($connection);
         } catch (Throwable $throwable) {
             $errors['install_state'] = 'Could not finalize installation state.';
@@ -192,6 +194,47 @@ final class InstallController
 
         $manager = new Manager($config, new ArrayInput([]), new BufferedOutput());
         $manager->migrate('installer');
+    }
+
+    private function runBlueprintDemoSeeder(array $input): void
+    {
+        $config = new Config([
+            'paths' => [
+                'migrations' => $this->projectRoot . '/database/migrations',
+                'seeds' => $this->projectRoot . '/database/seeds',
+            ],
+            'environments' => [
+                'default_migration_table' => $this->migrationsTable,
+                'default_environment' => 'installer',
+                'installer' => [
+                    'adapter' => 'mysql',
+                    'host' => $input['db_host'],
+                    'name' => $input['db_name'],
+                    'user' => $input['db_user'],
+                    'pass' => $input['db_pass'],
+                    'port' => (int) $input['db_port'],
+                    'charset' => 'utf8mb4',
+                    'collation' => 'utf8mb4_unicode_ci',
+                ],
+            ],
+            'version_order' => 'creation',
+        ]);
+
+        $manager = new Manager($config, new ArrayInput([]), new BufferedOutput());
+        $manager->seed('installer', 'BlueprintDemoSeeder');
+    }
+
+    private function createSettingsRecord(Connection $connection): void
+    {
+        $connection->execute(
+            <<<'SQL'
+INSERT INTO settings (id, install_completed)
+VALUES (1, :install_completed)
+ON DUPLICATE KEY UPDATE
+    id = VALUES(id)
+SQL,
+            ['install_completed' => false]
+        );
     }
 
     private function markInstallationCompleted(Connection $connection): void

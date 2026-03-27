@@ -105,6 +105,14 @@ Browser flow:
 4. Installer runs migrations, creates initial admin, writes `settings.install_completed = true`.
 5. On success, user is redirected to `/admin/login`.
 
+### Demo seed content
+
+During installation, Blueprint also runs a demo seeder that creates a small example site.
+
+- demo content is created automatically during install
+- demo content is safe to delete after setup
+- demo content demonstrates Blueprint architecture (content modeling, pattern blocks, composition intent, and export boundaries)
+
 Install-state checks require all of the following:
 
 - required tables exist (`users`, `content_types`, `settings`)
