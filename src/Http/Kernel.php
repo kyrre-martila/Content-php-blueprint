@@ -10,13 +10,6 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
-use App\Application\Auth\LoginUser;
-use App\Application\Content\CreateContentItem;
-use App\Application\Content\ListContentItems;
-use App\Application\Content\UpdateContentItem;
-use App\Domain\Auth\Repository\UserRepositoryInterface;
-use App\Domain\Content\Repository\ContentItemRepositoryInterface;
-use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
@@ -25,32 +18,27 @@ use App\Http\Controller\SearchController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Application\InstallState;
-use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
-use App\Infrastructure\Editor\DevMode;
-use App\Infrastructure\Editor\EditableFieldRenderer;
-use App\Infrastructure\Editor\EditableFieldValidator;
-use App\Infrastructure\Editor\EditableFileRegistry;
-use App\Infrastructure\Editor\EditorMode;
-use App\Infrastructure\Editor\EditHistoryLogger;
-use App\Infrastructure\Logging\Logger;
-use App\Infrastructure\Pattern\PatternDataValidator;
-use App\Infrastructure\Pattern\PatternRegistry;
-use App\Infrastructure\View\PatternRenderer;
-use App\Infrastructure\View\TemplateRenderer;
-use App\Infrastructure\View\TemplateResolver;
 
 final class Kernel
 {
     public function __construct(
-        private readonly string $projectRoot,
         private readonly SessionManager $session,
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly HomeController $homeController,
+        private readonly HealthController $healthController,
+        private readonly SearchController $searchController,
+        private readonly AuthController $authController,
+        private readonly DashboardController $dashboardController,
+        private readonly PatternController $patternController,
+        private readonly DevModeController $devModeController,
+        private readonly CsrfMiddleware $csrf,
+        private readonly RequireAuthMiddleware $requireAuth,
+        private readonly ?InstallController $installController = null,
+        private readonly ?ContentAdminController $contentAdminController = null,
+        private readonly ?EditorModeController $editorModeController = null,
+        private readonly ?ContentController $contentController = null,
         private readonly ?InstallState $installState = null,
-        private readonly ?ContentItemRepositoryInterface $contentItemRepository = null,
-        private readonly ?ContentTypeRepositoryInterface $contentTypeRepository = null,
-        private readonly bool $installationRequired = false,
-        private readonly string $migrationsTable = 'phinxlog'
+        private readonly bool $installationRequired = false
     ) {
     }
 
@@ -61,9 +49,8 @@ final class Kernel
         }
 
         $this->session->start();
-        $router = $this->buildRouter();
 
-        return $router->dispatch($request);
+        return $this->buildRouter()->dispatch($request);
     }
 
     private function shouldRedirectToInstall(Request $request): bool
@@ -92,224 +79,156 @@ final class Kernel
     {
         $router = new Router();
 
-        $homeController = new HomeController();
-        $healthController = new HealthController();
-        $templatesPath = $this->projectRoot . '/templates';
-        $patternRegistry = new PatternRegistry($this->projectRoot . '/patterns');
-        $editableFieldRenderer = new EditableFieldRenderer();
-        $patternDataValidator = new PatternDataValidator();
-        $patternRenderer = new PatternRenderer($patternRegistry, $patternDataValidator, $editableFieldRenderer);
-        $renderer = new TemplateRenderer($templatesPath, $patternRenderer, $editableFieldRenderer);
-        $authSession = new AuthSession($this->session);
-        $editorMode = new EditorMode($authSession, $this->session);
-        $devMode = new DevMode($this->projectRoot, $authSession, $this->session);
-        $devModeFiles = new EditableFileRegistry($this->projectRoot, $devMode);
-        $devModeHistory = new EditHistoryLogger($this->projectRoot . '/storage/logs/dev-mode-edits.log');
-        $logger = new Logger($this->projectRoot . '/storage/logs');
-        $loginUser = new LoginUser($this->userRepository, $authSession);
-        $authController = new AuthController($renderer, $loginUser, $authSession, $this->session);
-        $dashboardController = new DashboardController($renderer, $authSession, $editorMode, $devMode);
-        $patternController = new PatternController($patternRegistry);
-        $devModeController = new DevModeController(
-            $renderer,
-            $authSession,
-            $this->session,
-            $devMode,
-            $devModeFiles,
-            $devModeHistory,
-            $logger
-        );
-        $requireAuth = new RequireAuthMiddleware($authSession);
-        $csrf = new CsrfMiddleware($this->session);
+        $router->get('/', [$this->homeController, 'index']);
+        $router->get('/health', [$this->healthController, 'show']);
 
-        $router->get('/', [$homeController, 'index']);
-        $router->get('/health', [$healthController, 'show']);
-
-        // System routes
-        $systemTemplateResolver = new TemplateResolver($templatesPath);
-        $searchController = new SearchController($systemTemplateResolver, $renderer);
-        $router->get('/search', static fn (Request $request): Response => $csrf(
+        $router->get('/search', fn (Request $request): Response => ($this->csrf)(
             $request,
-            [$searchController, 'index']
+            [$this->searchController, 'index']
         ));
 
-        if ($this->installationRequired || $this->installState?->isInstalled() !== true) {
-            $installController = new InstallController(
-                $this->projectRoot,
-                $renderer,
-                $this->installState,
-                $this->migrationsTable
-            );
-
-            $router->get('/install', static fn (Request $request): Response => $csrf(
+        if ($this->installController !== null) {
+            $router->get('/install', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                [$installController, 'show']
+                [$this->installController, 'show']
             ));
-            $router->post('/install', static fn (Request $request): Response => $csrf(
+            $router->post('/install', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                [$installController, 'install']
+                [$this->installController, 'install']
             ));
         } else {
             $router->get('/install', static fn (Request $request): Response => Response::redirect('/'));
         }
 
-        $router->get('/admin/login', static fn (Request $request): Response => $csrf(
+        $router->get('/admin/login', fn (Request $request): Response => ($this->csrf)(
             $request,
-            [$authController, 'showLogin']
+            [$this->authController, 'showLogin']
         ));
-        $router->post('/admin/login', static fn (Request $request): Response => $csrf(
+        $router->post('/admin/login', fn (Request $request): Response => ($this->csrf)(
             $request,
-            [$authController, 'login']
+            [$this->authController, 'login']
         ));
-        $router->post('/admin/logout', static fn (Request $request): Response => $csrf(
+        $router->post('/admin/logout', fn (Request $request): Response => ($this->csrf)(
             $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
                 $csrfRequest,
-                [$authController, 'logout']
+                [$this->authController, 'logout']
             )
         ));
-        $router->get('/admin', static fn (Request $request): Response => $csrf(
+        $router->get('/admin', fn (Request $request): Response => ($this->csrf)(
             $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
                 $csrfRequest,
-                [$dashboardController, 'index']
-            )
-        ));
-
-        $router->get('/admin/patterns', static fn (Request $request): Response => $csrf(
-            $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
-                $csrfRequest,
-                [$patternController, 'index']
+                [$this->dashboardController, 'index']
             )
         ));
 
-        $router->post('/admin/dev-mode/enable', static fn (Request $request): Response => $csrf(
+        $router->get('/admin/patterns', fn (Request $request): Response => ($this->csrf)(
             $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
                 $csrfRequest,
-                [$devModeController, 'enable']
-            )
-        ));
-        $router->post('/admin/dev-mode/disable', static fn (Request $request): Response => $csrf(
-            $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
-                $csrfRequest,
-                [$devModeController, 'disable']
-            )
-        ));
-        $router->get('/admin/dev-mode', static fn (Request $request): Response => $csrf(
-            $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
-                $csrfRequest,
-                [$devModeController, 'index']
-            )
-        ));
-        $router->get('/admin/dev-mode/edit', static fn (Request $request): Response => $csrf(
-            $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
-                $csrfRequest,
-                [$devModeController, 'edit']
-            )
-        ));
-        $router->post('/admin/dev-mode/edit', static fn (Request $request): Response => $csrf(
-            $request,
-            static fn (Request $csrfRequest): Response => $requireAuth(
-                $csrfRequest,
-                [$devModeController, 'update']
+                [$this->patternController, 'index']
             )
         ));
 
-        if ($this->contentItemRepository !== null && $this->contentTypeRepository !== null) {
-            $listContentItems = new ListContentItems($this->contentItemRepository, $this->contentTypeRepository);
-            $createContentItem = new CreateContentItem($this->contentItemRepository, $this->contentTypeRepository);
-            $updateContentItem = new UpdateContentItem($this->contentItemRepository, $this->contentTypeRepository);
-            $contentAdminController = new ContentAdminController(
-                $renderer,
-                $this->contentTypeRepository,
-                $this->contentItemRepository,
-                $listContentItems,
-                $createContentItem,
-                $updateContentItem,
-                $patternRegistry,
-                $authSession,
-                $this->session
-            );
-            $editableFieldValidator = new EditableFieldValidator(
-                $editorMode,
-                $this->contentItemRepository,
-                $patternRegistry
-            );
-            $editorModeController = new EditorModeController(
-                $editorMode,
-                $this->contentItemRepository,
-                $editableFieldValidator
-            );
+        $router->post('/admin/dev-mode/enable', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->devModeController, 'enable']
+            )
+        ));
+        $router->post('/admin/dev-mode/disable', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->devModeController, 'disable']
+            )
+        ));
+        $router->get('/admin/dev-mode', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->devModeController, 'index']
+            )
+        ));
+        $router->get('/admin/dev-mode/edit', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->devModeController, 'edit']
+            )
+        ));
+        $router->post('/admin/dev-mode/edit', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->devModeController, 'update']
+            )
+        ));
 
-            $router->get('/admin/content', static fn (Request $request): Response => $csrf(
+        if (
+            $this->contentAdminController !== null
+            && $this->editorModeController !== null
+            && $this->contentController !== null
+        ) {
+            $router->get('/admin/content', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$contentAdminController, 'index']
+                    [$this->contentAdminController, 'index']
                 )
             ));
-            $router->get('/admin/content/create', static fn (Request $request): Response => $csrf(
+            $router->get('/admin/content/create', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$contentAdminController, 'create']
+                    [$this->contentAdminController, 'create']
                 )
             ));
-            $router->post('/admin/content/create', static fn (Request $request): Response => $csrf(
+            $router->post('/admin/content/create', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$contentAdminController, 'store']
+                    [$this->contentAdminController, 'store']
                 )
             ));
-            $router->get('/admin/content/{id}/edit', static fn (Request $request): Response => $csrf(
+            $router->get('/admin/content/{id}/edit', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$contentAdminController, 'edit']
+                    [$this->contentAdminController, 'edit']
                 )
             ));
-            $router->post('/admin/content/{id}/edit', static fn (Request $request): Response => $csrf(
+            $router->post('/admin/content/{id}/edit', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$contentAdminController, 'update']
+                    [$this->contentAdminController, 'update']
                 )
             ));
-            $router->post('/editor-mode/enable', static fn (Request $request): Response => $csrf(
+            $router->post('/editor-mode/enable', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$editorModeController, 'enable']
+                    [$this->editorModeController, 'enable']
                 )
             ));
-            $router->post('/editor-mode/disable', static fn (Request $request): Response => $csrf(
+            $router->post('/editor-mode/disable', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
+                fn (Request $csrfRequest): Response => ($this->requireAuth)(
                     $csrfRequest,
-                    [$editorModeController, 'disable']
+                    [$this->editorModeController, 'disable']
                 )
             ));
-            $router->post('/editor-mode/save-field', static fn (Request $request): Response => $requireAuth(
+            $router->post('/editor-mode/save-field', fn (Request $request): Response => ($this->requireAuth)(
                 $request,
-                [$editorModeController, 'saveField']
+                [$this->editorModeController, 'saveField']
             ));
 
-            $contentController = new ContentController(
-                $this->contentItemRepository,
-                $systemTemplateResolver,
-                $renderer,
-                $editorMode
-            );
-
-            $router->get('/{slug}', static fn (Request $request): Response => $csrf(
+            $router->get('/{slug}', fn (Request $request): Response => ($this->csrf)(
                 $request,
-                [$contentController, 'show']
+                [$this->contentController, 'show']
             ));
         }
 
