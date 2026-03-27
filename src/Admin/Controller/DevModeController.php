@@ -27,7 +27,8 @@ final class DevModeController
         private readonly SessionManager $session,
         private readonly DevMode $devMode,
         private readonly CompositionExporter $compositionExporter,
-        private readonly OCFExporter $ocfExporter,
+        private readonly ?OCFExporter $ocfExporter,
+        private readonly bool $ocfUnavailable,
         private readonly DevFileService $devFileService,
         private readonly EditableFileRegistry $fileRegistry,
         private readonly EditHistoryLogger $editHistory,
@@ -222,6 +223,15 @@ final class DevModeController
                 'status' => 'forbidden',
                 'message' => 'Only admin users can export snapshots.',
             ], 403);
+        }
+
+        if ($this->ocfExporter === null || $this->ocfUnavailable) {
+            return Response::json([
+                'status' => 'unavailable',
+                'message' => 'OCF export is unavailable until database-backed repositories are ready.',
+                'composition_exported' => false,
+                'ocf_exported' => false,
+            ], 503);
         }
 
         $compositionExportFile = $this->compositionExporter->exportSystemRoutes();
