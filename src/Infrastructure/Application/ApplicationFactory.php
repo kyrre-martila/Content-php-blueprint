@@ -77,6 +77,8 @@ final class ApplicationFactory
             $editors['devFileService'],
             $editors['devModeFiles'],
             $editors['devModeHistory'],
+            $persistence['appVersion'],
+            $persistence['upgradeState'],
             $persistence['installState'],
             $persistence['installationRequired'],
             $persistence['repositoriesAvailable'],

@@ -85,6 +85,8 @@ final class ControllerFactory
         DevFileService $devFileService,
         EditableFileRegistry $devModeFiles,
         EditHistoryLogger $devModeHistory,
+        AppVersion $appVersion,
+        UpgradeState $upgradeState,
         ?InstallState $installState,
         bool $installationRequired,
         bool $repositoriesAvailable,
@@ -98,6 +100,7 @@ final class ControllerFactory
             $installController = new InstallController(
                 $this->projectRoot,
                 $templateRenderer,
+                $appVersion,
                 $installState,
                 $migrationsTable
             );
@@ -153,7 +156,7 @@ final class ControllerFactory
             'healthController' => new HealthController(),
             'searchController' => new SearchController($templateResolver, $templateRenderer),
             'authController' => new AuthController($templateRenderer, $loginUser, $authSession, $sessionManager),
-            'dashboardController' => new DashboardController($templateRenderer, $authSession, $editorMode, $devMode),
+            'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
             'devModeController' => new DevModeController(
                 $templateRenderer,

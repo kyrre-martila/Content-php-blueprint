@@ -227,14 +227,50 @@ Install sequence:
 4. run Phinx migrations
 5. create initial admin user
 6. create/update `settings.install_completed`
-7. run demo seeder (`BlueprintDemoSeeder`)
-8. verify install state and redirect to `/admin/login`
+7. persist `settings.installed_version` from runtime app version
+8. run demo seeder (`BlueprintDemoSeeder`)
+9. verify install state and redirect to `/admin/login`
 
 Install state is complete only when all checks pass:
 
 - required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`, `settings`)
 - admin/superadmin user exists
 - install flag is truthy in `settings.install_completed`
+- installed runtime version is stored in `settings.installed_version` for upgrade comparisons
+
+---
+
+
+## Version-awareness and upgrade-state foundation (current implementation)
+
+Current source of truth for application identity/version:
+
+- `config/app.php` defines `app.name` and `app.version`
+- `AppVersion` provides explicit accessors (`applicationName()`, `currentVersion()`)
+
+Upgrade-state model:
+
+- installer writes `settings.installed_version` once installation succeeds
+- `UpgradeState` compares current code version vs installed version
+- admin context receives upgrade-ready flags/data (`upgradeRequired`, current version, installed version)
+
+This enables a future in-admin GitHub release updater while keeping current runtime scope intentionally narrow.
+
+Planned future updater flow (not yet implemented):
+
+1. check release
+2. download artifact
+3. replace application files safely
+4. run upgrade tasks/migrations
+5. preserve runtime state
+
+Explicitly not implemented yet:
+
+- release download
+- file replacement
+- GitHub API integration
+- rollback
+- automatic updates
 
 ---
 
