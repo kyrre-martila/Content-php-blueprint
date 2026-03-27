@@ -1,14 +1,17 @@
 {
   "name": "Text block",
   "description": "Simple text content block with heading and body",
+  "category": "content",
   "fields": [
     {
       "name": "title",
-      "type": "text"
+      "type": "text",
+      "label": "Title"
     },
     {
       "name": "body",
-      "type": "textarea"
+      "type": "textarea",
+      "label": "Body"
     }
   ],
   "key": "text-block"

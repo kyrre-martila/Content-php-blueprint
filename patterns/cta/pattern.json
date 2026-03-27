@@ -1,18 +1,22 @@
 {
   "name": "Call to action",
   "description": "Action section with message and optional image slot",
+  "category": "marketing",
   "fields": [
     {
       "name": "message",
-      "type": "textarea"
+      "type": "textarea",
+      "label": "Message"
     },
     {
       "name": "button_text",
-      "type": "text"
+      "type": "text",
+      "label": "Button text"
     },
     {
       "name": "image",
-      "type": "image"
+      "type": "image",
+      "label": "Image"
     }
   ],
   "key": "cta"

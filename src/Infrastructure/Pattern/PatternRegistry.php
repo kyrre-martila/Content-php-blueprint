@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Pattern;
 
+use App\Domain\Pattern\PatternMetadataValidator;
+use InvalidArgumentException;
+
 final class PatternRegistry
 {
     /** @var array<string, PatternMetadata> */
@@ -85,19 +88,17 @@ final class PatternRegistry
         $rawJson = file_get_contents($metadataPath);
 
         if ($rawJson === false) {
-            return null;
+            throw new InvalidArgumentException(sprintf('Pattern metadata invalid in %s: unable to read file', $metadataPath));
         }
 
         $decoded = json_decode($rawJson, true);
 
         if (!is_array($decoded)) {
-            return null;
+            throw new InvalidArgumentException(sprintf('Pattern metadata invalid in %s: invalid JSON object', $metadataPath));
         }
 
-        try {
-            return PatternMetadata::fromArray($decoded);
-        } catch (\InvalidArgumentException) {
-            return null;
-        }
+        (new PatternMetadataValidator($metadataPath))->validate($decoded);
+
+        return PatternMetadata::fromArray($decoded);
     }
 }
