@@ -224,12 +224,20 @@ final class RouteRegistry
                 [$this->devModeController, 'update']
             )
         );
+        $exportHandler = fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->devModeController, 'exportSnapshot']
+            )
+        );
 
         $this->post('/admin/dev-mode/enable', $enableHandler);
         $this->post('/admin/dev-mode/disable', $disableHandler);
         $this->get('/admin/dev-mode', $indexHandler);
         $this->get('/admin/dev-mode/edit', $editHandler);
         $this->post('/admin/dev-mode/edit', $updateHandler);
+        $this->post('/admin/dev/export', $exportHandler);
 
         // System aliases
         $this->post('/dev/enable', $enableHandler);

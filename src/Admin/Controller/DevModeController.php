@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Admin\Controller;
 
+use App\Application\Composition\CompositionExporter;
 use App\Application\DevMode\DevFileService;
+use App\Application\OCF\OCFExporter;
 use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
@@ -24,10 +26,13 @@ final class DevModeController
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly DevMode $devMode,
+        private readonly CompositionExporter $compositionExporter,
+        private readonly OCFExporter $ocfExporter,
         private readonly DevFileService $devFileService,
         private readonly EditableFileRegistry $fileRegistry,
         private readonly EditHistoryLogger $editHistory,
-        private readonly Logger $logger
+        private readonly Logger $logger,
+        private readonly string $projectRoot
     ) {
     }
 
@@ -210,6 +215,29 @@ final class DevModeController
         return Response::redirect('/admin/dev-mode/edit?path=' . rawurlencode($path));
     }
 
+    public function exportSnapshot(Request $request): Response
+    {
+        if (!$this->devMode->canUse()) {
+            return Response::json([
+                'status' => 'forbidden',
+                'message' => 'Only admin users can export snapshots.',
+            ], 403);
+        }
+
+        $compositionExportFile = $this->compositionExporter->exportSystemRoutes();
+        $ocfExportFile = $this->ocfExporter->exportAll();
+
+        return Response::json([
+            'status' => 'ok',
+            'composition_exported' => true,
+            'ocf_exported' => true,
+            'files' => [
+                $this->toRelativePath($compositionExportFile),
+                $this->toRelativePath($ocfExportFile),
+            ],
+        ]);
+    }
+
     private function requestedPath(Request $request): ?string
     {
         $query = $request->queryParams();
@@ -256,5 +284,17 @@ final class DevModeController
             'user_id' => is_array($user) ? ($user['id'] ?? null) : null,
             'user_email' => is_array($user) ? ($user['email'] ?? null) : null,
         ], 'dev_mode');
+    }
+
+    private function toRelativePath(string $absolutePath): string
+    {
+        $projectRoot = rtrim(str_replace('\\', '/', $this->projectRoot), '/');
+        $normalizedPath = str_replace('\\', '/', $absolutePath);
+
+        if (str_starts_with($normalizedPath, $projectRoot . '/')) {
+            return substr($normalizedPath, strlen($projectRoot) + 1);
+        }
+
+        return $normalizedPath;
     }
 }
