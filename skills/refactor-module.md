@@ -1,11 +1,23 @@
 # Skill: refactor-module
 
-## Goal
-Refactor safely while preserving architecture boundaries.
+## Purpose
+Refactor an existing module while preserving behavior and architecture boundaries.
 
-## Workflow
-1. Identify current layer violations and target module boundary.
-2. Move code with strict typing and constructor injection.
-3. Keep external behavior stable with regression tests.
-4. Run Pest + PHPStan before and after.
-5. Document notable architectural decisions in `docs/architecture.md`.
+## When to use
+- Module is hard to maintain or violates layer responsibilities.
+
+## Architectural rules
+- Preserve public behavior unless change is explicitly requested.
+- Move logic to the correct layer, do not create shortcut coupling.
+- Keep classes small, explicit, and constructor-injected.
+
+## File placement expectations
+- Keep files within existing layer folders unless boundary correction is intentional.
+- Update docs when responsibilities move.
+
+## Implementation checklist
+- [ ] Identify current boundary issues.
+- [ ] Apply minimal structural refactor with typed contracts.
+- [ ] Keep/expand regression tests.
+- [ ] Run test + static analysis checks.
+- [ ] Document architectural outcome in `docs/architecture.md`.

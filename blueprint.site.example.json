@@ -1,0 +1,9 @@
+{
+  "site_name": "Example Club Site",
+  "site_type": "organization",
+  "content_types": ["page", "news", "team"],
+  "required_pages": ["home", "about", "contact"],
+  "patterns": ["hero", "text-block", "cta"],
+  "visual_direction": "clean, modern, editorial-safe",
+  "future_modules": ["events"]
+}
