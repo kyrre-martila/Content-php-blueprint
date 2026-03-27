@@ -16,7 +16,29 @@
   margin: 0;
 }
 
-.editor-mode-ready {
-  outline: 1px dashed #d0d5dd;
+[data-editable="true"] {
+  cursor: pointer;
+  border-radius: 0.2rem;
+  transition: background-color 120ms ease, outline-color 120ms ease;
+}
+
+[data-editable="true"]:hover {
+  background: #f2f4f7;
+  outline: 1px dashed #98a2b3;
   outline-offset: 2px;
+}
+
+[data-editable="true"].is-editing {
+  background: #ffffff;
+  outline: 1px solid #7f56d9;
+}
+
+[data-editable="true"].is-error {
+  outline: 1px solid #d92d20;
+}
+
+.editor-inline-input {
+  width: 100%;
+  min-width: 14rem;
+  font: inherit;
 }
