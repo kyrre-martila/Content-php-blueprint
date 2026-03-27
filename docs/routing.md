@@ -1,17 +1,17 @@
 # Routing
 
-Routing is explicit and centralized through `src/Http/Routing/RouteRegistry.php` (wired in `src/Http/Kernel.php`).
+Routing is explicit and registrar-based through `src/Http/Routing/RouteRegistry.php` (wired in `src/Http/Kernel.php`).
 
 ## Registration order (current)
 
-Routes are registered in this deterministic order:
+`RouteRegistry` coordinates dedicated registrar classes and registers routes in this deterministic order:
 
-1. system routes
-2. auth routes
-3. admin routes
-4. dev mode routes
-5. editor mode routes
-6. public content routes
+1. `SystemRouteRegistrar`
+2. `AuthRouteRegistrar`
+3. `AdminRouteRegistrar`
+4. `DevModeRouteRegistrar`
+5. `EditorModeRouteRegistrar`
+6. `PublicContentRouteRegistrar`
 
 This ensures explicit routes are matched before the universal content catch-all (`GET /{slug}`).
 

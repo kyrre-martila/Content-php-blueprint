@@ -31,29 +31,70 @@ final class RouteRegistry
     private array $routes = [];
 
     public function __construct(
-        private readonly HomeController $homeController,
-        private readonly HealthController $healthController,
-        private readonly SearchController $searchController,
-        private readonly AuthController $authController,
-        private readonly DashboardController $dashboardController,
-        private readonly PatternController $patternController,
-        private readonly DevModeController $devModeController,
-        private readonly CsrfMiddleware $csrf,
-        private readonly RequireAuthMiddleware $requireAuth,
-        private readonly ?InstallController $installController = null,
-        private readonly ?ContentAdminController $contentAdminController = null,
-        private readonly ?EditorModeController $editorModeController = null,
-        private readonly ?ContentController $contentController = null,
-        private readonly ?SitemapController $sitemapController = null,
-        private readonly ?RobotsController $robotsController = null,
+        HomeController $homeController,
+        HealthController $healthController,
+        SearchController $searchController,
+        AuthController $authController,
+        DashboardController $dashboardController,
+        PatternController $patternController,
+        DevModeController $devModeController,
+        CsrfMiddleware $csrf,
+        RequireAuthMiddleware $requireAuth,
+        ?InstallController $installController = null,
+        ?ContentAdminController $contentAdminController = null,
+        ?EditorModeController $editorModeController = null,
+        ?ContentController $contentController = null,
+        ?SitemapController $sitemapController = null,
+        ?RobotsController $robotsController = null,
     ) {
         // Registration order is explicit so route priority is deterministic.
-        $this->registerSystemRoutes();
-        $this->registerAuthRoutes();
-        $this->registerAdminRoutes();
-        $this->registerDevModeRoutes();
-        $this->registerEditorRoutes();
-        $this->registerPublicContentRoutes();
+
+        /** System routes: core runtime endpoints and install flow. */
+        (new SystemRouteRegistrar(
+            homeController: $homeController,
+            healthController: $healthController,
+            searchController: $searchController,
+            csrf: $csrf,
+            installController: $installController,
+            sitemapController: $sitemapController,
+            robotsController: $robotsController
+        ))->register($this);
+
+        /** Auth routes: login/logout endpoints and system aliases. */
+        (new AuthRouteRegistrar(
+            authController: $authController,
+            csrf: $csrf,
+            requireAuth: $requireAuth
+        ))->register($this);
+
+        /** Admin routes: dashboard, patterns, and content management. */
+        (new AdminRouteRegistrar(
+            dashboardController: $dashboardController,
+            patternController: $patternController,
+            contentAdminController: $contentAdminController,
+            csrf: $csrf,
+            requireAuth: $requireAuth
+        ))->register($this);
+
+        /** Dev mode routes: privileged source-editing and export surfaces. */
+        (new DevModeRouteRegistrar(
+            devModeController: $devModeController,
+            csrf: $csrf,
+            requireAuth: $requireAuth
+        ))->register($this);
+
+        /** Editor mode routes: authenticated inline editing controls. */
+        (new EditorModeRouteRegistrar(
+            editorModeController: $editorModeController,
+            csrf: $csrf,
+            requireAuth: $requireAuth
+        ))->register($this);
+
+        /** Public content routes: catch-all content resolution, always last. */
+        (new PublicContentRouteRegistrar(
+            contentController: $contentController,
+            csrf: $csrf
+        ))->register($this);
     }
 
     public function resolve(Request $request): ?RouteMatch
@@ -71,241 +112,10 @@ final class RouteRegistry
         return null;
     }
 
-    private function registerSystemRoutes(): void
-    {
-        $this->get('/', [$this->homeController, 'index']);
-        $this->get('/health', [$this->healthController, 'show']);
-
-        $this->get('/search', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            [$this->searchController, 'index']
-        ));
-
-        if ($this->sitemapController !== null) {
-            $this->get('/sitemap.xml', [$this->sitemapController, 'index']);
-        }
-
-        if ($this->robotsController !== null) {
-            // Explicitly register robots as a system route so runtime output wins over slug/catch-all resolution.
-            $this->get('/robots.txt', [$this->robotsController, 'index']);
-        }
-
-        if ($this->installController !== null) {
-            $this->get('/install', fn (Request $request): Response => ($this->csrf)(
-                $request,
-                [$this->installController, 'show']
-            ));
-            $this->post('/install', fn (Request $request): Response => ($this->csrf)(
-                $request,
-                [$this->installController, 'install']
-            ));
-
-            return;
-        }
-
-        $this->get('/install', static fn (): Response => Response::redirect('/'));
-    }
-
-    private function registerAuthRoutes(): void
-    {
-        $loginHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            [$this->authController, 'showLogin']
-        );
-        $loginPostHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            [$this->authController, 'login']
-        );
-        $logoutHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->authController, 'logout']
-            )
-        );
-
-        $this->get('/admin/login', $loginHandler);
-        $this->post('/admin/login', $loginPostHandler);
-        $this->post('/admin/logout', $logoutHandler);
-
-        // System aliases
-        $this->get('/login', $loginHandler);
-        $this->post('/login', $loginPostHandler);
-        $this->post('/logout', $logoutHandler);
-    }
-
-    private function registerAdminRoutes(): void
-    {
-        $this->get('/admin', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->dashboardController, 'index']
-            )
-        ));
-
-        $this->get('/admin/patterns', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->patternController, 'index']
-            )
-        ));
-
-        if ($this->contentAdminController === null) {
-            return;
-        }
-
-        $this->get('/admin/content', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'index']
-            )
-        ));
-        $this->get('/admin/content/create', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'create']
-            )
-        ));
-        $this->post('/admin/content/create', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'store']
-            )
-        ));
-        $this->get('/admin/content/{id}/edit', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'edit']
-            )
-        ));
-        $this->post('/admin/content/{id}/edit', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'update']
-            )
-        ));
-
-    }
-
-    private function registerDevModeRoutes(): void
-    {
-        $enableHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'enable']
-            )
-        );
-        $disableHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'disable']
-            )
-        );
-        $indexHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'index']
-            )
-        );
-        $editHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'edit']
-            )
-        );
-        $updateHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'update']
-            )
-        );
-        $exportHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'exportSnapshot']
-            )
-        );
-
-        $this->post('/admin/dev-mode/enable', $enableHandler);
-        $this->post('/admin/dev-mode/disable', $disableHandler);
-        $this->get('/admin/dev-mode', $indexHandler);
-        $this->get('/admin/dev-mode/edit', $editHandler);
-        $this->post('/admin/dev-mode/edit', $updateHandler);
-        $this->post('/admin/dev/export', $exportHandler);
-
-        // System aliases
-        $this->post('/dev/enable', $enableHandler);
-        $this->post('/dev/disable', $disableHandler);
-        $this->get('/dev', $indexHandler);
-        $this->get('/dev/edit', $editHandler);
-        $this->post('/dev/edit', $updateHandler);
-    }
-
-    private function registerEditorRoutes(): void
-    {
-        if ($this->editorModeController === null) {
-            return;
-        }
-
-        $enableHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->editorModeController, 'enable']
-            )
-        );
-        $disableHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->editorModeController, 'disable']
-            )
-        );
-        $saveFieldHandler = fn (Request $request): Response => ($this->requireAuth)(
-            $request,
-            [$this->editorModeController, 'saveField']
-        );
-
-        $this->post('/editor-mode/enable', $enableHandler);
-        $this->post('/editor-mode/disable', $disableHandler);
-        $this->post('/editor-mode/save-field', $saveFieldHandler);
-
-        // System aliases
-        $this->post('/editor/enable', $enableHandler);
-        $this->post('/editor/disable', $disableHandler);
-        $this->post('/editor/save-field', $saveFieldHandler);
-    }
-
-    private function registerPublicContentRoutes(): void
-    {
-        if ($this->contentController === null) {
-            return;
-        }
-
-        // Keep the universal catch-all route last so explicit routes always win.
-        $this->get('/{slug}', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            [$this->contentController, 'show']
-        ));
-    }
-
     /**
      * @param callable(Request): Response $handler
      */
-    private function get(string $path, callable $handler): void
+    public function get(string $path, callable $handler): void
     {
         $this->routes[] = Route::create('GET', $path, $handler);
     }
@@ -313,7 +123,7 @@ final class RouteRegistry
     /**
      * @param callable(Request): Response $handler
      */
-    private function post(string $path, callable $handler): void
+    public function post(string $path, callable $handler): void
     {
         $this->routes[] = Route::create('POST', $path, $handler);
     }
