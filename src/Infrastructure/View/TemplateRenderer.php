@@ -78,6 +78,38 @@ final class TemplateRenderer
                 'UTF-8'
             );
 
+            $isEditorMode = static function () use ($__data): bool {
+                return ($__data['editorModeActive'] ?? false) === true && ($__data['editorCanEdit'] ?? false) === true;
+            };
+
+            $editableText = static function (string $value, array $meta = []) use ($e, $isEditorMode): string {
+                if (!$isEditorMode()) {
+                    return $e($value);
+                }
+
+                $attributes = self::buildEditableAttributes($meta);
+
+                if ($attributes === '') {
+                    return $e($value);
+                }
+
+                return '<span class="editor-editable" ' . $attributes . '>' . $e($value) . '</span>';
+            };
+
+            $editableTextarea = static function (string $value, array $meta = []) use ($e, $isEditorMode): string {
+                if (!$isEditorMode()) {
+                    return nl2br($e($value), false);
+                }
+
+                $attributes = self::buildEditableAttributes($meta);
+
+                if ($attributes === '') {
+                    return nl2br($e($value), false);
+                }
+
+                return '<span class="editor-editable" ' . $attributes . '>' . nl2br($e($value), false) . '</span>';
+            };
+
             include $__templatePath;
 
             if (isset($layout) && is_string($layout) && trim($layout) !== '') {
@@ -94,5 +126,39 @@ final class TemplateRenderer
         }
 
         return $output;
+    }
+
+    /**
+     * @param array<string, mixed> $meta
+     */
+    private static function buildEditableAttributes(array $meta): string
+    {
+        $allowed = [
+            'data-edit-type',
+            'data-edit-field',
+            'data-edit-id',
+            'data-edit-block-index',
+            'data-edit-content-id',
+        ];
+
+        $attributes = [];
+
+        foreach ($allowed as $key) {
+            $value = $meta[$key] ?? null;
+
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $string = trim((string) $value);
+
+            if ($string === '') {
+                continue;
+            }
+
+            $attributes[] = $key . '="' . htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+        }
+
+        return implode(' ', $attributes);
     }
 }

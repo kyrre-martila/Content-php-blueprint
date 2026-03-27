@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 /** @var array<string, string> $fields */
 /** @var callable(string): string $e */
+/** @var callable(string, string): string $editableText */
+/** @var callable(string, string): string $editableTextarea */
 ?>
 <section>
-    <h2><?= $e($fields['title'] ?? '') ?></h2>
-    <p><?= nl2br($e($fields['body'] ?? ''), false) ?></p>
+    <h2><?= $editableText('title', $fields['title'] ?? '') ?></h2>
+    <p><?= $editableTextarea('body', $fields['body'] ?? '') ?></p>
 </section>

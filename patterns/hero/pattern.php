@@ -3,16 +3,14 @@
 declare(strict_types=1);
 
 /**
- * Pattern templates are presentation-only.
- * They receive only sanitized scalar values from PatternRenderer via $fields.
- * No application service objects are exposed to pattern scope.
- *
  * @var array<string, string> $fields
  * @var callable(string): string $e
+ * @var callable(string, string): string $editableText
+ * @var callable(string, string): string $editableTextarea
  */
 ?>
 <section>
-    <h1><?= $e($fields['headline'] ?? '') ?></h1>
-    <p><?= $e($fields['subheadline'] ?? '') ?></p>
-    <button type="button"><?= $e($fields['button_text'] ?? '') ?></button>
+    <h1><?= $editableText('headline', $fields['headline'] ?? '') ?></h1>
+    <p><?= $editableTextarea('subheadline', $fields['subheadline'] ?? '') ?></p>
+    <button type="button"><?= $editableText('button_text', $fields['button_text'] ?? '') ?></button>
 </section>

@@ -7,6 +7,7 @@ namespace App\Http;
 use App\Admin\Controller\AuthController;
 use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
+use App\Admin\Controller\EditorModeController;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
 use App\Application\Content\ListContentItems;
@@ -23,6 +24,7 @@ use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\Pattern\PatternRenderer;
 use App\Infrastructure\View\TemplateRenderer;
@@ -87,9 +89,10 @@ final class Kernel
         $patternRenderer = new PatternRenderer($patternRegistry);
         $renderer = new TemplateRenderer($templatesPath, $patternRenderer);
         $authSession = new AuthSession($this->session);
+        $editorMode = new EditorMode($authSession, $this->session);
         $loginUser = new LoginUser($this->userRepository, $authSession);
         $authController = new AuthController($renderer, $loginUser, $authSession, $this->session);
-        $dashboardController = new DashboardController($renderer, $authSession);
+        $dashboardController = new DashboardController($renderer, $authSession, $editorMode);
         $requireAuth = new RequireAuthMiddleware($authSession);
         $csrf = new CsrfMiddleware($this->session);
 
@@ -154,6 +157,11 @@ final class Kernel
                 $authSession,
                 $this->session
             );
+            $editorModeController = new EditorModeController(
+                $editorMode,
+                $this->contentItemRepository,
+                $patternRegistry
+            );
 
             $router->get('/admin/content', static fn (Request $request): Response => $csrf(
                 $request,
@@ -190,15 +198,39 @@ final class Kernel
                     [$contentAdminController, 'update']
                 )
             ));
+            $router->post('/admin/editor-mode/enable', static fn (Request $request): Response => $csrf(
+                $request,
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$editorModeController, 'enable']
+                )
+            ));
+            $router->post('/admin/editor-mode/disable', static fn (Request $request): Response => $csrf(
+                $request,
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$editorModeController, 'disable']
+                )
+            ));
+            $router->post('/admin/editor-mode/update', static fn (Request $request): Response => $csrf(
+                $request,
+                static fn (Request $csrfRequest): Response => $requireAuth(
+                    $csrfRequest,
+                    [$editorModeController, 'update']
+                )
+            ));
 
             $contentController = new ContentController(
                 $this->contentItemRepository,
                 new TemplateResolver($templatesPath),
                 $renderer,
-                $patternRenderer
+                $editorMode
             );
 
-            $router->get('/{slug}', [$contentController, 'show']);
+            $router->get('/{slug}', static fn (Request $request): Response => $csrf(
+                $request,
+                [$contentController, 'show']
+            ));
         }
 
         return $router;

@@ -43,6 +43,11 @@ final class PatternRenderer
             $fields[$name] = '';
         }
 
+        $editor = [
+            'content_id' => is_scalar($data['_editor']['content_id'] ?? null) ? (string) $data['_editor']['content_id'] : '',
+            'block_index' => is_scalar($data['_editor']['block_index'] ?? null) ? (string) $data['_editor']['block_index'] : '',
+        ];
+
         $viewPath = $pattern['view_path'];
 
         if (!is_file($viewPath)) {
@@ -51,18 +56,41 @@ final class PatternRenderer
 
         ob_start();
 
-        $renderPattern = static function (string $__patternPath, array $__fields): void {
+        $renderPattern = static function (string $__patternPath, array $__fields, array $__editor): void {
             $fields = $__fields;
+            $editor = $__editor;
             $e = static fn (string $value): string => htmlspecialchars(
                 $value,
                 ENT_QUOTES | ENT_SUBSTITUTE,
                 'UTF-8'
             );
+            $editableText = static function (string $field, string $value) use ($editor, $e): string {
+                if (($editor['content_id'] ?? '') === '' || ($editor['block_index'] ?? '') === '') {
+                    return $e($value);
+                }
+
+                return '<span class="editor-editable" data-edit-type="pattern_block" data-edit-field="'
+                    . $e($field)
+                    . '" data-edit-block-index="' . $e($editor['block_index'])
+                    . '" data-edit-content-id="' . $e($editor['content_id'])
+                    . '">' . $e($value) . '</span>';
+            };
+            $editableTextarea = static function (string $field, string $value) use ($editor, $e): string {
+                if (($editor['content_id'] ?? '') === '' || ($editor['block_index'] ?? '') === '') {
+                    return nl2br($e($value), false);
+                }
+
+                return '<span class="editor-editable" data-edit-type="pattern_block" data-edit-field="'
+                    . $e($field)
+                    . '" data-edit-block-index="' . $e($editor['block_index'])
+                    . '" data-edit-content-id="' . $e($editor['content_id'])
+                    . '">' . nl2br($e($value), false) . '</span>';
+            };
 
             include $__patternPath;
         };
 
-        $renderPattern($viewPath, $fields);
+        $renderPattern($viewPath, $fields, $editor);
 
         $output = ob_get_clean();
 

@@ -5,18 +5,31 @@ declare(strict_types=1);
 use App\Domain\Content\ContentItem;
 
 /** @var callable(string): string $e */
+/** @var callable(string, array<string, mixed>): string $editableText */
 /** @var ContentItem $contentItem */
-/** @var string $patternBlocksHtml */
+/** @var list<array{pattern: string, data: array<string, string>}> $patternBlocks */
 
 $layout = 'layouts/default.php';
 ?>
 <article>
     <header>
-        <h1><?= $e($contentItem->title()) ?></h1>
+        <h1><?= $editableText($contentItem->title(), [
+            'data-edit-type' => 'content_item',
+            'data-edit-field' => 'title',
+            'data-edit-id' => (string) $contentItem->id(),
+        ]) ?></h1>
     </header>
 
-    <?php if (($patternBlocksHtml ?? '') !== ''): ?>
-        <?= $patternBlocksHtml ?>
+    <?php if (($patternBlocks ?? []) !== []): ?>
+        <?php foreach ($patternBlocks as $blockIndex => $block): ?>
+            <?= $renderer->renderPattern($block['pattern'], [
+                ...$block['data'],
+                '_editor' => [
+                    'content_id' => $contentItem->id(),
+                    'block_index' => $blockIndex,
+                ],
+            ]) ?>
+        <?php endforeach; ?>
     <?php else: ?>
         <p><strong>Slug:</strong> <?= $e($contentItem->slug()->value()) ?></p>
         <p><strong>Status:</strong> <?= $e($contentItem->status()->value) ?></p>

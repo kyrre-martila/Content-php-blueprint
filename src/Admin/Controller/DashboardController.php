@@ -7,13 +7,15 @@ namespace App\Admin\Controller;
 use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
+use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\View\TemplateRenderer;
 
 final class DashboardController
 {
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
-        private readonly AuthSession $authSession
+        private readonly AuthSession $authSession,
+        private readonly ?EditorMode $editorMode = null
     ) {
     }
 
@@ -24,6 +26,8 @@ final class DashboardController
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
+                'editorModeActive' => $this->editorMode?->isActive() ?? false,
+                'editorCanEdit' => $this->editorMode?->canEdit() ?? false,
             ]
         );
 

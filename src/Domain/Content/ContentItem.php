@@ -140,4 +140,21 @@ final class ContentItem
             $this->patternBlocks
         );
     }
+
+    /**
+     * @param list<array{pattern: string, data: array<string, string>}> $patternBlocks
+     */
+    public function withPatternBlocks(array $patternBlocks, DateTimeImmutable $updatedAt): self
+    {
+        return new self(
+            $this->id,
+            $this->type,
+            $this->title,
+            $this->slug,
+            $this->status,
+            $this->createdAt,
+            $updatedAt,
+            $patternBlocks
+        );
+    }
 }
