@@ -1,44 +1,40 @@
 # Site generation rules
 
-Use this file when generating a new site from this blueprint.
+Use this file when generating or refactoring sites from this blueprint.
 
-## Mandatory generation rules
+## Core operating rules
 
-1. Follow existing layered architecture (`Domain`, `Application`, `Infrastructure`, `Http`, `Admin`, `templates`, `patterns`).
-2. Prefer extending existing systems over creating parallel systems.
-3. Keep templates deterministic and free from business logic.
-4. Prefer reusable patterns over ad hoc page markup.
-5. Keep editor-safe boundaries intact (content editing only in Editor Mode/admin).
-6. Keep dev-mode boundaries intact (presentation-layer files only).
-7. Do not introduce drag-and-drop/layout-chaos editing models.
-8. Use content types and patterns deliberately; avoid one-off undocumented structures.
-9. Use explicit file placement and naming aligned to existing repository conventions.
-10. Update docs and skills when introducing architectural behavior changes.
+1. Keep layered architecture boundaries (`Domain`, `Application`, `Infrastructure`, `Http`, `Admin`, `templates`, `patterns`).
+2. Treat repository code as **presentation/runtime truth**.
+3. Treat OCF export as **content truth**.
+4. Treat composition snapshot export as **page-assembly truth**.
+5. Never collapse these three layers into one schema.
+6. Keep templates deterministic and free of business logic.
+7. Prefer extending existing patterns over ad hoc template markup.
+8. Preserve editor-safe and dev-safe boundaries.
+9. Update docs and skills when architecture or operations change.
 
+## Layer-boundary rules
 
-## Layered context rules for AI generation
+- Keep OCF content-only and portable.
+- Do **not** add layout/template/runtime implementation details to OCF.
+- Keep composition snapshots blueprint-specific.
+- Do **not** add repository internals or source-level implementation details to composition snapshots.
+- Keep repository source as the home for rendering/runtime concerns (templates, patterns, CSS/JS, controllers/services).
 
-AI generation and refactor passes must preserve the following layer model:
+## Safe generation checklist
 
-- Treat **OCF** as content-only context.
-- Treat **composition snapshots** as page-assembly context.
-- Treat **repository code/templates/patterns/assets** as presentation/runtime context.
-- Do not collapse these layers into a single mixed schema.
-- Preserve portability of content exports by keeping presentation concerns out of OCF.
+- Extend content types through migrations + repository/application updates.
+- Extend templates under `templates/` with escaped output.
+- Extend patterns under `patterns/{slug}/` with valid `pattern.json` and renderer.
+- Wire route/controller changes explicitly in kernel/registrars.
+- Add or update tests/checks where behavior changed.
+- Document what changed in `docs/`.
 
-When proposing tooling, exports, or sync behavior, explicitly identify which layer each artifact belongs to.
+## Anti-rules
 
-## Generation checklist
-
-- Add/extend content types with migrations + repository/application updates.
-- Add/extend templates under `templates/` with escaped output.
-- Add/extend patterns under `patterns/{slug}/` with valid `pattern.json`.
-- Wire admin and route updates in `Kernel` explicitly.
-- Add tests/static checks where behavior changed.
-- Document current vs planned behavior in `docs/`.
-
-## Explicit anti-rules
-
-- Do not add runtime AI API integrations for this workflow phase.
-- Do not expose unrestricted source editing to editor-facing features.
+- Do not mix content, composition, and runtime concerns in one export contract.
+- Do not introduce drag-and-drop layout chaos editing.
+- Do not expose unrestricted source editing to editor-facing workflows.
 - Do not bypass CSRF/auth/path safety controls.
+- Do not add runtime AI API integrations unless explicitly planned.
