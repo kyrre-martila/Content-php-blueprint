@@ -13,8 +13,6 @@ Framework-light PHP 8.3+ blueprint for structured content websites with explicit
    cp .env.example .env
    ```
 
-This section is for local development where Composer and developer tooling are available.
-
 ## Environment setup
 
 Set at minimum in `.env`:
@@ -71,63 +69,137 @@ Then open `http://127.0.0.1:8000`.
 
 ## Deployment strategy
 
-This project supports two deployment entrypoint layouts:
+This project supports two entrypoint layouts:
 
-1. **Recommended mode (preferred):**
+1. **Recommended mode**
    - Web root points to `public/`
-   - Requests execute `public/index.php` directly
+   - Requests execute `public/index.php`
 
-2. **Compatibility mode (shared hosting fallback):**
-   - Web root points to the project root
-   - Root `index.php` delegates execution to `public/index.php`
+2. **Compatibility mode**
+   - Web root points to project root
+   - Root `index.php` delegates to `public/index.php`
 
-Why `public/` is preferred:
+## Installation flow and install-state logic
 
-- Keeps non-public files outside the document root
-- Reduces accidental exposure of config, source, and migration files
-- Matches modern PHP deployment hardening practices
+Installation is a runtime setup flow, separate from deployment.
 
-Why compatibility mode exists:
+Browser flow:
 
-- Some shared hosting plans do not allow changing the web root
-- The root `index.php` keeps deployment possible in those environments without changing application architecture
+1. Deploy files.
+2. Open `/install`.
+3. Submit DB settings and first admin credentials.
+4. Installer runs migrations, creates initial admin, writes `settings.install_completed = true`.
+5. On success, user is redirected to `/admin/login`.
 
-## Future installation workflow
+Install-state checks require all of the following:
 
-Planned first-run lifecycle:
+- required tables exist (`users`, `content_types`, `settings`)
+- at least one admin/superadmin user exists
+- install flag is true in `settings.install_completed`
 
-- **Deployment** delivers files to the target server.
-- **Installation** prepares required runtime prerequisites (for example DB connectivity and schema readiness).
-- **First-run setup** initializes project-specific state (for example initial admin account and installer lock state).
+Routing behavior tied to install-state:
 
-The future `/install` flow will handle setup tasks after deployment, not replace deployment itself.
+- if setup is incomplete, `/admin` and `/admin/*` are redirected to `/install`
+- `/install` is available while installation is required
+- once installed, `/install` redirects to `/`
 
-## Production deployment (planned workflow)
+## Runtime routing architecture
 
-Planned direction for production releases:
+Routes are explicitly registered in `RouteRegistry`.
 
-- Deploy from **release zip packages**, not from a full developer checkout
-- Release zips should include:
-  - `vendor/`
-  - compiled/autoloaded Composer artifacts
-  - production-optimized dependencies
+Current public/system routes:
 
-Production servers should **not** require running Composer.
+- `GET /` (home)
+- `GET /health`
+- `GET /search`
+- `GET|POST /install` (when install is required)
 
-Future install wizard plan:
+Current content route:
 
-- Route placeholder: `/install`
-- Wizard responsibilities:
-  - environment checks
-  - database configuration
-  - migration execution
-  - initial admin user creation
+- `GET /{slug}` for published content items
 
-Important distinction:
+Template mapping in runtime:
 
-- **Deployment** = shipping files to the server
-- **Installation** = preparing runtime prerequisites and running setup actions
-- **First-run setup** = initial bootstrap state (admin account, install lock, and persisted config where supported)
+- content pages render through `templates/index.php`
+- not-found responses render through `templates/system/404.php`
+- search renders through `templates/system/search.php`
+
+Template System v1 does **not** use WordPress-style fallback chains and does **not** resolve `templates/pages/{slug}.php`, `templates/page.php`, or `templates/default.php` for route selection.
+
+## Pattern System v1
+
+Patterns are reusable presentation blocks loaded from `patterns/`:
+
+- `patterns/{key}/pattern.json` metadata
+- `patterns/{key}/pattern.php` renderer
+
+Runtime behavior:
+
+- patterns are discovered by `PatternRegistry`
+- rendering is executed by `PatternRenderer`
+- data is validated by `PatternDataValidator`
+- v1 render field support is intentionally limited to `text` and `textarea`
+- registry is exposed at authenticated `GET /admin/patterns`
+
+### Pattern blocks stored on content items
+
+Content items store page composition as `pattern_blocks` JSON.
+
+Each block uses:
+
+```json
+{ "pattern": "slug", "data": { "field": "value" } }
+```
+
+`templates/index.php` renders blocks sequentially through `PatternRenderer`.
+
+## Editor Mode (current scope)
+
+Editor Mode is role-gated and session-based (`superadmin`, `admin`, `editor`).
+
+Current v1 scope:
+
+- enable/disable mode per session
+- show Editor Mode banner while active
+- load editor assets only while active
+- inline save endpoint: `POST /editor-mode/save-field`
+- editable fields are limited to:
+  - content item title
+  - pattern block `text` fields
+  - pattern block `textarea` fields
+
+Out of scope in current runtime:
+
+- template/layout editing
+- pattern definition editing
+- CSS/JS editing
+- routing/PHP changes
+- pattern block reorder/insert/remove UI
+
+## Dev Mode (current scope)
+
+Dev Mode is role-gated (`superadmin`/`admin`) and session-activated.
+
+Editable roots:
+
+- `templates/`
+- `patterns/`
+- `public/assets/css/`
+- `public/assets/js/`
+
+Dev Mode does not allow unrestricted source editing (no core `src/`, migrations, `.env`, or `vendor/`).
+
+## AI and data boundary architecture
+
+This repository is AI-first for code generation/refactoring, but runtime AI invocation is out of scope.
+
+Boundary model:
+
+- **OCF = content only** (portable structured content)
+- **Composition snapshot = separate blueprint-specific layer** (pattern order/assembly and blueprint-specific composition context)
+- **Repository source layer** = templates, patterns, assets, runtime code, docs, skills
+
+This keeps portable content, blueprint composition, and source code workflows separate and predictable.
 
 ## Test commands
 
@@ -142,214 +214,3 @@ vendor/bin/pest
 composer analyse
 vendor/bin/phpstan analyse -c phpstan.neon.dist
 ```
-
-## v0.1 hardening highlights
-
-- Centralized error handling with safe production output.
-- File-based logging channels under `storage/logs/`.
-- CSRF protection on all admin POST routes.
-- Expanded docs and reusable AI skill workflows under `docs/` and `skills/`.
-
-## Installation via browser
-
-Use this flow after deployment is complete (files are already uploaded and web root is configured):
-
-1. Upload/deploy project files to the server.
-2. Open `/install` in your browser.
-3. Fill in database connection settings.
-4. Provide initial admin email and password.
-5. Submit to run migrations, create the first admin user, and finalize installation.
-
-Deployment and installation are different steps:
-
-- **Deployment** copies application files to the server.
-- **Installation** initializes runtime state (database schema and first admin account).
-
-## System route templates
-
-Template rendering is split between content routes and system routes:
-
-- Content pages render through `templates/index.php`.
-- System pages render through `templates/system/*`.
-- `404` is a system route template at `templates/system/404.php`.
-- `search` is a system route template at `templates/system/search.php` (served at `GET /search`).
-
-This keeps routing and template resolution explicit and deterministic in Template System v1.
-
-## Pattern system
-
-Patterns are reusable presentation blocks that live in `patterns/` and are loaded directly from the filesystem.
-
-Key properties:
-
-- filesystem-based (`patterns/{slug}/pattern.json` + `pattern.php`)
-- reusable and structured through typed field metadata
-- safe for editors to use because they can only select approved developer-defined patterns
-- developer- or AI-authored as version-controlled repository code
-- version-controlled with the rest of the application source
-
-### Templates vs patterns vs content
-
-- **Templates** (`templates/`) define page-level layout and route-oriented rendering structure.
-- **Patterns** (`patterns/`) define small reusable presentation sections rendered inside templates.
-- **Content** is editor-managed data (for example page title, slug, status, field values) persisted through content repositories.
-
-This keeps presentation extensible for developers while preserving predictable editor-safe behavior.
-
-## Pattern metadata and registry foundation
-
-Pattern discovery is based on explicit metadata files at `patterns/{pattern-key}/pattern.json`.
-
-Implemented foundation:
-
-- immutable `PatternMetadata` model with required-key validation (`name`, `key`, `description`, `fields`)
-- deterministic `PatternRegistry` filesystem scan and key-sorted registration
-- conservative failure handling (invalid/malformed patterns are ignored safely)
-- field-type validation for `text`, `textarea`, and future-ready `image` metadata
-
-## Pattern System v1 implemented
-
-Pattern System v1 runtime integration is now in place:
-
-- metadata-driven patterns discovered through `PatternRegistry`
-- validated runtime rendering through `PatternRenderer`
-- conservative `PatternDataValidator` enforcement before any pattern include
-- authenticated admin discovery endpoint at `GET /admin/patterns`
-
-Current v1 runtime rendering support is intentionally limited to `text` and `textarea` fields.
-
-Roadmap (next iterations):
-
-- insertion UI
-- ordering UI
-- preview UI
-- grouping/categories
-- richer field types
-
-## Pattern blocks in content items
-
-Content items can include a `pattern_blocks` payload that stores structured pattern composition per entry.
-
-Key behavior:
-
-- patterns define allowed fields and field types from `pattern.json`
-- each block stores `{ "pattern": "slug", "data": { ... } }`
-- block data is persisted as JSON in the content item record
-- frontend rendering outputs blocks sequentially using `PatternRenderer`
-
-Editor workflow:
-
-1. Open create/edit content item in admin.
-2. Select a pattern for each block from registered patterns.
-3. Fill the generated pattern fields.
-4. Save content item.
-5. Visit the content page to see pattern blocks rendered in saved order.
-
-## Editor Mode
-
-Editor Mode is a role-gated, session-based activation layer for safe inline content editing workflows.
-
-Foundation behavior in this phase:
-
-- authenticated `superadmin`/`admin`/`editor` users can enable or disable mode
-- activation is per-session (not global)
-- enabled mode shows a visible Editor Mode banner on site pages
-- editor-mode CSS and JS assets are loaded only while mode is active
-
-Editor Mode boundaries are explicit. It is intended for safe inline content editing only, and does **not** allow:
-
-- layout editing
-- template editing
-- pattern editing
-- CSS/JS source editing
-- routing or PHP code changes
-
-Editor Mode v1 now supports real inline field editing for a strictly limited allowlist:
-
-- content item title
-- pattern block text fields
-- pattern block textarea fields
-
-All saves run through a validated `/editor-mode/save-field` endpoint with repository-based persistence. Layout/template/pattern structure editing remains out of scope.
-
-
-## Dev Mode
-
-Dev Mode is a role-gated, session-activated administration feature for advanced, high-trust users who need to edit the presentation layer safely.
-
-### Who Dev Mode is for
-
-- superadmin/admin users with authenticated admin access
-- developers or trusted technical operators responsible for site presentation
-
-### What Dev Mode may edit (v1)
-
-- `templates/`
-- `patterns/`
-- `public/assets/css/`
-- `public/assets/js/`
-
-### What Dev Mode may not edit
-
-Dev Mode explicitly does **not** expose unrestricted source editing and does **not** allow editing of:
-
-- `src/Domain/`
-- `src/Application/`
-- `src/Infrastructure/Database/`
-- authentication/session internals
-- migration files
-- `.env` or configuration secrets
-- `vendor/`
-
-### Safety and trust model
-
-- Dev Mode activation is stored in session and can be enabled/disabled explicitly.
-- File operations are restricted to approved roots and supported extensions.
-- Path traversal and unsupported paths are rejected.
-- File size is limited for edit operations.
-- Writes are atomic where practical.
-- Save attempts and rejections are logged.
-- Successful saves append revision records to `storage/logs/dev-mode-edits.log`.
-
-Dev Mode is presentation-layer editing only. Treat every change as an auditable, high-trust operation.
-
-
-## Content, composition, and source-of-truth model
-
-- **Content** is portable structured data and should be exportable via OCF.
-- **Composition** (page-level pattern ordering/assembly) is blueprint-specific and represented separately from OCF.
-- **Templates, patterns, assets, and runtime code** remain repository-managed source files.
-- **Dev Mode** changes belong to the repository/source layer and should eventually align with Git-oriented workflows.
-- **Editor Mode/content** changes belong to runtime content state and should later be exportable as content snapshots rather than treated as source code edits.
-
-This separation keeps content portable, keeps rendering deterministic, and preserves clean long-term architecture boundaries.
-
-## AI-first workflow
-
-This blueprint is designed to be cloned and evolved with AI assistance.
-
-Expected operating model:
-
-- AI generates initial site structure (content types, templates, patterns, and supporting module scaffolding).
-- AI can extend the content model and presentation systems by following repository architecture and docs.
-- Editors manage content safely afterward through admin workflows and Editor Mode.
-- Dev Mode exists for high-trust presentation evolution only (templates/patterns/assets), not app-core editing.
-- Repository docs and skills are part of the working system, not passive reference text.
-
-### AI operating artifacts
-
-- `docs/` — architectural memory and implementation constraints used in each generation/refactor pass.
-- `skills/` — reusable implementation playbooks for common changes.
-- `blueprint.site.example.json` — machine-readable example input contract for future site-generation runs.
-- `CODEX.md` — concise repository-level operating instructions for AI coding agents.
-
-## Template System v1 foundation
-
-Template System v1 is now implemented with a deterministic, pattern-driven baseline:
-
-- `templates/index.php` renders all content pages.
-- `templates/system/404.php` renders not-found responses.
-- The template model is intentionally simpler than a traditional CMS hierarchy.
-- Patterns continue to define page structure inside the universal content template.
-
-This project does not use WordPress-style slug/content-type template resolution in v1.
