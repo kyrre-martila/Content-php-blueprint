@@ -96,14 +96,45 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         $contentTypeId = $this->findContentTypeIdByMachineName($contentItem->type()->name());
 
         $insertedId = $this->connection->insertAndGetId(
-            'INSERT INTO content_items (content_type_id, title, slug, status, pattern_blocks, created_at, updated_at)
-             VALUES (:content_type_id, :title, :slug, :status, :pattern_blocks, :created_at, :updated_at)',
+            'INSERT INTO content_items (
+                content_type_id,
+                title,
+                slug,
+                status,
+                pattern_blocks,
+                meta_title,
+                meta_description,
+                og_image,
+                canonical_url,
+                noindex,
+                created_at,
+                updated_at
+            )
+             VALUES (
+                :content_type_id,
+                :title,
+                :slug,
+                :status,
+                :pattern_blocks,
+                :meta_title,
+                :meta_description,
+                :og_image,
+                :canonical_url,
+                :noindex,
+                :created_at,
+                :updated_at
+            )',
             [
                 'content_type_id' => $contentTypeId,
                 'title' => $contentItem->title(),
                 'slug' => $contentItem->slug()->value(),
                 'status' => $contentItem->status()->value,
                 'pattern_blocks' => $this->encodePatternBlocks($contentItem->patternBlocks()),
+                'meta_title' => $contentItem->metaTitle(),
+                'meta_description' => $contentItem->metaDescription(),
+                'og_image' => $contentItem->ogImage(),
+                'canonical_url' => $contentItem->canonicalUrl(),
+                'noindex' => $contentItem->noindex() ? 1 : 0,
                 'created_at' => $contentItem->createdAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $contentItem->updatedAt()->format('Y-m-d H:i:s'),
             ]
@@ -139,6 +170,11 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                  slug = :slug,
                  status = :status,
                  pattern_blocks = :pattern_blocks,
+                 meta_title = :meta_title,
+                 meta_description = :meta_description,
+                 og_image = :og_image,
+                 canonical_url = :canonical_url,
+                 noindex = :noindex,
                  updated_at = :updated_at
              WHERE id = :id',
             [
@@ -148,6 +184,11 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 'slug' => $contentItem->slug()->value(),
                 'status' => $contentItem->status()->value,
                 'pattern_blocks' => $this->encodePatternBlocks($contentItem->patternBlocks()),
+                'meta_title' => $contentItem->metaTitle(),
+                'meta_description' => $contentItem->metaDescription(),
+                'og_image' => $contentItem->ogImage(),
+                'canonical_url' => $contentItem->canonicalUrl(),
+                'noindex' => $contentItem->noindex() ? 1 : 0,
                 'updated_at' => $contentItem->updatedAt()->format('Y-m-d H:i:s'),
             ]
         );
@@ -187,6 +228,11 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ci.slug,
                     ci.status,
                     ci.pattern_blocks,
+                    ci.meta_title,
+                    ci.meta_description,
+                    ci.og_image,
+                    ci.canonical_url,
+                    ci.noindex,
                     ci.created_at,
                     ci.updated_at,
                     ct.slug AS type_slug,
@@ -218,7 +264,12 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             ContentStatus::fromString($this->rowString($row, 'status')),
             new DateTimeImmutable($this->rowString($row, 'created_at')),
             new DateTimeImmutable($this->rowString($row, 'updated_at')),
-            $this->decodePatternBlocks($row['pattern_blocks'] ?? null)
+            $this->decodePatternBlocks($row['pattern_blocks'] ?? null),
+            $this->nullableString($row, 'meta_title'),
+            $this->nullableString($row, 'meta_description'),
+            $this->nullableString($row, 'og_image'),
+            $this->nullableString($row, 'canonical_url'),
+            $this->rowBool($row, 'noindex')
         );
     }
 
@@ -248,6 +299,44 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         }
 
         return (int) $value;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function nullableString(array $row, string $key): ?string
+    {
+        $value = $row[$key] ?? null;
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (!is_scalar($value)) {
+            throw new RuntimeException(sprintf('Column "%s" is not a valid string.', $key));
+        }
+
+        $string = trim((string) $value);
+
+        return $string === '' ? null : $string;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function rowBool(array $row, string $key): bool
+    {
+        $value = $row[$key] ?? null;
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (!is_scalar($value)) {
+            throw new RuntimeException(sprintf('Column "%s" is not a valid boolean.', $key));
+        }
+
+        return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true);
     }
 
     /**

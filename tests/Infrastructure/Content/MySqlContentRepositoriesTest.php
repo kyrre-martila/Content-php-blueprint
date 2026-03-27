@@ -31,10 +31,16 @@ function buildConnectionForRepositoryTests(): Connection
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             content_type_id INTEGER NOT NULL,
             title TEXT NOT NULL,
+            meta_title TEXT NULL,
+            meta_description TEXT NULL,
+            og_image TEXT NULL,
+            canonical_url TEXT NULL,
+            noindex INTEGER NOT NULL DEFAULT 0,
             slug TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL,
             body TEXT NULL,
             published_at TEXT NULL,
+            pattern_blocks TEXT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             FOREIGN KEY(content_type_id) REFERENCES content_types(id)
@@ -78,7 +84,16 @@ it('persists updates and queries content items by id slug and type', function ()
         updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
     );
 
-    $savedItem = $itemRepository->save($initialItem);
+    $savedItem = $itemRepository->save(
+        $initialItem->withSeoMetadata(
+            'Hello Meta',
+            'Meta description for hello world',
+            '/images/hello.jpg',
+            'https://example.com/hello-world',
+            true,
+            new DateTimeImmutable('2026-03-20 10:00:00')
+        )
+    );
 
     expect($savedItem->id())->toBeInt()
         ->and($itemRepository->findById($savedItem->id() ?? 0)?->slug()->value())->toBe('hello-world')
@@ -93,5 +108,10 @@ it('persists updates and queries content items by id slug and type', function ()
 
     expect($updatedSaved->title())->toBe('Updated Title')
         ->and($updatedSaved->slug()->value())->toBe('hello-world-updated')
+        ->and($updatedSaved->metaTitle())->toBe('Hello Meta')
+        ->and($updatedSaved->metaDescription())->toBe('Meta description for hello world')
+        ->and($updatedSaved->ogImage())->toBe('/images/hello.jpg')
+        ->and($updatedSaved->canonicalUrl())->toBe('https://example.com/hello-world')
+        ->and($updatedSaved->noindex())->toBeTrue()
         ->and($itemRepository->findBySlug(Slug::fromString('hello-world')))->toBeNull();
 });

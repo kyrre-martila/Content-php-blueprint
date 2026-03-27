@@ -20,7 +20,12 @@ final class ContentItem
         private readonly ContentStatus $status,
         private readonly DateTimeImmutable $createdAt,
         private readonly DateTimeImmutable $updatedAt,
-        private readonly array $patternBlocks = []
+        private readonly array $patternBlocks = [],
+        private readonly ?string $metaTitle = null,
+        private readonly ?string $metaDescription = null,
+        private readonly ?string $ogImage = null,
+        private readonly ?string $canonicalUrl = null,
+        private readonly bool $noindex = false
     ) {
         if (trim($this->title) === '') {
             throw new InvalidArgumentException('Content item title cannot be empty.');
@@ -89,6 +94,31 @@ final class ContentItem
         return $this->patternBlocks;
     }
 
+    public function metaTitle(): ?string
+    {
+        return $this->metaTitle;
+    }
+
+    public function metaDescription(): ?string
+    {
+        return $this->metaDescription;
+    }
+
+    public function ogImage(): ?string
+    {
+        return $this->ogImage;
+    }
+
+    public function canonicalUrl(): ?string
+    {
+        return $this->canonicalUrl;
+    }
+
+    public function noindex(): bool
+    {
+        return $this->noindex;
+    }
+
     public function isPublished(): bool
     {
         return $this->status->isPublished();
@@ -104,7 +134,12 @@ final class ContentItem
             $status,
             $this->createdAt,
             $updatedAt,
-            $this->patternBlocks
+            $this->patternBlocks,
+            $this->metaTitle,
+            $this->metaDescription,
+            $this->ogImage,
+            $this->canonicalUrl,
+            $this->noindex
         );
     }
 
@@ -123,7 +158,12 @@ final class ContentItem
             $this->status,
             $this->createdAt,
             $updatedAt,
-            $this->patternBlocks
+            $this->patternBlocks,
+            $this->metaTitle,
+            $this->metaDescription,
+            $this->ogImage,
+            $this->canonicalUrl,
+            $this->noindex
         );
     }
 
@@ -137,7 +177,12 @@ final class ContentItem
             $this->status,
             $this->createdAt,
             $updatedAt,
-            $this->patternBlocks
+            $this->patternBlocks,
+            $this->metaTitle,
+            $this->metaDescription,
+            $this->ogImage,
+            $this->canonicalUrl,
+            $this->noindex
         );
     }
 
@@ -154,7 +199,37 @@ final class ContentItem
             $this->status,
             $this->createdAt,
             $updatedAt,
-            $patternBlocks
+            $patternBlocks,
+            $this->metaTitle,
+            $this->metaDescription,
+            $this->ogImage,
+            $this->canonicalUrl,
+            $this->noindex
+        );
+    }
+
+    public function withSeoMetadata(
+        ?string $metaTitle,
+        ?string $metaDescription,
+        ?string $ogImage,
+        ?string $canonicalUrl,
+        bool $noindex,
+        DateTimeImmutable $updatedAt
+    ): self {
+        return new self(
+            $this->id,
+            $this->type,
+            $this->title,
+            $this->slug,
+            $this->status,
+            $this->createdAt,
+            $updatedAt,
+            $this->patternBlocks,
+            $metaTitle,
+            $metaDescription,
+            $ogImage,
+            $canonicalUrl,
+            $noindex
         );
     }
 }

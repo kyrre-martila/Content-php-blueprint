@@ -28,7 +28,21 @@ final class EditorContentService
         $updatedAt = new DateTimeImmutable();
 
         if ($validated['type'] === 'content_item') {
-            return $this->contentItems->save($contentItem->withTitle((string) $validated['value'], $updatedAt));
+            $field = (string) $validated['field'];
+            $value = (string) $validated['value'];
+
+            if ($field === 'title') {
+                return $this->contentItems->save($contentItem->withTitle($value, $updatedAt));
+            }
+
+            return $this->contentItems->save($contentItem->withSeoMetadata(
+                $field === 'meta_title' ? $this->normalizeNullableText($value) : $contentItem->metaTitle(),
+                $field === 'meta_description' ? $this->normalizeNullableText($value) : $contentItem->metaDescription(),
+                $field === 'og_image' ? $this->normalizeNullableText($value) : $contentItem->ogImage(),
+                $field === 'canonical_url' ? $this->normalizeNullableText($value) : $contentItem->canonicalUrl(),
+                $field === 'noindex' ? $this->toBoolean($value) : $contentItem->noindex(),
+                $updatedAt
+            ));
         }
 
         $patternBlocks = $contentItem->patternBlocks();
@@ -54,5 +68,17 @@ final class EditorContentService
         }
 
         return $contentItem;
+    }
+
+    private function normalizeNullableText(string $value): ?string
+    {
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function toBoolean(string $value): bool
+    {
+        return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
     }
 }

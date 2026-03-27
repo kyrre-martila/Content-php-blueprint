@@ -67,6 +67,10 @@ final class CreateContentItem
         }
 
         $now = new DateTimeImmutable();
+        $metaTitle = $this->normalizeNullableText($input->metaTitle);
+        $metaDescription = $this->normalizeNullableText($input->metaDescription);
+        $ogImage = $this->normalizeNullableText($input->ogImage);
+        $canonicalUrl = $this->normalizeNullableText($input->canonicalUrl);
         $contentItem = new ContentItem(
             null,
             $contentType,
@@ -75,9 +79,25 @@ final class CreateContentItem
             $status,
             $now,
             $now,
-            $input->patternBlocks
+            $input->patternBlocks,
+            $metaTitle,
+            $metaDescription,
+            $ogImage,
+            $canonicalUrl,
+            $input->noindex
         );
 
         return ContentItemValidationResult::valid($this->contentItems->save($contentItem));
+    }
+
+    private function normalizeNullableText(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 }
