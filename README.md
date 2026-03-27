@@ -238,6 +238,24 @@ Boundary model:
 
 This keeps portable content, blueprint composition, and source code workflows separate and predictable.
 
+## Composition snapshot export
+
+Composition snapshot export is a blueprint-specific runtime assembly export designed for AI tooling and blueprint-aware assistants.
+
+- Export location: `storage/exports/composition/`
+- Separate from OCF export (OCF remains portable content model data)
+- Represents the runtime assembly layer, not source code and not content-model semantics
+
+`export_format_version: 2` snapshots describe route assembly using runtime metadata:
+
+- `scope` (`content-routes` or `system-routes`)
+- `route_type` (`content` for content item exports)
+- `renderer_entrypoint` (for content: `templates/index.php`; for system routes: `templates/system/*.php`)
+- `layout` (`templates/layout.php` unless future overrides are introduced)
+- ordered `patterns` blocks (`pattern` + `data`)
+
+This format intentionally does not encode template hierarchy assumptions or presentation source implementation details.
+
 ## SEO metadata support
 
 SEO metadata is part of the structured content model (not plugin-based and not template-owned).

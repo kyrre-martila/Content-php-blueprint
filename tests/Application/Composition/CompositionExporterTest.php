@@ -68,14 +68,30 @@ it('exports one composition JSON file per content item with ordered pattern bloc
         ->and($paths[1])->toEndWith('/storage/exports/composition/home.json')
         ->and(is_dir($projectRoot . '/storage/exports/composition'))->toBeTrue();
 
-    /** @var array{slug: string, title: string, template: string, patterns: list<array{pattern: string, data: array<string, string>}>} $aboutExport */
+    /** @var array{
+     *   kind: string,
+     *   scope: string,
+     *   export_format_version: int,
+     *   slug: string,
+     *   title: string,
+     *   route_type: string,
+     *   renderer_entrypoint: string,
+     *   layout: string,
+     *   patterns: list<array{pattern: string, data: array<string, string>}>
+     * } $aboutExport
+     */
     $aboutExport = json_decode((string) file_get_contents($paths[0]), true, 512, JSON_THROW_ON_ERROR);
 
     expect($aboutExport)
         ->toMatchArray([
+            'kind' => 'blueprint-composition-snapshot',
+            'scope' => 'content-routes',
+            'export_format_version' => 2,
             'slug' => 'about',
             'title' => 'About us',
-            'template' => 'templates/index.php',
+            'route_type' => 'content',
+            'renderer_entrypoint' => 'templates/index.php',
+            'layout' => 'templates/layout.php',
         ])
         ->and($aboutExport['patterns'])->toBe([
             [
@@ -103,14 +119,21 @@ it('can export a minimal system-routes composition snapshot separate from OCF', 
 
     $path = $exporter->exportSystemRoutes();
 
-    /** @var array{kind: string, scope: string, routes: list<array{route: string, template: string, patterns: list<array{pattern: string, data: array<string, string>}>}>} $payload */
+    /** @var array{
+     *   kind: string,
+     *   scope: string,
+     *   export_format_version: int,
+     *   routes: list<array{route: string, renderer_entrypoint: string, layout: string, patterns: list<array{pattern: string, data: array<string, string>}>}>
+     * } $payload
+     */
     $payload = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
 
     expect($path)->toEndWith('/storage/exports/composition/system-routes.json')
         ->and($payload['kind'])->toBe('blueprint-composition-snapshot')
         ->and($payload['scope'])->toBe('system-routes')
+        ->and($payload['export_format_version'])->toBe(2)
         ->and($payload['routes'])->toBe([
-            ['route' => 'search', 'template' => 'templates/system/search.php', 'patterns' => []],
-            ['route' => '404', 'template' => 'templates/system/404.php', 'patterns' => []],
+            ['route' => 'search', 'renderer_entrypoint' => 'templates/system/search.php', 'layout' => 'templates/layout.php', 'patterns' => []],
+            ['route' => '404', 'renderer_entrypoint' => 'templates/system/404.php', 'layout' => 'templates/layout.php', 'patterns' => []],
         ]);
 });
