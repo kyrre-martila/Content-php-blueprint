@@ -29,7 +29,7 @@ final class DashboardController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'editorModeActive' => $this->editorMode?->isActive() ?? false,
-                'editorCanEdit' => $this->editorMode?->canEdit() ?? false,
+                'editorCanUse' => $this->editorMode?->canUse() ?? false,
                 'devModeActive' => $this->devMode?->isActive() ?? false,
                 'devModeCanUse' => $this->devMode?->canUse() ?? false,
             ]

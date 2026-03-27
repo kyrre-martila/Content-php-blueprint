@@ -79,7 +79,7 @@ final class TemplateRenderer
             );
 
             $isEditorMode = static function () use ($__data): bool {
-                return ($__data['editorModeActive'] ?? false) === true && ($__data['editorCanEdit'] ?? false) === true;
+                return ($__data['editorModeActive'] ?? false) === true && ($__data['editorCanUse'] ?? false) === true;
             };
 
             $editableText = static function (string $value, array $meta = []) use ($e, $isEditorMode): string {
