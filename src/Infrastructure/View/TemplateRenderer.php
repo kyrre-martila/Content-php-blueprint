@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Infrastructure\View;
 
 use App\Infrastructure\Editor\EditableFieldRenderer;
-use App\Infrastructure\Pattern\PatternRenderer;
 use RuntimeException;
 
 final class TemplateRenderer
