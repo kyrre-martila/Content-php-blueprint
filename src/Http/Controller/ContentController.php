@@ -28,22 +28,22 @@ final class ContentController
         $slugInput = $request->attribute('slug');
 
         if (!is_string($slugInput) || trim($slugInput) === '') {
-            return Response::html('<h1>404 Not Found</h1>', 404);
+            return $this->renderNotFound($request);
         }
 
         try {
             $slug = Slug::fromString($slugInput);
         } catch (InvalidSlugException) {
-            return Response::html('<h1>404 Not Found</h1>', 404);
+            return $this->renderNotFound($request);
         }
 
         $contentItem = $this->contentItems->findBySlug($slug);
 
         if ($contentItem === null || !$contentItem->isPublished()) {
-            return Response::html('<h1>404 Not Found</h1>', 404);
+            return $this->renderNotFound($request);
         }
 
-        $templatePath = $this->templateResolver->resolveForSlug($slug->value());
+        $templatePath = $this->templateResolver->resolveContentTemplate();
 
         $html = $this->templateRenderer->render($templatePath, [
             'contentItem' => $contentItem,
@@ -55,5 +55,16 @@ final class ContentController
         ]);
 
         return Response::html($html);
+    }
+
+    private function renderNotFound(Request $request): Response
+    {
+        $html = $this->templateRenderer->render($this->templateResolver->resolveNotFound(), [
+            'request' => $request,
+            'editorModeActive' => $this->editorMode->isActive(),
+            'editorCanUse' => $this->editorMode->canUse(),
+        ]);
+
+        return Response::html($html, 404);
     }
 }

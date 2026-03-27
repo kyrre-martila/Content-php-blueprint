@@ -12,6 +12,7 @@ Content PHP Blueprint currently runs as a framework-light, layered PHP applicati
 - `src/Http/`: request/response primitives, router, middleware, public controllers, and `Kernel` wiring.
 - `src/Admin/`: authenticated admin controllers for auth, dashboard, content CRUD, Editor Mode updates, and Dev Mode file editing.
 - `templates/`: deterministic server-rendered PHP templates.
+  - v1 uses `templates/index.php` as universal content renderer and `templates/system/404.php` for not-found rendering.
 - `patterns/`: reusable presentation blocks (`pattern.json` metadata + `pattern.php` view).
 
 ### Runtime composition
@@ -24,7 +25,7 @@ Content PHP Blueprint currently runs as a framework-light, layered PHP applicati
 ### Data and rendering flow
 
 1. Controller resolves use case/repository data.
-2. `TemplateResolver` determines template path for content routes.
+2. `TemplateResolver` deterministically maps content routes to `templates/index.php` and not-found responses to `templates/system/404.php`.
 3. `TemplateRenderer` renders template and optional layout.
 4. Templates can render patterns through `PatternRenderer`.
 5. Pattern rendering is registry-based and field-filtered (only declared scalar fields passed through).
