@@ -274,6 +274,36 @@ Explicitly not implemented yet:
 
 ---
 
+## Upgrade lifecycle
+
+Upgrade execution is separated from file delivery through a dedicated application service: `App\Infrastructure\Application\UpgradeRunner`.
+
+### Runtime flow
+
+1. deployment/updater replaces application files with a newer version
+2. bootstrap builds persistence services and version state
+3. `UpgradeRunner::runUpgradeIfNeeded()` compares `app.version` against `settings.installed_version`
+4. if versions differ and installation is complete, `runUpgradeTasks()` executes upgrade hooks
+5. on success, runtime persists `settings.installed_version = currentVersion` and keeps `settings.install_completed = true`
+
+### Safety behavior
+
+`UpgradeRunner` exits safely (no fatal upgrade failure) when:
+
+- database connection is unavailable
+- `settings` table is missing
+- installation has not completed yet
+- versions already match
+
+### Future integration boundary
+
+- **File updater concern (future GitHub release updater):** release check/download/unpack/file replacement
+- **Upgrade runner concern:** post-replacement migrations, data fixes, cache invalidation, composition snapshot refresh, export regeneration, future schema upgrade tasks, and version persistence
+
+This boundary keeps update orchestration and upgrade execution independently testable and safer to evolve.
+
+---
+
 ## OCF / composition / Git boundary (current implementation)
 
 Runtime architecture enforces strict separation:
