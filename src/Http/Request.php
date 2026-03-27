@@ -22,7 +22,8 @@ final class Request
         private readonly array $cookies,
         private readonly array $files,
         private readonly array $server,
-        private readonly array $attributes = []
+        private readonly array $attributes = [],
+        private readonly string $rawPath = '/'
     ) {
     }
 
@@ -39,7 +40,9 @@ final class Request
             $_POST,
             $_COOKIE,
             $_FILES,
-            $server
+            $server,
+            [],
+            self::extractRawPath($uri)
         );
     }
 
@@ -51,6 +54,11 @@ final class Request
     public function path(): string
     {
         return $this->path;
+    }
+
+    public function rawPath(): string
+    {
+        return $this->rawPath;
     }
 
     /**
@@ -120,7 +128,8 @@ final class Request
             $this->cookies,
             $this->files,
             $this->server,
-            $attributes
+            $attributes,
+            $this->rawPath
         );
     }
 
@@ -137,19 +146,32 @@ final class Request
 
     private static function normalizePath(string $uri): string
     {
-        $path = parse_url($uri, PHP_URL_PATH);
-        $normalizedPath = is_string($path) && $path !== '' ? $path : '/';
+        $normalizedPath = self::extractRawPath($uri);
+        $normalizedPath = strtolower($normalizedPath);
 
         if (!str_starts_with($normalizedPath, '/')) {
             $normalizedPath = '/' . $normalizedPath;
         }
 
         $normalizedPath = preg_replace('#/+#', '/', $normalizedPath) ?? $normalizedPath;
+        $normalizedPath = preg_replace('#/index$#', '', $normalizedPath) ?? $normalizedPath;
 
         if (strlen($normalizedPath) > 1) {
             $normalizedPath = rtrim($normalizedPath, '/');
         }
 
         return $normalizedPath === '' ? '/' : $normalizedPath;
+    }
+
+    private static function extractRawPath(string $uri): string
+    {
+        $path = parse_url($uri, PHP_URL_PATH);
+        $rawPath = is_string($path) && $path !== '' ? $path : '/';
+
+        if (!str_starts_with($rawPath, '/')) {
+            $rawPath = '/' . $rawPath;
+        }
+
+        return $rawPath;
     }
 }

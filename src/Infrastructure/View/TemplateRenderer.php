@@ -12,7 +12,8 @@ final class TemplateRenderer
     public function __construct(
         private readonly string $templatesBasePath,
         private readonly ?PatternRenderer $patternRenderer = null,
-        private readonly ?EditableFieldRenderer $editableFieldRenderer = null
+        private readonly ?EditableFieldRenderer $editableFieldRenderer = null,
+        private readonly ?string $siteUrl = null
     ) {
     }
 
@@ -21,6 +22,7 @@ final class TemplateRenderer
      */
     public function render(string $templatePath, array $data = []): string
     {
+        $data = $this->withCanonicalMeta($data);
         $layout = null;
         $content = $this->renderFile($templatePath, $data, $layout);
 
@@ -32,6 +34,77 @@ final class TemplateRenderer
         $unusedLayout = null;
 
         return $this->renderFile($layoutPath, [...$data, 'content' => $content], $unusedLayout);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function withCanonicalMeta(array $data): array
+    {
+        $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $existingCanonical = $meta['canonical'] ?? null;
+
+        if (is_string($existingCanonical) && trim($existingCanonical) !== '') {
+            return [...$data, 'meta' => $meta];
+        }
+
+        $canonical = null;
+        $contentItem = $data['contentItem'] ?? null;
+
+        if (is_object($contentItem) && method_exists($contentItem, 'canonicalUrl')) {
+            $canonicalUrl = $contentItem->canonicalUrl();
+
+            if (is_string($canonicalUrl) && trim($canonicalUrl) !== '') {
+                $canonical = trim($canonicalUrl);
+            }
+        }
+
+        if ($canonical === null && is_object($contentItem) && method_exists($contentItem, 'slug')) {
+            $slug = $contentItem->slug();
+
+            if (is_object($slug) && method_exists($slug, 'value')) {
+                $canonical = $this->absoluteCanonicalFromPath('/' . ltrim((string) $slug->value(), '/'), $data['request'] ?? null);
+            }
+        }
+
+        if ($canonical === null) {
+            return [...$data, 'meta' => $meta];
+        }
+
+        return [
+            ...$data,
+            'meta' => [
+                ...$meta,
+                'canonical' => $canonical,
+            ],
+        ];
+    }
+
+    private function absoluteCanonicalFromPath(string $path, mixed $request): string
+    {
+        $normalizedPath = '/' . ltrim($path, '/');
+
+        if (is_string($this->siteUrl) && trim($this->siteUrl) !== '') {
+            return rtrim(trim($this->siteUrl), '/') . $normalizedPath;
+        }
+
+        if (is_object($request) && method_exists($request, 'serverParams')) {
+            $server = $request->serverParams();
+            $host = $server['HTTP_HOST'] ?? null;
+
+            if (is_string($host) && trim($host) !== '') {
+                $scheme = $server['REQUEST_SCHEME'] ?? null;
+
+                if (!is_string($scheme) || trim($scheme) === '') {
+                    $scheme = (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off') ? 'https' : 'http';
+                }
+
+                return strtolower(trim((string) $scheme)) . '://' . trim($host) . $normalizedPath;
+            }
+        }
+
+        return $normalizedPath;
     }
 
     /**
