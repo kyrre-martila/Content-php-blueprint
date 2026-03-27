@@ -15,7 +15,12 @@ final class ContentItemInput
         public readonly string $status,
         public readonly string $contentType,
         public readonly ?string $body = null,
-        public readonly array $patternBlocks = []
+        public readonly array $patternBlocks = [],
+        public readonly ?string $metaTitle = null,
+        public readonly ?string $metaDescription = null,
+        public readonly ?string $ogImage = null,
+        public readonly ?string $canonicalUrl = null,
+        public readonly bool $noindex = false
     ) {
     }
 }

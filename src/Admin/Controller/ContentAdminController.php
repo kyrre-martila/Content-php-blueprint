@@ -64,6 +64,11 @@ final class ContentAdminController
                     'content_type' => '',
                     'body' => '',
                     'pattern_blocks' => [],
+                    'meta_title' => '',
+                    'meta_description' => '',
+                    'og_image' => '',
+                    'canonical_url' => '',
+                    'noindex' => false,
                 ],
             ]
         );
@@ -115,6 +120,11 @@ final class ContentAdminController
                     'content_type' => $item->type()->name(),
                     'body' => '',
                     'pattern_blocks' => $item->patternBlocks(),
+                    'meta_title' => $item->metaTitle() ?? '',
+                    'meta_description' => $item->metaDescription() ?? '',
+                    'og_image' => $item->ogImage() ?? '',
+                    'canonical_url' => $item->canonicalUrl() ?? '',
+                    'noindex' => $item->noindex(),
                 ],
             ]
         );
@@ -152,7 +162,12 @@ final class ContentAdminController
             is_string($post['status'] ?? null) ? $post['status'] : '',
             is_string($post['content_type'] ?? null) ? $post['content_type'] : '',
             is_string($post['body'] ?? null) ? $post['body'] : null,
-            $this->extractPatternBlocks($post['pattern_blocks'] ?? null)
+            $this->extractPatternBlocks($post['pattern_blocks'] ?? null),
+            is_string($post['meta_title'] ?? null) ? $post['meta_title'] : null,
+            is_string($post['meta_description'] ?? null) ? $post['meta_description'] : null,
+            is_string($post['og_image'] ?? null) ? $post['og_image'] : null,
+            is_string($post['canonical_url'] ?? null) ? $post['canonical_url'] : null,
+            $this->toBoolean($post['noindex'] ?? null)
         );
     }
 
@@ -187,6 +202,11 @@ final class ContentAdminController
                     'content_type' => $input->contentType,
                     'body' => $input->body ?? '',
                     'pattern_blocks' => $input->patternBlocks,
+                    'meta_title' => $input->metaTitle ?? '',
+                    'meta_description' => $input->metaDescription ?? '',
+                    'og_image' => $input->ogImage ?? '',
+                    'canonical_url' => $input->canonicalUrl ?? '',
+                    'noindex' => $input->noindex,
                 ],
             ]
         );
@@ -221,6 +241,11 @@ final class ContentAdminController
                     'content_type' => $input->contentType,
                     'body' => $input->body ?? '',
                     'pattern_blocks' => $input->patternBlocks,
+                    'meta_title' => $input->metaTitle ?? '',
+                    'meta_description' => $input->metaDescription ?? '',
+                    'og_image' => $input->ogImage ?? '',
+                    'canonical_url' => $input->canonicalUrl ?? '',
+                    'noindex' => $input->noindex,
                 ],
             ]
         );
@@ -288,5 +313,18 @@ final class ContentAdminController
         }
 
         return $blocks;
+    }
+
+    private function toBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (!is_scalar($value)) {
+            return false;
+        }
+
+        return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true);
     }
 }

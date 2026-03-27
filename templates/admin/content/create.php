@@ -60,6 +60,26 @@ $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks
         <p id="body-help">Body persistence will be wired through field-value infrastructure in a future step.</p>
 
         <hr>
+        <h2>SEO metadata</h2>
+
+        <label for="meta_title">Meta title</label>
+        <input id="meta_title" type="text" name="meta_title" value="<?= $e((string) ($old['meta_title'] ?? '')) ?>">
+
+        <label for="meta_description">Meta description</label>
+        <textarea id="meta_description" name="meta_description" rows="3"><?= $e((string) ($old['meta_description'] ?? '')) ?></textarea>
+
+        <label for="og_image">Open Graph image</label>
+        <input id="og_image" type="text" name="og_image" value="<?= $e((string) ($old['og_image'] ?? '')) ?>">
+
+        <label for="canonical_url">Canonical URL</label>
+        <input id="canonical_url" type="url" name="canonical_url" value="<?= $e((string) ($old['canonical_url'] ?? '')) ?>">
+
+        <label for="noindex">
+            <input id="noindex" type="checkbox" name="noindex" value="1" <?= (($old['noindex'] ?? false) === true) ? 'checked' : '' ?>>
+            Mark this item as noindex
+        </label>
+
+        <hr>
         <h2>Pattern blocks</h2>
         <p>Add structured blocks in order. Use Move up/down for simple reordering.</p>
 

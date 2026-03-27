@@ -75,6 +75,10 @@ final class UpdateContentItem
             return ContentItemValidationResult::invalid($errors);
         }
 
+        $metaTitle = $this->normalizeNullableText($input->metaTitle);
+        $metaDescription = $this->normalizeNullableText($input->metaDescription);
+        $ogImage = $this->normalizeNullableText($input->ogImage);
+        $canonicalUrl = $this->normalizeNullableText($input->canonicalUrl);
         $updatedContentItem = new ContentItem(
             $existing->id(),
             $contentType,
@@ -83,9 +87,25 @@ final class UpdateContentItem
             $status,
             $existing->createdAt(),
             new DateTimeImmutable(),
-            $input->patternBlocks
+            $input->patternBlocks,
+            $metaTitle,
+            $metaDescription,
+            $ogImage,
+            $canonicalUrl,
+            $input->noindex
         );
 
         return ContentItemValidationResult::valid($this->contentItems->save($updatedContentItem));
+    }
+
+    private function normalizeNullableText(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 }

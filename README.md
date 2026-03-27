@@ -187,6 +187,7 @@ Current v1 scope:
 - inline save endpoint: `POST /editor-mode/save-field`
 - editable fields are limited to:
   - content item title
+  - content item SEO metadata (`meta_title`, `meta_description`, `og_image`, `canonical_url`, `noindex`)
   - pattern block `text` fields
   - pattern block `textarea` fields
 
@@ -222,6 +223,20 @@ Boundary model:
 - **Repository source layer** = templates, patterns, assets, runtime code, docs, skills
 
 This keeps portable content, blueprint composition, and source code workflows separate and predictable.
+
+## SEO metadata support
+
+SEO metadata is part of the structured content model (not plugin-based and not template-owned).
+
+Each content item supports:
+
+- `meta_title` (nullable string, falls back to item title at render-time)
+- `meta_description` (nullable string, falls back to a truncated content summary when possible)
+- `og_image` (nullable string/path)
+- `canonical_url` (nullable string)
+- `noindex` (boolean, default `false`)
+
+The metadata fields are persisted in the core content repositories and are provided automatically to templates through the content render payload as `meta`, so templates can consume metadata without adding plugin wiring.
 
 ## Test commands
 

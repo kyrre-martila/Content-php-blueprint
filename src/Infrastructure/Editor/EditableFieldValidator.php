@@ -38,8 +38,8 @@ final class EditableFieldValidator
         }
 
         if ($type === 'content_item') {
-            if ($field !== 'title') {
-                throw new EditableFieldValidationException('Only content item title can be edited.');
+            if (!in_array($field, ['title', 'meta_title', 'meta_description', 'og_image', 'canonical_url', 'noindex'], true)) {
+                throw new EditableFieldValidationException('Unsupported content item field.');
             }
 
             return [
