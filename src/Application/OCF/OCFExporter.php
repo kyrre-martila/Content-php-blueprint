@@ -54,8 +54,10 @@ final class OCFExporter
 
     /**
      * @return array{
+     *   export_format_version: int,
      *   ocf_version: string,
-     *   exported_at: string,
+     *   generated_by: string,
+     *   generated_at: string,
      *   content_types: list<array{name: string, label: string, fields: list<array{key: string, type: string, required: bool}>}>,
      *   content_items: list<array{
      *      id: int,
@@ -63,7 +65,9 @@ final class OCFExporter
      *      slug: string,
      *      status: string,
      *      fields: array<string, string>,
-     *      relationships: array{content_type: string},
+     *      pattern_blocks: list<array{pattern: string, data: array<string, string>}>,
+     *      relationships: array{content_type: string, parent_slug?: string, related_items?: list<string>},
+     *      seo?: array{meta_title?: string, meta_description?: string, canonical_url?: string},
      *      metadata: array{created_at: string, updated_at: string}
      *   }>
      * }
@@ -77,8 +81,7 @@ final class OCFExporter
             $contentTypes[] = [
                 'name' => $contentType->name(),
                 'label' => $contentType->label(),
-                // Portable semantic fields currently represented in the domain model.
-                'fields' => $this->defaultPortableFieldSchema(),
+                'fields' => $contentType->fieldDefinitions() ?? $this->defaultPortableFieldSchema(),
             ];
 
             foreach ($this->contentItems->findByType($contentType) as $item) {
@@ -88,7 +91,7 @@ final class OCFExporter
                     continue;
                 }
 
-                $contentItems[] = [
+                $payloadItem = [
                     'id' => $id,
                     'type' => $item->type()->name(),
                     'slug' => $item->slug()->value(),
@@ -96,21 +99,30 @@ final class OCFExporter
                     'fields' => [
                         'title' => $item->title(),
                     ],
-                    'relationships' => [
-                        // Keep only semantic relationships represented in the current model.
-                        'content_type' => $item->type()->name(),
-                    ],
+                    // Structured semantic blocks are portable content data, not layout logic.
+                    'pattern_blocks' => $item->patternBlocks(),
+                    'relationships' => $this->relationshipsForItem($item->type()->name()),
                     'metadata' => [
                         'created_at' => $item->createdAt()->format(DATE_ATOM),
                         'updated_at' => $item->updatedAt()->format(DATE_ATOM),
                     ],
                 ];
+
+                $seo = $this->seoMetadataForItem($item->metaTitle(), $item->metaDescription(), $item->canonicalUrl());
+
+                if ($seo !== null) {
+                    $payloadItem['seo'] = $seo;
+                }
+
+                $contentItems[] = $payloadItem;
             }
         }
 
         return [
+            'export_format_version' => 2,
             'ocf_version' => '0.1-draft',
-            'exported_at' => gmdate(DATE_ATOM),
+            'generated_by' => 'content-php-blueprint',
+            'generated_at' => gmdate(DATE_ATOM),
             'content_types' => $contentTypes,
             'content_items' => $contentItems,
         ];
@@ -131,5 +143,37 @@ final class OCFExporter
             ['key' => 'slug', 'type' => 'slug', 'required' => true],
             ['key' => 'status', 'type' => 'string', 'required' => true],
         ];
+    }
+
+    /**
+     * @return array{content_type: string, parent_slug?: string, related_items?: list<string>}
+     */
+    private function relationshipsForItem(string $contentType): array
+    {
+        return [
+            'content_type' => $contentType,
+        ];
+    }
+
+    /**
+     * @return array{meta_title?: string, meta_description?: string, canonical_url?: string}|null
+     */
+    private function seoMetadataForItem(?string $metaTitle, ?string $metaDescription, ?string $canonicalUrl): ?array
+    {
+        $seo = [];
+
+        if ($metaTitle !== null && trim($metaTitle) !== '') {
+            $seo['meta_title'] = $metaTitle;
+        }
+
+        if ($metaDescription !== null && trim($metaDescription) !== '') {
+            $seo['meta_description'] = $metaDescription;
+        }
+
+        if ($canonicalUrl !== null && trim($canonicalUrl) !== '') {
+            $seo['canonical_url'] = $canonicalUrl;
+        }
+
+        return $seo === [] ? null : $seo;
     }
 }
