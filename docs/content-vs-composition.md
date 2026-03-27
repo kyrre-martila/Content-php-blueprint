@@ -66,3 +66,23 @@ Keeping content, composition, and code separate prevents architectural drift and
 - Source code remains version-controlled and reviewable through standard repository practices.
 - Editor-facing content operations can be exported as content snapshots without being confused with source-code changes.
 - Dev-facing presentation work can evolve in Git without polluting portable content artifacts.
+
+## Composition snapshot export layer
+
+The application-level exporter (`App\Application\Composition\CompositionExporter`) writes
+blueprint-specific composition snapshots to `storage/exports/composition/`.
+
+Snapshot scope:
+
+- content item slug/title
+- template reference
+- ordered `pattern_blocks` transformed into `patterns`
+- pattern names and field values
+- optional minimal system-route composition (`system-routes.json`)
+
+Non-goals for this snapshot format:
+
+- not an OCF export
+- no template source code
+- no CSS/JS or other repository implementation details
+- no runtime code artifacts
