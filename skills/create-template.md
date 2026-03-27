@@ -1,11 +1,25 @@
 # Skill: create-template
 
-## Goal
-Add deterministic rendering template(s).
+## Purpose
+Add or modify deterministic server-rendered templates.
 
-## Workflow
-1. Create file under `templates/pages` or `templates/components`.
-2. Keep template free of business logic and database calls.
-3. Escape all interpolated values with renderer-provided escaping helper.
-4. Wire mapping through content type defaults or resolver fallback.
-5. Add/adjust render-path tests where applicable.
+## When to use
+- New page template is required.
+- Existing rendering structure needs safe extension.
+
+## Architectural rules
+- No business logic, DB calls, or service lookups in templates.
+- Escape output through provided helpers.
+- Prefer pattern rendering for reusable sections.
+
+## File placement expectations
+- Page templates: `templates/pages/*.php`
+- Layouts: `templates/layouts/*.php`
+- Generic fallback: `templates/default.php`
+
+## Implementation checklist
+- [ ] Create/modify template file in correct location.
+- [ ] Keep logic minimal and deterministic.
+- [ ] Use `$e` and renderer helpers for output safety.
+- [ ] Confirm resolver path still deterministic.
+- [ ] Update docs if resolution rules changed.

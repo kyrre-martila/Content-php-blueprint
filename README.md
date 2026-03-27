@@ -263,3 +263,22 @@ Dev Mode explicitly does **not** expose unrestricted source editing and does **n
 - Successful saves append revision records to `storage/logs/dev-mode-edits.log`.
 
 Dev Mode is presentation-layer editing only. Treat every change as an auditable, high-trust operation.
+
+## AI-first workflow
+
+This blueprint is designed to be cloned and evolved with AI assistance.
+
+Expected operating model:
+
+- AI generates initial site structure (content types, templates, patterns, and supporting module scaffolding).
+- AI can extend the content model and presentation systems by following repository architecture and docs.
+- Editors manage content safely afterward through admin workflows and Editor Mode.
+- Dev Mode exists for high-trust presentation evolution only (templates/patterns/assets), not app-core editing.
+- Repository docs and skills are part of the working system, not passive reference text.
+
+### AI operating artifacts
+
+- `docs/` — architectural memory and implementation constraints used in each generation/refactor pass.
+- `skills/` — reusable implementation playbooks for common changes.
+- `blueprint.site.example.json` — machine-readable example input contract for future site-generation runs.
+- `CODEX.md` — concise repository-level operating instructions for AI coding agents.

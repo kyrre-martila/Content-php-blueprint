@@ -507,56 +507,43 @@ CI must fail on violations.
 
 ---
 
-## AI Integration Strategy
+## AI-First Repository Operations
 
-Repository includes:
+The repository itself is treated as an AI operating environment.
 
-docs/  
-skills/  
+Current operational building blocks:
 
-docs:
+- `docs/` stores architectural memory and explicit boundaries.
+- `skills/` stores reusable implementation workflows.
+- `patterns/` provides AI-generatable building blocks for deterministic presentation composition.
+- Editor Mode provides a content-safe layer for non-technical editing.
+- Dev Mode provides a presentation-safe layer for high-trust users.
 
-architecture.md  
-content-model.md  
-admin-rules.md  
-development-plan.md  
-coding-standards.md  
-routing.md  
+Practical workflow target:
 
-skills:
+1. Clone repository.
+2. Use AI to generate/extend site structure in code (content types, templates, patterns, admin scaffolding).
+3. Review and refine changes in Git.
+4. Hand off routine content operations to editors.
+5. Use Dev Mode only for bounded presentation changes.
 
-create-content-type.md  
-create-admin-screen.md  
-create-template.md  
-add-field.md  
-refactor-module.md  
-write-migration.md  
+Separation model:
 
-These allow AI to operate deterministically inside the repository.
+- AI-managed structure = repository code and docs.
+- Editor-managed operations = content updates in admin/editor tools.
+- Developer-managed presentation = templates/patterns/assets with guardrails.
 
----
-
-## AI-First Workflow
-
-Intended workflow:
-
-clone blueprint repository  
-let AI generate first site version  
-let AI create or extend content types, templates, and patterns  
-hand off content operations to editors through safe admin/editor tools  
-allow advanced users to extend presentation through dev mode  
-
-Separation rules:
-
-AI-generated structure and templates are managed as repository code  
-editor-managed content is managed through approved content fields  
-developer-managed presentation logic remains in templates/components/pattern code  
-
-Long-term operating model:
+Core principle:
 
 AI builds the system  
 Humans refine it  
 Editors run it  
+
+Future site-generation flow direction:
+
+- A blueprint manifest (example: `blueprint.site.example.json`) defines machine-readable site intent.
+- AI runs should map that intent to explicit files/migrations/patterns using repository rules.
+- Runtime AI integration is out of scope for this phase.
 
 ---
 

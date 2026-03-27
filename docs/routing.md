@@ -1,26 +1,52 @@
 # Routing
 
-Routing is deterministic and declared in `App\Http\Kernel`.
+Routing is currently explicit and centralized in `src/Http/Kernel.php`.
 
-## Public routes
+## Public routes (current)
 
-- `GET /` home page
-- `GET /health` health response
-- `GET /{slug}` content detail fallback (when content repositories are available)
+- `GET /` → home controller.
+- `GET /health` → health controller.
+- `GET /install` and `POST /install` → installer (only while installation is required/not complete).
+- `GET /{slug}` → published content page (enabled when content repositories are available).
 
-## Admin routes
+## Authentication and admin routes (current)
 
 - `GET /admin/login`
-- `POST /admin/login` (CSRF protected)
-- `POST /admin/logout` (auth + CSRF)
-- `GET /admin` (auth)
-- Content CRUD under `/admin/content*` (auth + CSRF for POST)
+- `POST /admin/login`
+- `POST /admin/logout`
+- `GET /admin`
 
-## Middleware order
+Content admin (when content repositories are available):
 
-For protected admin writes:
-1. CSRF middleware validates `_csrf_token`.
-2. Auth middleware verifies signed-in user.
-3. Controller executes use case.
+- `GET /admin/content`
+- `GET /admin/content/create`
+- `POST /admin/content/create`
+- `GET /admin/content/{id}/edit`
+- `POST /admin/content/{id}/edit`
 
-This order prevents unauthenticated and forged write attempts.
+Editor Mode:
+
+- `POST /admin/editor-mode/enable`
+- `POST /admin/editor-mode/disable`
+- `POST /admin/editor-mode/update`
+
+Dev Mode:
+
+- `POST /admin/dev-mode/enable`
+- `POST /admin/dev-mode/disable`
+- `GET /admin/dev-mode`
+- `GET /admin/dev-mode/edit`
+- `POST /admin/dev-mode/edit`
+
+## Middleware behavior (current)
+
+The kernel wraps route handlers with callable middleware.
+
+- CSRF middleware is applied to admin forms and state-changing routes.
+- Auth middleware is required for protected admin actions.
+- Install redirect checks run before router dispatch for setup-dependent admin paths.
+
+## Planned direction (not yet implemented)
+
+- Additional module routes should follow the same explicit registration style in `Kernel`.
+- No runtime dynamic route registration or database-defined routes are planned.

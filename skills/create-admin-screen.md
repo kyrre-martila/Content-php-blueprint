@@ -1,11 +1,25 @@
 # Skill: create-admin-screen
 
-## Goal
-Create a safe admin UI screen without breaking architecture.
+## Purpose
+Create a safe admin screen without violating layering or security boundaries.
 
-## Workflow
-1. Add controller in `src/Admin/Controller` with thin orchestration.
-2. Register route in `Kernel` with auth middleware and CSRF middleware for POST.
-3. Create template in `templates/admin/...` with escaped output.
-4. Keep business logic in Application services.
-5. Add HTTP/controller tests and documentation updates.
+## When to use
+- Add a new authenticated admin page/form/workflow.
+
+## Architectural rules
+- Controller should stay thin.
+- Put business logic in Application/Domain, not template/controller.
+- Protect POST routes with CSRF and auth middleware wrappers.
+
+## File placement expectations
+- Controller: `src/Admin/Controller/*Controller.php`
+- Route wiring: `src/Http/Kernel.php`
+- Template: `templates/admin/...`
+- Optional supporting assets only if required.
+
+## Implementation checklist
+- [ ] Add controller action(s) with typed request handling.
+- [ ] Register GET/POST routes explicitly in `Kernel`.
+- [ ] Apply CSRF/auth wrappers for protected actions.
+- [ ] Render escaped template output.
+- [ ] Add tests and docs updates if behavior is architectural.

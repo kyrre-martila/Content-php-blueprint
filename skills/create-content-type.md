@@ -1,11 +1,26 @@
 # Skill: create-content-type
 
-## Goal
-Add a new content type deterministically.
+## Purpose
+Add or extend a content type in a way that stays consistent with current repositories, admin forms, and template resolution.
 
-## Workflow
-1. Add/verify migration updates for `content_types` seed data (if needed).
-2. Register type through repository/application layer (avoid hardcoded template logic in controllers).
-3. Ensure template mapping exists under `templates/pages`.
-4. Add/extend tests for repository retrieval and routing/rendering.
-5. Update `docs/content-model.md` and `docs/routing.md` if behavior changes.
+## When to use
+- New machine-readable content type is needed (e.g., `news`, `team`).
+- Existing type label/template mapping must be updated.
+
+## Architectural rules
+- Keep schema changes in migrations; do not hardcode mutable schema in controllers.
+- Keep orchestration in Application layer and persistence in Infrastructure repositories.
+- Keep templates deterministic and render-only.
+
+## File placement expectations
+- Migration: `database/migrations/*`
+- Domain/Application/Infrastructure updates under existing layer folders.
+- Templates: `templates/pages/*` (or shared template fallbacks).
+- Docs updates: `docs/content-model.md`, `docs/routing.md` when behavior changes.
+
+## Implementation checklist
+- [ ] Add/adjust migration or seed path for `content_types`.
+- [ ] Ensure repository mapping and validation support new type.
+- [ ] Ensure template resolution path exists.
+- [ ] Update admin flows/tests if content type selection behavior changes.
+- [ ] Update docs with current behavior.
