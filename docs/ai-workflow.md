@@ -57,6 +57,41 @@ App core logic and infrastructure remain outside Dev Mode scope.
 - `blueprint.site.example.json` = example manifest contract for future generation runs.
 - `CODEX.md` = concise repo-level instructions for coding agents.
 
+
+## Future sync model (documented direction)
+
+This section defines target sync behavior for future implementation. It is architectural direction only.
+
+### Dev Mode edits (presentation/source layer)
+
+Dev Mode updates should eventually support Git-oriented repository sync patterns, for example:
+
+- branch creation for isolated change sets
+- patch export for review workflows
+- PR-oriented handoff and merge workflows
+
+These updates belong to source-managed presentation/runtime artifacts.
+
+### Editor/content edits (runtime content layer)
+
+Editor Mode and content-admin updates should eventually support content snapshot/export workflows, for example:
+
+- content snapshot exports for transfer/backup
+- OCF exports for portable structured content
+- composition snapshot exports for blueprint-specific page assembly
+
+These updates should not be modeled as direct source-code sync by default.
+
+### AI context triad for site reasoning
+
+AI should reason from three coordinated contexts:
+
+1. repository files (code, templates, patterns, docs)
+2. OCF content export (portable content semantics)
+3. composition snapshot export (blueprint page assembly)
+
+All three are required to reason accurately without collapsing content, composition, and source code into one layer.
+
 ## Non-goal for this phase
 
 No in-app model invocation, prompt orchestration service, queue worker, or external AI API integration is introduced here.

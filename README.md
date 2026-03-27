@@ -313,6 +313,17 @@ Dev Mode explicitly does **not** expose unrestricted source editing and does **n
 
 Dev Mode is presentation-layer editing only. Treat every change as an auditable, high-trust operation.
 
+
+## Content, composition, and source-of-truth model
+
+- **Content** is portable structured data and should be exportable via OCF.
+- **Composition** (page-level pattern ordering/assembly) is blueprint-specific and represented separately from OCF.
+- **Templates, patterns, assets, and runtime code** remain repository-managed source files.
+- **Dev Mode** changes belong to the repository/source layer and should eventually align with Git-oriented workflows.
+- **Editor Mode/content** changes belong to runtime content state and should later be exportable as content snapshots rather than treated as source code edits.
+
+This separation keeps content portable, keeps rendering deterministic, and preserves clean long-term architecture boundaries.
+
 ## AI-first workflow
 
 This blueprint is designed to be cloned and evolved with AI assistance.
