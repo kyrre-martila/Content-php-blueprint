@@ -10,8 +10,10 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Application\Composition\CompositionExporter;
 use App\Application\DevMode\DevFileService;
 use App\Application\Editor\EditorContentService;
+use App\Application\OCF\OCFExporter;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
 use App\Application\Content\ListContentItems;
@@ -104,6 +106,7 @@ final class ApplicationFactory
         $devFileService = new DevFileService($this->projectRoot);
         $devModeFiles = new EditableFileRegistry($this->projectRoot, $devMode);
         $devModeHistory = new EditHistoryLogger($this->projectRoot . '/storage/logs/dev-mode-edits.log');
+        $compositionExporter = new CompositionExporter($this->projectRoot);
         $loginUser = new LoginUser($userRepository, $authSession);
 
         $installController = null;
@@ -121,6 +124,11 @@ final class ApplicationFactory
         $contentController = null;
 
         if ($contentItemRepository !== null && $contentTypeRepository !== null) {
+            $ocfExporter = new OCFExporter(
+                $contentTypeRepository,
+                $contentItemRepository,
+                $this->projectRoot
+            );
             $listContentItems = new ListContentItems($contentItemRepository, $contentTypeRepository);
             $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository);
             $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository);
@@ -159,6 +167,13 @@ final class ApplicationFactory
                 $templateRenderer,
                 $editorMode
             );
+        } else {
+            $temporaryConnection = new Connection((new \PDO('sqlite::memory:')));
+            $ocfExporter = new OCFExporter(
+                new MySqlContentTypeRepository($temporaryConnection),
+                new MySqlContentItemRepository($temporaryConnection),
+                $this->projectRoot
+            );
         }
 
         $routeRegistry = new RouteRegistry(
@@ -173,10 +188,13 @@ final class ApplicationFactory
                 $authSession,
                 $sessionManager,
                 $devMode,
+                $compositionExporter,
+                $ocfExporter,
                 $devFileService,
                 $devModeFiles,
                 $devModeHistory,
-                $this->logger
+                $this->logger,
+                $this->projectRoot
             ),
             csrf: $csrf,
             requireAuth: $requireAuth,
