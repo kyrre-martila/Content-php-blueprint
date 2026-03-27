@@ -15,6 +15,19 @@ Use this file when generating a new site from this blueprint.
 9. Use explicit file placement and naming aligned to existing repository conventions.
 10. Update docs and skills when introducing architectural behavior changes.
 
+
+## Layered context rules for AI generation
+
+AI generation and refactor passes must preserve the following layer model:
+
+- Treat **OCF** as content-only context.
+- Treat **composition snapshots** as page-assembly context.
+- Treat **repository code/templates/patterns/assets** as presentation/runtime context.
+- Do not collapse these layers into a single mixed schema.
+- Preserve portability of content exports by keeping presentation concerns out of OCF.
+
+When proposing tooling, exports, or sync behavior, explicitly identify which layer each artifact belongs to.
+
 ## Generation checklist
 
 - Add/extend content types with migrations + repository/application updates.

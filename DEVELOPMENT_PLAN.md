@@ -950,3 +950,65 @@ Roadmap (future extensions, not part of v1):
 - module-provided system templates
 - preview templates
 - optional content-type templates
+
+
+## AI/Data boundary architecture (formalized)
+
+This blueprint uses **three separate information layers** and keeps them intentionally decoupled.
+
+### 1) OCF scope (content only)
+
+Open Content Format (OCF) is reserved for **portable structured content**.
+
+OCF in this blueprint is intended to include only content-domain data such as:
+
+- content item identity and type
+- titles/slugs/status where relevant to content portability
+- field values and structured content payloads
+- content relationships and metadata that remain content-semantic across systems
+
+OCF must **not** include presentation/runtime concerns.
+
+### 2) Composition snapshot scope (blueprint-specific assembly)
+
+Page assembly is represented in a separate **blueprint composition snapshot** layer.
+
+Composition snapshots describe blueprint/runtime composition concerns such as:
+
+- page-to-pattern ordering
+- pattern field grouping within a page route
+- system route composition and template association
+- blueprint-specific rendering structure needed to reconstruct page assembly
+
+Composition snapshots are machine-readable and exportable for AI/tooling, but are **not** a vendor-neutral content interchange format.
+
+### 3) Git/repository source-of-truth for presentation and code
+
+Git repository state is the source of truth for presentation/runtime implementation:
+
+- `src/` application and infrastructure code
+- `templates/` route and layout templates
+- `patterns/` pattern metadata + PHP rendering views
+- CSS/JS/assets, docs, and skills
+
+Dev Mode belongs to this source layer and should eventually support Git-oriented sync workflows (branch, patch, PR), not direct DB-only drift.
+
+### 4) Runtime DB source-of-truth for editor-managed content
+
+Runtime database state is the source of truth for editor-managed content operations:
+
+- content types and content items
+- editor-safe field updates
+- persisted content payloads used by rendering
+
+Editor/content changes are operational content updates and should be exportable as content snapshots (including future OCF export), not treated as direct source-code commits.
+
+### 5) AI operating context model (target state)
+
+AI workflows should eventually reason from a merged context composed of:
+
+1. repository source code (presentation/runtime behavior)
+2. OCF content export (portable structured content)
+3. blueprint composition snapshot export (page assembly structure)
+
+This model prevents accidental layer collapse (content vs composition vs code), keeps OCF vendor-neutral, and keeps blueprint-specific rendering logic explicit.

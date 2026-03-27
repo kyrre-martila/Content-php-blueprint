@@ -1,0 +1,60 @@
+{
+  "version": "0.1-example",
+  "site": {
+    "name": "Content PHP Blueprint Example",
+    "default_content_template": "templates/index.php"
+  },
+  "pages": [
+    {
+      "id": 1,
+      "slug": "home",
+      "content_ref": {
+        "type": "page",
+        "item_slug": "home"
+      },
+      "patterns": [
+        {
+          "pattern": "hero",
+          "data": {
+            "title": "Welcome",
+            "subtitle": "Example subtitle"
+          }
+        },
+        {
+          "pattern": "cta",
+          "data": {
+            "title": "Join us",
+            "button_label": "Read more"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "about",
+      "content_ref": {
+        "type": "page",
+        "item_slug": "about"
+      },
+      "patterns": [
+        {
+          "pattern": "rich_text",
+          "data_ref": {
+            "source": "content_field",
+            "field": "body"
+          }
+        }
+      ]
+    }
+  ],
+  "system_routes": [
+    {
+      "name": "search",
+      "path": "/search",
+      "template": "templates/system/search.php",
+      "composition": {
+        "patterns": []
+      }
+    }
+  ]
+}
