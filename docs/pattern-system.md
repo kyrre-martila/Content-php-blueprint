@@ -39,8 +39,8 @@ Allowed field types in current validator:
 
 - Content admin forms read available patterns from `PatternRegistry`.
 - Editors compose ordered `pattern_blocks` per content item.
-- Editor Mode foundation currently handles activation/session state and visual indicators only.
-- Inline pattern field persistence is planned for a future step.
+- Editor Mode v1 supports inline editing for pattern `text` and `textarea` fields only.
+- Inline saves are validated against pattern metadata before repository persistence.
 
 ## Storage model (current)
 

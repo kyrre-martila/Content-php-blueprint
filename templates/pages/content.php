@@ -16,7 +16,7 @@ $layout = 'layouts/default.php';
         <h1><?= $editableText($contentItem->title(), [
             'data-edit-type' => 'content_item',
             'data-edit-field' => 'title',
-            'data-edit-id' => (string) $contentItem->id(),
+            'data-content-id' => (string) $contentItem->id(),
         ]) ?></h1>
     </header>
 
@@ -27,6 +27,7 @@ $layout = 'layouts/default.php';
                 '_editor' => [
                     'content_id' => $contentItem->id(),
                     'block_index' => $blockIndex,
+                    'active' => ($editorModeActive ?? false) === true && ($editorCanUse ?? false) === true,
                 ],
             ]) ?>
         <?php endforeach; ?>

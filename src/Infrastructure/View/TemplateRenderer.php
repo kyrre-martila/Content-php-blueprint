@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\View;
 
+use App\Infrastructure\Editor\EditableFieldRenderer;
 use App\Infrastructure\Pattern\PatternRenderer;
 use RuntimeException;
 
@@ -11,7 +12,8 @@ final class TemplateRenderer
 {
     public function __construct(
         private readonly string $templatesBasePath,
-        private readonly ?PatternRenderer $patternRenderer = null
+        private readonly ?PatternRenderer $patternRenderer = null,
+        private readonly ?EditableFieldRenderer $editableFieldRenderer = null
     ) {
     }
 
@@ -72,6 +74,7 @@ final class TemplateRenderer
             extract($__data, EXTR_SKIP);
 
             $renderer = $__renderer;
+            $inlineFieldRenderer = $__renderer->editableFieldRenderer ?? new EditableFieldRenderer();
             $e = static fn (string $value): string => htmlspecialchars(
                 $value,
                 ENT_QUOTES | ENT_SUBSTITUTE,
@@ -82,32 +85,12 @@ final class TemplateRenderer
                 return ($__data['editorModeActive'] ?? false) === true && ($__data['editorCanUse'] ?? false) === true;
             };
 
-            $editableText = static function (string $value, array $meta = []) use ($e, $isEditorMode): string {
-                if (!$isEditorMode()) {
-                    return $e($value);
-                }
-
-                $attributes = self::buildEditableAttributes($meta);
-
-                if ($attributes === '') {
-                    return $e($value);
-                }
-
-                return '<span class="editor-editable" ' . $attributes . '>' . $e($value) . '</span>';
+            $editableText = static function (string $value, array $meta = []) use ($inlineFieldRenderer, $isEditorMode): string {
+                return $inlineFieldRenderer->renderText($value, $meta, $isEditorMode());
             };
 
-            $editableTextarea = static function (string $value, array $meta = []) use ($e, $isEditorMode): string {
-                if (!$isEditorMode()) {
-                    return nl2br($e($value), false);
-                }
-
-                $attributes = self::buildEditableAttributes($meta);
-
-                if ($attributes === '') {
-                    return nl2br($e($value), false);
-                }
-
-                return '<span class="editor-editable" ' . $attributes . '>' . nl2br($e($value), false) . '</span>';
+            $editableTextarea = static function (string $value, array $meta = []) use ($inlineFieldRenderer, $isEditorMode): string {
+                return $inlineFieldRenderer->renderTextarea($value, $meta, $isEditorMode());
             };
 
             include $__templatePath;
@@ -128,37 +111,4 @@ final class TemplateRenderer
         return $output;
     }
 
-    /**
-     * @param array<string, mixed> $meta
-     */
-    private static function buildEditableAttributes(array $meta): string
-    {
-        $allowed = [
-            'data-edit-type',
-            'data-edit-field',
-            'data-edit-id',
-            'data-edit-block-index',
-            'data-edit-content-id',
-        ];
-
-        $attributes = [];
-
-        foreach ($allowed as $key) {
-            $value = $meta[$key] ?? null;
-
-            if (!is_scalar($value)) {
-                continue;
-            }
-
-            $string = trim((string) $value);
-
-            if ($string === '') {
-                continue;
-            }
-
-            $attributes[] = $key . '="' . htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
-        }
-
-        return implode(' ', $attributes);
-    }
 }

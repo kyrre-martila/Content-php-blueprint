@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Pattern;
 
+use App\Infrastructure\Editor\EditableFieldRenderer;
 use RuntimeException;
 
 final class PatternRenderer
 {
-    public function __construct(private readonly PatternRegistry $registry)
-    {
+    public function __construct(
+        private readonly PatternRegistry $registry,
+        private readonly ?EditableFieldRenderer $editableFieldRenderer = null
+    ) {
     }
 
     /**
@@ -46,6 +49,7 @@ final class PatternRenderer
         $editor = [
             'content_id' => is_scalar($data['_editor']['content_id'] ?? null) ? (string) $data['_editor']['content_id'] : '',
             'block_index' => is_scalar($data['_editor']['block_index'] ?? null) ? (string) $data['_editor']['block_index'] : '',
+            'active' => ($data['_editor']['active'] ?? false) === true,
         ];
 
         $viewPath = $pattern['view_path'];
@@ -56,7 +60,14 @@ final class PatternRenderer
 
         ob_start();
 
-        $renderPattern = static function (string $__patternPath, array $__fields, array $__editor): void {
+        $inlineFieldRenderer = $this->editableFieldRenderer ?? new EditableFieldRenderer();
+
+        $renderPattern = static function (
+            string $__patternPath,
+            array $__fields,
+            array $__editor,
+            EditableFieldRenderer $__inlineFieldRenderer
+        ): void {
             $fields = $__fields;
             $editor = $__editor;
             $e = static fn (string $value): string => htmlspecialchars(
@@ -64,33 +75,27 @@ final class PatternRenderer
                 ENT_QUOTES | ENT_SUBSTITUTE,
                 'UTF-8'
             );
-            $editableText = static function (string $field, string $value) use ($editor, $e): string {
-                if (($editor['content_id'] ?? '') === '' || ($editor['block_index'] ?? '') === '') {
-                    return $e($value);
-                }
-
-                return '<span class="editor-editable" data-edit-type="pattern_block" data-edit-field="'
-                    . $e($field)
-                    . '" data-edit-block-index="' . $e($editor['block_index'])
-                    . '" data-edit-content-id="' . $e($editor['content_id'])
-                    . '">' . $e($value) . '</span>';
+            $editableText = static function (string $field, string $value) use ($editor, $__inlineFieldRenderer): string {
+                return $__inlineFieldRenderer->renderText($value, [
+                    'data-edit-type' => 'pattern_block',
+                    'data-edit-field' => $field,
+                    'data-content-id' => $editor['content_id'] ?? '',
+                    'data-block-index' => $editor['block_index'] ?? '',
+                ], ($editor['active'] ?? false) === true);
             };
-            $editableTextarea = static function (string $field, string $value) use ($editor, $e): string {
-                if (($editor['content_id'] ?? '') === '' || ($editor['block_index'] ?? '') === '') {
-                    return nl2br($e($value), false);
-                }
-
-                return '<span class="editor-editable" data-edit-type="pattern_block" data-edit-field="'
-                    . $e($field)
-                    . '" data-edit-block-index="' . $e($editor['block_index'])
-                    . '" data-edit-content-id="' . $e($editor['content_id'])
-                    . '">' . nl2br($e($value), false) . '</span>';
+            $editableTextarea = static function (string $field, string $value) use ($editor, $__inlineFieldRenderer): string {
+                return $__inlineFieldRenderer->renderTextarea($value, [
+                    'data-edit-type' => 'pattern_block',
+                    'data-edit-field' => $field,
+                    'data-content-id' => $editor['content_id'] ?? '',
+                    'data-block-index' => $editor['block_index'] ?? '',
+                ], ($editor['active'] ?? false) === true);
             };
 
             include $__patternPath;
         };
 
-        $renderPattern($viewPath, $fields, $editor);
+        $renderPattern($viewPath, $fields, $editor, $inlineFieldRenderer);
 
         $output = ob_get_clean();
 

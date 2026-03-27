@@ -26,6 +26,8 @@ use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Editor\DevMode;
+use App\Infrastructure\Editor\EditableFieldRenderer;
+use App\Infrastructure\Editor\EditableFieldValidator;
 use App\Infrastructure\Editor\EditableFileRegistry;
 use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Editor\EditHistoryLogger;
@@ -91,8 +93,9 @@ final class Kernel
         $healthController = new HealthController();
         $templatesPath = $this->projectRoot . '/templates';
         $patternRegistry = new PatternRegistry($this->projectRoot . '/patterns');
-        $patternRenderer = new PatternRenderer($patternRegistry);
-        $renderer = new TemplateRenderer($templatesPath, $patternRenderer);
+        $editableFieldRenderer = new EditableFieldRenderer();
+        $patternRenderer = new PatternRenderer($patternRegistry, $editableFieldRenderer);
+        $renderer = new TemplateRenderer($templatesPath, $patternRenderer, $editableFieldRenderer);
         $authSession = new AuthSession($this->session);
         $editorMode = new EditorMode($authSession, $this->session);
         $devMode = new DevMode($this->projectRoot, $authSession, $this->session);
@@ -211,7 +214,16 @@ final class Kernel
                 $authSession,
                 $this->session
             );
-            $editorModeController = new EditorModeController($editorMode);
+            $editableFieldValidator = new EditableFieldValidator(
+                $editorMode,
+                $this->contentItemRepository,
+                $patternRegistry
+            );
+            $editorModeController = new EditorModeController(
+                $editorMode,
+                $this->contentItemRepository,
+                $editableFieldValidator
+            );
 
             $router->get('/admin/content', static fn (Request $request): Response => $csrf(
                 $request,
@@ -261,6 +273,10 @@ final class Kernel
                     $csrfRequest,
                     [$editorModeController, 'disable']
                 )
+            ));
+            $router->post('/editor-mode/save-field', static fn (Request $request): Response => $requireAuth(
+                $request,
+                [$editorModeController, 'saveField']
             ));
 
             $contentController = new ContentController(

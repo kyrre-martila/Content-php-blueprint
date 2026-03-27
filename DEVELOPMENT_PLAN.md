@@ -519,6 +519,28 @@ Current operational building blocks:
 - Editor Mode provides a content-safe layer for non-technical editing.
 - Dev Mode provides a presentation-safe layer for high-trust users.
 
+---
+
+## Editor Mode v1 implemented
+
+Editor Mode v1 now includes working inline field editing with strict safeguards.
+
+Delivered in this milestone:
+
+- Editable markers are rendered in output only while Editor Mode is active.
+- Supported scope is deliberately narrow: content title + pattern `text`/`textarea` fields.
+- Inline saves go through `POST /editor-mode/save-field`.
+- Validation is explicit (mode active, type allowlist, field allowlist, block index and pattern metadata checks).
+- Persistence runs through repository operations on `ContentItem` entities; no ad hoc writes.
+
+Planned next extensions:
+
+- media field editing
+- pattern insertion/removal/reordering
+- richer inline controls
+- publish workflow integration
+- undo/history
+
 Practical workflow target:
 
 1. Clone repository.

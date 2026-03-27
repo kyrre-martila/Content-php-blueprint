@@ -223,7 +223,13 @@ Editor Mode boundaries are explicit. It is intended for safe inline content edit
 - CSS/JS source editing
 - routing or PHP code changes
 
-This phase establishes the activation and safety foundation. Full inline field editing, persistence, and richer editor controls are planned for the next iteration.
+Editor Mode v1 now supports real inline field editing for a strictly limited allowlist:
+
+- content item title
+- pattern block text fields
+- pattern block textarea fields
+
+All saves run through a validated `/editor-mode/save-field` endpoint with repository-based persistence. Layout/template/pattern structure editing remains out of scope.
 
 
 ## Dev Mode
