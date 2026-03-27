@@ -4,56 +4,14 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Application;
 
-use App\Admin\Controller\AuthController;
-use App\Admin\Controller\ContentAdminController;
-use App\Admin\Controller\DashboardController;
-use App\Admin\Controller\DevModeController;
-use App\Admin\Controller\EditorModeController;
-use App\Admin\Controller\PatternController;
-use App\Application\Composition\CompositionExporter;
-use App\Application\DevMode\DevFileService;
-use App\Application\Editor\EditorContentService;
-use App\Application\SEO\SitemapGenerator;
-use App\Application\SEO\RobotsGenerator;
-use App\Application\OCF\OCFExporter;
-use App\Application\Auth\LoginUser;
-use App\Application\Content\CreateContentItem;
-use App\Application\Content\ListContentItems;
-use App\Application\Content\UpdateContentItem;
-use App\Domain\Auth\Repository\UserRepositoryInterface;
-use App\Domain\Content\Repository\ContentItemRepositoryInterface;
-use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
-use App\Http\Controller\ContentController;
-use App\Http\Controller\HealthController;
-use App\Http\Controller\HomeController;
-use App\Http\Controller\InstallController;
-use App\Http\Controller\RobotsController;
-use App\Http\Controller\SearchController;
-use App\Http\Controller\SitemapController;
 use App\Http\Kernel;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Http\Routing\RouteRegistry;
 use App\Infrastructure\Auth\AuthSession;
-use App\Infrastructure\Auth\MySqlUserRepository;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigRepository;
-use App\Infrastructure\Content\MySqlContentItemRepository;
-use App\Infrastructure\Content\MySqlContentTypeRepository;
-use App\Infrastructure\Database\Connection;
-use App\Infrastructure\Database\PdoFactory;
-use App\Infrastructure\Editor\DevMode;
-use App\Infrastructure\Editor\EditableFieldRenderer;
-use App\Infrastructure\Editor\EditableFieldValidator;
-use App\Infrastructure\Editor\EditableFileRegistry;
-use App\Infrastructure\Editor\EditorMode;
-use App\Infrastructure\Editor\EditHistoryLogger;
 use App\Infrastructure\Logging\Logger;
-use App\Infrastructure\Pattern\PatternDataValidator;
-use App\Infrastructure\Pattern\PatternRegistry;
-use App\Infrastructure\View\PatternRenderer;
-use App\Infrastructure\View\TemplateRenderer;
-use App\Infrastructure\View\TemplateResolver;
 
 final class ApplicationFactory
 {
@@ -68,41 +26,7 @@ final class ApplicationFactory
     {
         /** @var array<string, mixed> $sessionConfig */
         $sessionConfig = $this->config->get('app.session', []);
-        /** @var string $migrationsTable */
-        $migrationsTable = (string) $this->config->get('database.migrations.table', 'phinxlog');
 
-        $installState = null;
-        $connection = null;
-        $installationRequired = false;
-
-        try {
-            /** @var array<string, mixed> $connectionConfig */
-            $connectionConfig = $this->config->get('database.connections.mysql', []);
-
-            $pdo = (new PdoFactory())->create($connectionConfig);
-            $connection = new Connection($pdo);
-            $installState = new InstallState($connection, $migrationsTable);
-        } catch (\RuntimeException $runtimeException) {
-            $installationRequired = true;
-            $this->logger->warning('Database bootstrap unavailable, forcing install flow.', [
-                'error' => $runtimeException->getMessage(),
-            ]);
-        }
-
-        [$userRepository, $contentItemRepository, $contentTypeRepository] = $this->buildRepositories($connection);
-
-        $sessionManager = new SessionManager($sessionConfig);
-        $csrf = new CsrfMiddleware($sessionManager);
-        $authSession = new AuthSession($sessionManager);
-        $requireAuth = new RequireAuthMiddleware($authSession);
-
-        $templatesPath = $this->projectRoot . '/templates';
-        $patternRegistry = new PatternRegistry($this->projectRoot . '/patterns');
-        $templateResolver = new TemplateResolver($templatesPath);
-
-        $editableFieldRenderer = new EditableFieldRenderer();
-        $patternDataValidator = new PatternDataValidator();
-        $patternRenderer = new PatternRenderer($patternRegistry, $patternDataValidator, $editableFieldRenderer);
         $configuredAppUrl = $this->config->get('app.url');
         $siteUrl = is_string($configuredAppUrl) ? $configuredAppUrl : '';
         $configuredAppName = $this->config->get('app.name', 'Content PHP Blueprint');
@@ -110,155 +34,77 @@ final class ApplicationFactory
         $configuredAppEnvironment = $this->config->get('app.env', 'production');
         $appEnvironment = is_string($configuredAppEnvironment) ? $configuredAppEnvironment : 'production';
 
-        $templateRenderer = new TemplateRenderer(
-            $templatesPath,
-            $patternRenderer,
-            $editableFieldRenderer,
+        $persistence = (new PersistenceFactory($this->config, $this->logger))->build();
+        $views = (new ViewFactory($this->projectRoot, $siteUrl, $siteName))->build();
+
+        $sessionManager = new SessionManager($sessionConfig);
+        $csrf = new CsrfMiddleware($sessionManager);
+        $authSession = new AuthSession($sessionManager);
+        $requireAuth = new RequireAuthMiddleware($authSession);
+
+        $editors = (new EditorFactory($this->projectRoot))->build(
+            $authSession,
+            $sessionManager,
+            $persistence['contentItemRepository'],
+            $views['patternRegistry']
+        );
+
+        $exporters = (new ExporterFactory($this->projectRoot))->build(
+            $persistence['contentTypeRepository'],
+            $persistence['contentItemRepository']
+        );
+
+        $controllers = (new ControllerFactory(
+            $this->projectRoot,
+            $appEnvironment,
             $siteUrl,
-            $siteName
+            $this->logger
+        ))->build(
+            $persistence['userRepository'],
+            $persistence['contentItemRepository'],
+            $persistence['contentTypeRepository'],
+            $views['templateResolver'],
+            $views['templateRenderer'],
+            $views['patternRegistry'],
+            $authSession,
+            $sessionManager,
+            $editors['editorMode'],
+            $editors['devMode'],
+            $exporters['compositionExporter'],
+            $exporters['ocfExporter'],
+            $exporters['ocfUnavailable'],
+            $editors['devFileService'],
+            $editors['devModeFiles'],
+            $editors['devModeHistory'],
+            $persistence['installState'],
+            $persistence['installationRequired'],
+            $persistence['migrationsTable'],
+            $editors['editorContentService']
         );
-
-        $editorMode = new EditorMode($authSession, $sessionManager);
-        $devMode = new DevMode($this->projectRoot, $authSession, $sessionManager);
-        $devFileService = new DevFileService($this->projectRoot);
-        $devModeFiles = new EditableFileRegistry($this->projectRoot, $devMode);
-        $devModeHistory = new EditHistoryLogger($this->projectRoot . '/storage/logs/dev-mode-edits.log');
-        $compositionExporter = new CompositionExporter($this->projectRoot);
-        $loginUser = new LoginUser($userRepository, $authSession);
-
-        $installController = null;
-        if ($installationRequired || $installState?->isInstalled() !== true) {
-            $installController = new InstallController(
-                $this->projectRoot,
-                $templateRenderer,
-                $installState,
-                $migrationsTable
-            );
-        }
-
-        $contentAdminController = null;
-        $editorModeController = null;
-        $contentController = null;
-        $sitemapController = null;
-        $robotsController = new RobotsController(
-            new RobotsGenerator($appEnvironment, $siteUrl)
-        );
-
-        if ($contentItemRepository !== null && $contentTypeRepository !== null) {
-            $ocfExporter = new OCFExporter(
-                $contentTypeRepository,
-                $contentItemRepository,
-                $this->projectRoot
-            );
-            $listContentItems = new ListContentItems($contentItemRepository, $contentTypeRepository);
-            $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository);
-            $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository);
-
-            $contentAdminController = new ContentAdminController(
-                $templateRenderer,
-                $contentTypeRepository,
-                $contentItemRepository,
-                $listContentItems,
-                $createContentItem,
-                $updateContentItem,
-                $patternRegistry,
-                $authSession,
-                $sessionManager
-            );
-
-            $editableFieldValidator = new EditableFieldValidator(
-                $editorMode,
-                $contentItemRepository,
-                $patternRegistry
-            );
-
-            $editorContentService = new EditorContentService(
-                $contentItemRepository,
-                $editableFieldValidator
-            );
-
-            $editorModeController = new EditorModeController(
-                $editorMode,
-                $editorContentService
-            );
-
-            $contentController = new ContentController(
-                $contentItemRepository,
-                $templateResolver,
-                $templateRenderer,
-                $editorMode
-            );
-
-            $sitemapController = new SitemapController(
-                $contentItemRepository,
-                new SitemapGenerator($siteUrl)
-            );
-        } else {
-            $temporaryConnection = new Connection((new \PDO('sqlite::memory:')));
-            $ocfExporter = new OCFExporter(
-                new MySqlContentTypeRepository($temporaryConnection),
-                new MySqlContentItemRepository($temporaryConnection),
-                $this->projectRoot
-            );
-        }
 
         $routeRegistry = new RouteRegistry(
-            homeController: new HomeController(),
-            healthController: new HealthController(),
-            searchController: new SearchController($templateResolver, $templateRenderer),
-            authController: new AuthController($templateRenderer, $loginUser, $authSession, $sessionManager),
-            dashboardController: new DashboardController($templateRenderer, $authSession, $editorMode, $devMode),
-            patternController: new PatternController($patternRegistry),
-            devModeController: new DevModeController(
-                $templateRenderer,
-                $authSession,
-                $sessionManager,
-                $devMode,
-                $compositionExporter,
-                $ocfExporter,
-                $devFileService,
-                $devModeFiles,
-                $devModeHistory,
-                $this->logger,
-                $this->projectRoot
-            ),
+            homeController: $controllers['homeController'],
+            healthController: $controllers['healthController'],
+            searchController: $controllers['searchController'],
+            authController: $controllers['authController'],
+            dashboardController: $controllers['dashboardController'],
+            patternController: $controllers['patternController'],
+            devModeController: $controllers['devModeController'],
             csrf: $csrf,
             requireAuth: $requireAuth,
-            installController: $installController,
-            contentAdminController: $contentAdminController,
-            editorModeController: $editorModeController,
-            contentController: $contentController,
-            sitemapController: $sitemapController,
-            robotsController: $robotsController
+            installController: $controllers['installController'],
+            contentAdminController: $controllers['contentAdminController'],
+            editorModeController: $controllers['editorModeController'],
+            contentController: $controllers['contentController'],
+            sitemapController: $controllers['sitemapController'],
+            robotsController: $controllers['robotsController']
         );
 
         return new Kernel(
             session: $sessionManager,
             routeRegistry: $routeRegistry,
-            installState: $installState,
-            installationRequired: $installationRequired
+            installState: $persistence['installState'],
+            installationRequired: $persistence['installationRequired']
         );
-    }
-
-    /**
-     * @return array{0: UserRepositoryInterface, 1: ?ContentItemRepositoryInterface, 2: ?ContentTypeRepositoryInterface}
-     */
-    private function buildRepositories(?Connection $connection): array
-    {
-        if ($connection === null) {
-            $temporaryConnection = new Connection((new \PDO('sqlite::memory:')));
-
-            return [
-                new MySqlUserRepository($temporaryConnection),
-                null,
-                null,
-            ];
-        }
-
-        return [
-            new MySqlUserRepository($connection),
-            new MySqlContentItemRepository($connection),
-            new MySqlContentTypeRepository($connection),
-        ];
     }
 }
