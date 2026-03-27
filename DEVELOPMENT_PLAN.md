@@ -324,11 +324,18 @@ Notes:
 
 ### Social metadata + structured data
 
-Handled centrally in `TemplateRenderer` (not per-template duplication):
+Handled through dedicated renderers coordinated by `TemplateRenderer` (not per-template duplication):
 
-- OpenGraph tags
-- Twitter card tags
-- JSON-LD graph (WebSite, Organization, WebPage, Article when applicable, BreadcrumbList when data exists)
+- `SeoMetaRenderer`
+  - canonical tag
+  - meta description
+  - OpenGraph tags
+  - Twitter card tags
+- `StructuredDataRenderer`
+  - JSON-LD graph output
+  - WebSite, Organization, WebPage, Article (when applicable), BreadcrumbList (when data exists)
+
+Architectural guardrail: `TemplateRenderer` coordinates rendering, but future cross-cutting rendering concerns must be implemented as dedicated services and delegated from the coordinator.
 
 ---
 

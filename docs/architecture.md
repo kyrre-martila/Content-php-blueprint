@@ -27,9 +27,10 @@ Content PHP Blueprint currently runs as a framework-light, layered PHP applicati
 
 1. Controller resolves use case/repository data.
 2. `TemplateResolver` deterministically maps content routes to `templates/index.php` and system routes to `templates/system/*.php`, with safe fallback to `templates/system/404.php` for missing system templates.
-3. `TemplateRenderer` renders template and optional layout.
+3. `TemplateRenderer` coordinates template + layout rendering and delegates cross-cutting head concerns to dedicated services (`SeoMetaRenderer`, `StructuredDataRenderer`).
 4. Templates can render patterns through `PatternRenderer`.
 5. Pattern rendering is registry-based and field-filtered (only declared scalar fields passed through).
+6. Guardrail: new cross-cutting rendering concerns must be implemented as dedicated renderer services, not added inline to `TemplateRenderer`.
 
 ## Guardrails currently enforced
 
