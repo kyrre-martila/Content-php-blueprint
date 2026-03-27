@@ -127,7 +127,16 @@ Routing behavior tied to install-state:
 
 ## Runtime routing architecture
 
-Routes are explicitly registered in `RouteRegistry`.
+Routing uses a registrar-based architecture coordinated by `src/Http/Routing/RouteRegistry.php`.
+
+- `SystemRouteRegistrar`: core system routes (`/`, `/health`, `/search`, `/sitemap.xml`, `/robots.txt`, `/install`).
+- `AuthRouteRegistrar`: login/logout routes and aliases.
+- `AdminRouteRegistrar`: authenticated admin dashboard, pattern, and content-management routes.
+- `DevModeRouteRegistrar`: authenticated + CSRF-protected dev-mode routes and aliases.
+- `EditorModeRouteRegistrar`: authenticated editor-mode routes and aliases.
+- `PublicContentRouteRegistrar`: catch-all content route (`/{slug}`), always registered last.
+
+This keeps route ordering deterministic while allowing each route layer to scale independently.
 
 Current public/system routes:
 

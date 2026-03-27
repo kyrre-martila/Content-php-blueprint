@@ -9,12 +9,23 @@ This document is the implementation-oriented source of truth for current runtime
 ## Current architecture summary
 
 - Layered PHP architecture: Domain, Application, Infrastructure, Http, Admin.
-- Explicit route registration through `src/Http/Routing/RouteRegistry.php`.
+- Explicit registrar-based route registration coordinated by `src/Http/Routing/RouteRegistry.php`.
 - Deterministic template resolution through `TemplateResolver`.
 - Pattern-based page composition through Pattern System v1.
 - Role-gated Editor Mode and Dev Mode with strict scope boundaries.
 
 ## Runtime routing architecture
+
+Route registration is modularized by focused registrar classes under `src/Http/Routing/` and coordinated by `RouteRegistry`.
+
+Current route layers are registered in deterministic order:
+
+1. `SystemRouteRegistrar`
+2. `AuthRouteRegistrar`
+3. `AdminRouteRegistrar`
+4. `DevModeRouteRegistrar`
+5. `EditorModeRouteRegistrar`
+6. `PublicContentRouteRegistrar` (catch-all, always last)
 
 ### Public/system routes
 
