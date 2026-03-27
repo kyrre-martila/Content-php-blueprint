@@ -1,0 +1,51 @@
+name: Build Release Artifact
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+
+      - name: Build release zip
+        id: package
+        run: |
+          VERSION="${GITHUB_REF_NAME:-${GITHUB_SHA::7}}"
+          ./scripts/build-release.sh "$VERSION"
+          ARCHIVE_PATH="dist/content-php-blueprint-${VERSION}.zip"
+          echo "archive_path=${ARCHIVE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "archive_name=$(basename "${ARCHIVE_PATH}")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.archive_name }}
+          path: ${{ steps.package.outputs.archive_path }}
+          if-no-files-found: error
+
+      - name: Attach zip to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.archive_path }}

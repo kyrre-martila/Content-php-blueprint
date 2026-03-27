@@ -79,6 +79,20 @@ This project supports two entrypoint layouts:
    - Web root points to project root
    - Root `index.php` delegates to `public/index.php`
 
+## Release artifact deployment
+
+Production deployments should prefer the generated release zip artifact.
+
+- The release zip includes runtime files plus prebuilt `vendor/`.
+- Target servers are not expected to run Composer.
+- The intended deploy flow is:
+  1. download the release zip artifact
+  2. upload and unzip it on the target server
+  3. configure `.env`
+  4. open `/install` to complete setup
+
+This release artifact flow is distinct from local developer setup. Local development still uses `composer install`.
+
 ## Installation flow and install-state logic
 
 Installation is a runtime setup flow, separate from deployment.
