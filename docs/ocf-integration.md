@@ -30,12 +30,17 @@ Separating composition from OCF preserves OCF portability and neutrality:
 - blueprint-specific layout/pattern assembly remains explicit, not hidden inside portable content exports
 - AI/tooling can still reconstruct page behavior by combining OCF + composition snapshot + repository source
 
-## Future direction (not implemented yet)
+## Current implementation status
 
-Planned direction only:
+Implemented now:
 
-- support OCF export for content data
-- support blueprint composition snapshot export for page/pattern structure
-- support repository sync workflows for presentation-layer source changes
+- `App\Application\OCF\OCFExporter` writes `storage/exports/ocf/content-export.json`
+- export payload is intentionally **content-only** (types/items/semantic fields/slug/status/content metadata)
+- export intentionally excludes templates, pattern rendering details, layout logic, CSS/JS, dev metadata, and repository structure
 
-This separation keeps architecture clean while allowing future export/sync implementation without breaking content portability.
+Still planned:
+
+- blueprint composition snapshot export for page/pattern structure
+- repository sync workflows for presentation-layer source changes
+
+This separation keeps architecture clean while allowing export/sync implementation without breaking content portability.
