@@ -17,13 +17,21 @@ final class TemplateResolver
 
     public function resolveNotFound(): string
     {
-        return $this->resolveSystemTemplate('404.php');
+        return $this->resolveSystemTemplate('404');
     }
 
-    public function resolveSystemTemplate(string $template): string
+    public function resolveSystemTemplate(string $name): string
     {
-        $normalizedTemplate = trim($template, '/');
+        $normalizedName = trim($name);
+        $normalizedName = trim($normalizedName, '/');
+        $normalizedName = str_ends_with($normalizedName, '.php') ? substr($normalizedName, 0, -4) : $normalizedName;
 
-        return $this->templatesBasePath . '/system/' . $normalizedTemplate;
+        $systemTemplate = $this->templatesBasePath . '/system/' . $normalizedName . '.php';
+
+        if (is_file($systemTemplate)) {
+            return $systemTemplate;
+        }
+
+        return $this->templatesBasePath . '/system/404.php';
     }
 }

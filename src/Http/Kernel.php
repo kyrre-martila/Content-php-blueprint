@@ -21,6 +21,7 @@ use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
 use App\Http\Controller\InstallController;
+use App\Http\Controller\SearchController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Application\InstallState;
@@ -123,6 +124,14 @@ final class Kernel
 
         $router->get('/', [$homeController, 'index']);
         $router->get('/health', [$healthController, 'show']);
+
+        // System routes
+        $systemTemplateResolver = new TemplateResolver($templatesPath);
+        $searchController = new SearchController($systemTemplateResolver, $renderer);
+        $router->get('/search', static fn (Request $request): Response => $csrf(
+            $request,
+            [$searchController, 'index']
+        ));
 
         if ($this->installationRequired || $this->installState?->isInstalled() !== true) {
             $installController = new InstallController(
@@ -293,7 +302,7 @@ final class Kernel
 
             $contentController = new ContentController(
                 $this->contentItemRepository,
-                new TemplateResolver($templatesPath),
+                $systemTemplateResolver,
                 $renderer,
                 $editorMode
             );

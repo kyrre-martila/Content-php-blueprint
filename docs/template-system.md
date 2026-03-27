@@ -11,12 +11,14 @@ templates/
   index.php
   system/
     404.php
+    search.php
 ```
 
 ### Rendering model
 
 - `templates/index.php` is the universal renderer for content-driven pages.
 - `templates/system/404.php` is the dedicated renderer for not-found responses.
+- `templates/system/search.php` is the dedicated renderer for search responses.
 - Pattern blocks remain the primary mechanism for page structure within content templates.
 
 ### Intentional exclusions in v1
@@ -36,5 +38,6 @@ Not included:
 
 - `resolveContentTemplate()` → `templates/index.php`
 - `resolveNotFound()` → `templates/system/404.php`
+- `resolveSystemTemplate('search')` → `templates/system/search.php`
 
-This keeps content rendering deterministic and centralized while leaving room for future system route templates (for example search).
+System template resolution is deterministic: the resolver checks `templates/system/{name}.php` and falls back to `templates/system/404.php` if the requested system template file does not exist.

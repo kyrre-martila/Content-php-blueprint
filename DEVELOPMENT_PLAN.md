@@ -933,3 +933,20 @@ Roadmap next:
 - search template
 - optional content-type templates
 - optional preview templates
+
+## Template System v1 implemented
+
+Completed in the current baseline:
+
+- universal content renderer via `templates/index.php`
+- system route templates under `templates/system/*.php`
+- dedicated not-found template (`templates/system/404.php`)
+- dedicated search template (`templates/system/search.php`)
+- deterministic resolver behavior through explicit `TemplateResolver` methods and safe fallback to system 404 when a requested system template is missing
+
+Roadmap (future extensions, not part of v1):
+
+- archive/list templates
+- module-provided system templates
+- preview templates
+- optional content-type templates
