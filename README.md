@@ -223,3 +223,43 @@ What it does **not** allow:
 - arbitrary database field mutation
 
 Editor Mode is session-based and must be explicitly enabled by an authenticated admin/editor role. Layout, templates, and rendering structure remain developer-controlled.
+
+## Dev Mode
+
+Dev Mode is a role-gated, session-activated administration feature for advanced, high-trust users who need to edit the presentation layer safely.
+
+### Who Dev Mode is for
+
+- superadmin/admin users with authenticated admin access
+- developers or trusted technical operators responsible for site presentation
+
+### What Dev Mode may edit (v1)
+
+- `templates/`
+- `patterns/`
+- `public/assets/css/`
+- `public/assets/js/`
+
+### What Dev Mode may not edit
+
+Dev Mode explicitly does **not** expose unrestricted source editing and does **not** allow editing of:
+
+- `src/Domain/`
+- `src/Application/`
+- `src/Infrastructure/Database/`
+- authentication/session internals
+- migration files
+- `.env` or configuration secrets
+- `vendor/`
+
+### Safety and trust model
+
+- Dev Mode activation is stored in session and can be enabled/disabled explicitly.
+- File operations are restricted to approved roots and supported extensions.
+- Path traversal and unsupported paths are rejected.
+- File size is limited for edit operations.
+- Writes are atomic where practical.
+- Save attempts and rejections are logged.
+- Successful saves append revision records to `storage/logs/dev-mode-edits.log`.
+
+Dev Mode is presentation-layer editing only. Treat every change as an auditable, high-trust operation.
