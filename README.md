@@ -134,6 +134,7 @@ Current public/system routes:
 - `GET /` (home)
 - `GET /health`
 - `GET /search`
+- `GET /sitemap.xml`
 - `GET|POST /install` (when install is required)
 
 Current content route:
@@ -249,6 +250,17 @@ Each content item supports:
 - `noindex` (boolean, default `false`)
 
 The metadata fields are persisted in the core content repositories and are provided automatically to templates through the content render payload as `meta`, so templates can consume metadata without adding plugin wiring.
+
+
+## Sitemap generation
+
+`/sitemap.xml` is generated automatically as a core platform feature.
+
+- Sitemap output is valid XML sitemap format and returned as `application/xml; charset=utf-8`.
+- Only published content items are included.
+- Each entry includes `loc` and `lastmod` (`updated_at` as ISO-8601).
+- `canonical_url` metadata is used for `loc` when present.
+- When `canonical_url` is missing, absolute URLs are generated from `APP_URL` + `slug`.
 
 ## Test commands
 

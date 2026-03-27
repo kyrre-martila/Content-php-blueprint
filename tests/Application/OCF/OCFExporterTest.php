@@ -82,6 +82,14 @@ it('builds a content-only OCF payload without presentation concerns', function (
                 ));
             }
 
+            public function findPublished(): array
+            {
+                return array_values(array_filter(
+                    $this->items,
+                    static fn (ContentItem $item): bool => $item->isPublished()
+                ));
+            }
+
             public function remove(ContentItem $contentItem): void
             {
             }
@@ -162,6 +170,11 @@ it('writes content-export.json and creates storage/exports/ocf automatically', f
             public function findByType(ContentType $contentType): array
             {
                 return [$this->item];
+            }
+
+            public function findPublished(): array
+            {
+                return $this->item->isPublished() ? [$this->item] : [];
             }
 
             public function remove(ContentItem $contentItem): void

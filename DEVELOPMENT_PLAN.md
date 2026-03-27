@@ -21,6 +21,7 @@ This document is the implementation-oriented source of truth for current runtime
 - `GET /` → home controller.
 - `GET /health` → health controller.
 - `GET /search` → search controller.
+- `GET /sitemap.xml` → sitemap controller (published content XML sitemap).
 - `GET /install`, `POST /install` → installer (only when install is incomplete or DB bootstrap is unavailable).
 
 ### Content route
@@ -203,3 +204,24 @@ Out of scope in current runtime:
 - in-app LLM orchestration
 - runtime prompt pipelines
 - external AI API execution inside request flow
+
+
+## Sitemap generation implemented
+
+Automatic sitemap generation is implemented as a core runtime capability.
+
+Current behavior:
+
+- `GET /sitemap.xml` returns a valid XML sitemap response.
+- Entries are built from published content items only.
+- Each entry includes `loc` and `lastmod` (`updated_at` timestamp).
+- `canonical_url` metadata is respected when provided.
+- Otherwise, absolute `loc` URLs are generated from `APP_URL` and the content item slug.
+
+Future roadmap:
+
+- sitemap index generation for larger sites
+- image sitemap support
+- module-contributed sitemap entries
+- multilingual sitemap support
+

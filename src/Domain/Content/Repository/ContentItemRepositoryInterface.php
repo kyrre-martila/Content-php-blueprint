@@ -21,5 +21,10 @@ interface ContentItemRepositoryInterface
      */
     public function findByType(ContentType $contentType): array;
 
+    /**
+     * @return list<ContentItem>
+     */
+    public function findPublished(): array;
+
     public function remove(ContentItem $contentItem): void;
 }
