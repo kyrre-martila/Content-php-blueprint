@@ -919,3 +919,17 @@ Future roadmap:
 - grouping/categories
 - richer field types
 
+## Template System v1 foundation implemented
+
+Implemented baseline:
+
+- universal content renderer at `templates/index.php`
+- dedicated not-found renderer at `templates/system/404.php`
+- deterministic `TemplateResolver` behavior via explicit content and not-found resolution methods
+
+Roadmap next:
+
+- system route templates
+- search template
+- optional content-type templates
+- optional preview templates

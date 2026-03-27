@@ -320,3 +320,14 @@ Expected operating model:
 - `skills/` — reusable implementation playbooks for common changes.
 - `blueprint.site.example.json` — machine-readable example input contract for future site-generation runs.
 - `CODEX.md` — concise repository-level operating instructions for AI coding agents.
+
+## Template System v1 foundation
+
+Template System v1 is now implemented with a deterministic, pattern-driven baseline:
+
+- `templates/index.php` renders all content pages.
+- `templates/system/404.php` renders not-found responses.
+- The template model is intentionally simpler than a traditional CMS hierarchy.
+- Patterns continue to define page structure inside the universal content template.
+
+This project does not use WordPress-style slug/content-type template resolution in v1.
