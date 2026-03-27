@@ -261,6 +261,21 @@ OpenGraph and Twitter card metadata are generated automatically by `TemplateRend
 - Fallback behavior is handled by runtime metadata resolution (title, description summary fallback, canonical URL fallback, and optional default image support).
 - Metadata rendering is centralized in `TemplateRenderer`, so no plugin wiring is required and templates do not need duplicated social-tag logic.
 
+## Structured data support
+
+Schema.org JSON-LD metadata is generated automatically by `TemplateRenderer` as part of the same centralized metadata pipeline.
+
+- JSON-LD is injected into `<head>` using `<script type="application/ld+json">` and rendered once per page.
+- Renderer-managed schema types are selected from metadata/context:
+  - `WebSite` (global)
+  - `Organization` (global)
+  - `WebPage` (per page)
+  - `Article` (for `article` content type)
+  - `BreadcrumbList` (when hierarchy/breadcrumb data exists)
+- No plugin is required; behavior is metadata-driven and resolved in core runtime rendering.
+- Templates should not implement schema.org logic directly; TemplateRenderer is the single structured data source.
+- Fallback-safe rendering omits only missing fields and preserves valid JSON-LD structure.
+
 
 ## Sitemap generation
 

@@ -271,3 +271,28 @@ Possible future extensions:
 - per-content-type `og:type` mapping configuration
 - image dimension metadata support (`og:image:width` / `og:image:height`)
 - multi-language metadata variants
+
+## Structured data generation implemented
+
+Schema.org JSON-LD generation is implemented centrally in `TemplateRenderer`.
+
+Current behavior:
+
+- Renderer injects a single `<script type="application/ld+json">` block into page `<head>`.
+- Global schema nodes are emitted automatically:
+  - `WebSite` (`APP_NAME`, `APP_URL`)
+  - `Organization` (`APP_NAME`, `APP_URL`)
+- Per-page schema nodes are emitted automatically:
+  - `WebPage` (name/url/description from metadata with safe fallbacks)
+  - `Article` (for `article` content type, with safe optional fields)
+  - `BreadcrumbList` (only when hierarchy data exists)
+- Missing metadata fields are omitted safely without breaking overall JSON-LD shape.
+- Templates are not responsible for schema logic; renderer remains the centralized metadata source.
+
+Future roadmap:
+
+- product schema
+- event schema
+- faq schema
+- multi-language schema variants
+- author schema support
