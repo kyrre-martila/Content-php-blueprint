@@ -429,3 +429,34 @@ Only the items below are roadmap-level (planned/possible), not guaranteed curren
 ### Deployment ergonomics roadmap
 
 - deployment orchestration improvements layered on top of current release artifact packaging
+
+---
+
+## Consolidated AI operating model (finalized)
+
+This project is now structured so AI can reliably understand and operate the system from four complementary sources:
+
+1. source code
+2. docs
+3. OCF export
+4. composition snapshot export
+
+### Layer responsibilities
+
+- **Source code** is runtime/presentation truth (templates, patterns, assets, routing, services, controllers).
+- **Docs** are architectural/operational truth for intent, boundaries, and workflows.
+- **OCF export** is portable content truth (content types, content items, field values, SEO metadata where applicable).
+- **Composition snapshot export** is blueprint-specific page assembly truth (route composition + ordered pattern blocks).
+
+These layers must remain separate and be reasoned about together.
+
+### Forward-looking execution model
+
+- Future GitHub updater work will operate primarily on the **source layer** (release delivery and source replacement orchestration).
+- Future editor-driven content export/import workflows will operate primarily on the **content layer** (OCF and related content-safe artifacts).
+- Future AI-assisted site generation will combine:
+  - blueprint manifests,
+  - export artifacts (OCF + composition snapshot), and
+  - repository docs/rules.
+
+This separation is the foundation for safe AI automation and predictable architecture evolution.

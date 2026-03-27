@@ -2,6 +2,18 @@
 
 Framework-light PHP 8.3+ blueprint for structured content websites with explicit layered architecture.
 
+## AI operating environment
+
+This repository is designed for AI-assisted development as well as human-led engineering.
+
+- project documentation in `docs/` is part of the operating system for how changes are made
+- `skills/` files are reusable implementation playbooks for common work
+- OCF export and composition snapshot export exist so AI can reason about content/composition without direct database access
+- Dev Mode affects source-layer concerns (templates, patterns, CSS/JS)
+- Editor Mode affects runtime content concerns (safe content edits within guardrails)
+
+Use repository source code + docs + OCF + composition snapshots together when planning or implementing changes.
+
 ## Developer setup
 
 1. Install dependencies:
