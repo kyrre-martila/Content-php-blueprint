@@ -50,6 +50,7 @@ final class ApplicationFactory
         );
 
         $exporters = (new ExporterFactory($this->projectRoot))->build(
+            $persistence['repositoriesAvailable'],
             $persistence['contentTypeRepository'],
             $persistence['contentItemRepository']
         );
@@ -78,6 +79,7 @@ final class ApplicationFactory
             $editors['devModeHistory'],
             $persistence['installState'],
             $persistence['installationRequired'],
+            $persistence['repositoriesAvailable'],
             $persistence['migrationsTable'],
             $editors['editorContentService']
         );

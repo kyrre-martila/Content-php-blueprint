@@ -19,12 +19,13 @@ final class ExporterFactory
      * @return array{compositionExporter: CompositionExporter, ocfExporter: ?OCFExporter, ocfUnavailable: bool}
      */
     public function build(
+        bool $repositoriesAvailable,
         ?ContentTypeRepositoryInterface $contentTypeRepository,
         ?ContentItemRepositoryInterface $contentItemRepository
     ): array {
         $compositionExporter = new CompositionExporter($this->projectRoot);
 
-        if ($contentTypeRepository === null || $contentItemRepository === null) {
+        if (!$repositoriesAvailable || $contentTypeRepository === null || $contentItemRepository === null) {
             return [
                 'compositionExporter' => $compositionExporter,
                 'ocfExporter' => null,
