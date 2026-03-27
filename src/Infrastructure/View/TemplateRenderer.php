@@ -22,37 +22,59 @@ final class TemplateRenderer
      */
     public function render(string $templatePath, array $data = []): string
     {
-        $data = $this->withCanonicalMeta($data);
+        $data = $this->withResolvedMeta($data);
         $layout = null;
         $content = $this->renderFile($templatePath, $data, $layout);
 
         if ($layout === null) {
-            return $content;
+            return $this->injectSocialMetadata($content, $data);
         }
 
         $layoutPath = $this->resolveLayoutPath($layout);
         $unusedLayout = null;
 
-        return $this->renderFile($layoutPath, [...$data, 'content' => $content], $unusedLayout);
+        $output = $this->renderFile($layoutPath, [...$data, 'content' => $content], $unusedLayout);
+
+        return $this->injectSocialMetadata($output, $data);
     }
 
     /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function withCanonicalMeta(array $data): array
+    private function withResolvedMeta(array $data): array
     {
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
-        $existingCanonical = $meta['canonical'] ?? null;
+        $contentItem = $data['contentItem'] ?? null;
+        $title = $this->firstNonEmptyString(
+            $meta['title'] ?? null,
+            is_object($contentItem) && method_exists($contentItem, 'metaTitle') ? $contentItem->metaTitle() : null,
+            is_object($contentItem) && method_exists($contentItem, 'title') ? $contentItem->title() : null
+        );
+        $description = $this->firstNonEmptyString(
+            $meta['description'] ?? null,
+            is_object($contentItem) && method_exists($contentItem, 'metaDescription') ? $contentItem->metaDescription() : null,
+            $this->summaryFromContentItem($contentItem)
+        );
+        $ogImage = $this->firstNonEmptyString(
+            $meta['og_image'] ?? null,
+            is_object($contentItem) && method_exists($contentItem, 'ogImage') ? $contentItem->ogImage() : null,
+            $meta['default_og_image'] ?? null,
+            $data['default_og_image'] ?? null
+        );
+        $twitterCard = $this->firstNonEmptyString($meta['twitter_card'] ?? null) ?? 'summary_large_image';
+        $ogType = $this->detectOgType($contentItem);
+        $noindex = ($meta['noindex'] ?? null) === true;
 
-        if (is_string($existingCanonical) && trim($existingCanonical) !== '') {
-            return [...$data, 'meta' => $meta];
+        if (!$noindex && is_object($contentItem) && method_exists($contentItem, 'noindex')) {
+            $noindex = $contentItem->noindex() === true;
         }
 
-        $canonical = null;
-        $contentItem = $data['contentItem'] ?? null;
+        $existingCanonical = $this->firstNonEmptyString($meta['canonical'] ?? null);
 
-        if (is_object($contentItem) && method_exists($contentItem, 'canonicalUrl')) {
+        $canonical = $existingCanonical;
+
+        if ($canonical === null && is_object($contentItem) && method_exists($contentItem, 'canonicalUrl')) {
             $canonicalUrl = $contentItem->canonicalUrl();
 
             if (is_string($canonicalUrl) && trim($canonicalUrl) !== '') {
@@ -68,17 +90,66 @@ final class TemplateRenderer
             }
         }
 
-        if ($canonical === null) {
-            return [...$data, 'meta' => $meta];
-        }
-
         return [
             ...$data,
             'meta' => [
                 ...$meta,
+                'title' => $title,
+                'description' => $description,
+                'og_image' => $ogImage,
                 'canonical' => $canonical,
+                'og_type' => $ogType,
+                'twitter_card' => $twitterCard,
+                'noindex' => $noindex,
             ],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function injectSocialMetadata(string $html, array $data): string
+    {
+        if (!preg_match('/<\/head>/i', $html)) {
+            return $html;
+        }
+
+        $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $title = $this->firstNonEmptyString($meta['title'] ?? null);
+        $description = $this->firstNonEmptyString($meta['description'] ?? null);
+        $ogImage = $this->firstNonEmptyString($meta['og_image'] ?? null);
+        $canonical = $this->firstNonEmptyString($meta['canonical'] ?? null);
+        $ogType = $this->firstNonEmptyString($meta['og_type'] ?? null) ?? 'website';
+        $twitterCard = $this->firstNonEmptyString($meta['twitter_card'] ?? null) ?? 'summary_large_image';
+
+        $html = $this->stripExistingSocialMetadata($html);
+
+        $tags = [];
+        $tags[] = $this->metaPropertyTag('og:type', $ogType);
+        $tags[] = $this->metaNameTag('twitter:card', $twitterCard);
+
+        if ($title !== null) {
+            $tags[] = $this->metaPropertyTag('og:title', $title);
+            $tags[] = $this->metaNameTag('twitter:title', $title);
+        }
+
+        if ($description !== null) {
+            $tags[] = $this->metaPropertyTag('og:description', $description);
+            $tags[] = $this->metaNameTag('twitter:description', $description);
+        }
+
+        if ($canonical !== null) {
+            $tags[] = $this->metaPropertyTag('og:url', $canonical);
+        }
+
+        if ($ogImage !== null) {
+            $tags[] = $this->metaPropertyTag('og:image', $ogImage);
+            $tags[] = $this->metaNameTag('twitter:image', $ogImage);
+        }
+
+        $metadataBlock = "\n    " . implode("\n    ", $tags) . "\n";
+
+        return (string) preg_replace('/<\/head>/i', $metadataBlock . '</head>', $html, 1);
     }
 
     private function absoluteCanonicalFromPath(string $path, mixed $request): string
@@ -105,6 +176,106 @@ final class TemplateRenderer
         }
 
         return $normalizedPath;
+    }
+
+    private function detectOgType(mixed $contentItem): string
+    {
+        if (!is_object($contentItem) || !method_exists($contentItem, 'type')) {
+            return 'website';
+        }
+
+        $contentType = $contentItem->type();
+
+        if (!is_object($contentType) || !method_exists($contentType, 'name')) {
+            return 'website';
+        }
+
+        return match (strtolower(trim((string) $contentType->name()))) {
+            'article' => 'article',
+            'page' => 'website',
+            default => 'website',
+        };
+    }
+
+    private function stripExistingSocialMetadata(string $html): string
+    {
+        $socialTagPattern = '/^\s*<meta\b[^>]*(?:property|name)\s*=\s*(["\'])(?:og:(?:title|description|image|url|type)|twitter:(?:card|title|description|image))\1[^>]*>\s*$/im';
+
+        return (string) preg_replace($socialTagPattern, '', $html);
+    }
+
+    private function metaPropertyTag(string $property, string $content): string
+    {
+        return sprintf(
+            '<meta property="%s" content="%s">',
+            htmlspecialchars($property, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        );
+    }
+
+    private function metaNameTag(string $name, string $content): string
+    {
+        return sprintf(
+            '<meta name="%s" content="%s">',
+            htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        );
+    }
+
+    private function firstNonEmptyString(mixed ...$values): ?string
+    {
+        foreach ($values as $value) {
+            if (!is_string($value)) {
+                continue;
+            }
+
+            $trimmed = trim($value);
+
+            if ($trimmed !== '') {
+                return $trimmed;
+            }
+        }
+
+        return null;
+    }
+
+    private function summaryFromContentItem(mixed $contentItem): ?string
+    {
+        if (!is_object($contentItem) || !method_exists($contentItem, 'patternBlocks')) {
+            return null;
+        }
+
+        $patternBlocks = $contentItem->patternBlocks();
+
+        if (!is_array($patternBlocks) || $patternBlocks === []) {
+            return null;
+        }
+
+        $summaryParts = [];
+
+        foreach ($patternBlocks as $block) {
+            if (!is_array($block) || !is_array($block['data'] ?? null)) {
+                continue;
+            }
+
+            foreach ($block['data'] as $value) {
+                if (!is_string($value)) {
+                    continue;
+                }
+
+                $normalized = trim(preg_replace('/\s+/', ' ', strip_tags($value)) ?? '');
+
+                if ($normalized !== '') {
+                    $summaryParts[] = $normalized;
+                }
+            }
+        }
+
+        if ($summaryParts === []) {
+            return null;
+        }
+
+        return mb_substr(implode(' ', $summaryParts), 0, 160);
     }
 
     /**
