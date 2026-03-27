@@ -4,81 +4,124 @@ Content PHP Blueprint
 
 ## Purpose
 
-This document is the implementation-oriented source of truth for current runtime architecture.
+This document is the implementation-oriented source of truth for:
+
+1. **Current runtime architecture** (what exists now), and
+2. **Future roadmap** (what is planned, not yet runtime behavior).
+
+When code and this document conflict, update this document to match code.
+
+---
 
 ## Current architecture summary
 
-- Layered PHP architecture: Domain, Application, Infrastructure, Http, Admin.
-- Explicit registrar-based route registration coordinated by `src/Http/Routing/RouteRegistry.php`.
+- Layered PHP architecture with clear boundaries: `Domain`, `Application`, `Infrastructure`, `Http`, `Admin`.
+- Registrar-based routing coordinated by `src/Http/Routing/RouteRegistry.php`.
 - Deterministic template resolution through `TemplateResolver`.
-- Pattern-based page composition through Pattern System v1.
-- Role-gated Editor Mode and Dev Mode with strict scope boundaries.
+- Pattern-driven composition using `pattern_blocks` rendered through `PatternRenderer`.
+- Session-based, role-gated Editor Mode and Dev Mode with explicit scope boundaries.
+- Install-state-aware kernel behavior for setup-dependent admin routes.
 
-## Runtime routing architecture
+---
 
-Route registration is modularized by focused registrar classes under `src/Http/Routing/` and coordinated by `RouteRegistry`.
+## Runtime routing architecture (current implementation)
 
-Current route layers are registered in deterministic order:
+Routes are registered by modular registrars in deterministic order:
 
 1. `SystemRouteRegistrar`
 2. `AuthRouteRegistrar`
 3. `AdminRouteRegistrar`
 4. `DevModeRouteRegistrar`
 5. `EditorModeRouteRegistrar`
-6. `PublicContentRouteRegistrar` (catch-all, always last)
+6. `PublicContentRouteRegistrar` (**catch-all, always last**)
 
-### Public/system routes
+This ordering is the active runtime route-priority model.
 
-- `GET /` → home controller.
-- `GET /health` → health controller.
-- `GET /search` → search controller.
-- `GET /sitemap.xml` → sitemap controller (published content XML sitemap).
-- `GET /robots.txt` → robots controller (dynamic environment-aware robots policy).
-- `GET /install`, `POST /install` → installer (only when install is incomplete or DB bootstrap is unavailable).
+### System routes
 
-### Content route
+- `GET /` → home
+- `GET /health` → health check
+- `GET /search` → search page
+- `GET /sitemap.xml` → XML sitemap
+- `GET /robots.txt` → dynamic robots policy
+- install flow:
+  - `GET /install` → install form (or redirect if already installed)
+  - `POST /install` → installer execution
 
-- `GET /{slug}` → content controller for published content items.
+### Auth routes
 
-### Admin/auth/editor/dev routes
+- `GET /admin/login`, `POST /admin/login`
+- `POST /admin/logout`
+- aliases: `/login`, `/logout`
 
-- auth: `/admin/login`, `/admin/logout` (+ system aliases `/login`, `/logout`)
-- admin dashboard: `/admin`
-- content admin: `/admin/content*`
-- pattern registry endpoint: `GET /admin/patterns`
-- editor mode: `/editor-mode/*` (+ `/editor/*` aliases)
-- dev mode: `/admin/dev-mode/*` (+ `/dev/*` aliases)
+### Admin routes
 
-### Install redirect behavior
+- `GET /admin` dashboard
+- `GET /admin/patterns` pattern registry endpoint
+- content management (`/admin/content`, create/edit/store/update)
 
-Kernel redirects setup-dependent admin paths (`/admin` and `/admin/*`) to `/install` when installation is incomplete.
+### Dev Mode routes
 
-## Template System v1 (current, not planned)
+- `/admin/dev-mode/*` primary dev-mode UI/actions
+- `/dev/*` aliases
+- includes snapshot export endpoint: `POST /admin/dev/export`
 
-Template model is intentionally minimal and deterministic:
+### Editor Mode routes
 
-- `templates/index.php` is the universal content renderer.
-- `templates/system/404.php` is the not-found renderer.
-- `templates/system/search.php` is the search/system route renderer.
+- `/editor-mode/*` primary editor-mode actions
+- `/editor/*` aliases
+- inline save endpoint: `POST /editor-mode/save-field`
 
-Resolver behavior:
+### Public content catch-all route
+
+- `GET /{slug}` → published content rendering via `ContentController`
+- must remain last so system/admin/editor/dev/auth routes resolve first
+
+### Install redirect behavior in kernel
+
+`Kernel` redirects setup-dependent admin paths (`/admin` and `/admin/*`) to `/install` when installation is incomplete.
+
+---
+
+## Template system (current implementation)
+
+Template runtime is intentionally minimal and deterministic.
+
+### Active runtime entrypoints
+
+- `templates/index.php` = universal renderer for content routes.
+- `templates/system/404.php` = not-found renderer.
+- `templates/system/search.php` = search renderer.
+
+### Resolver behavior
 
 - `resolveContentTemplate()` → `templates/index.php`
 - `resolveNotFound()` → `templates/system/404.php`
-- `resolveSystemTemplate('search')` → `templates/system/search.php` (or `system/404.php` fallback if missing)
+- `resolveSystemTemplate('search')` → `templates/system/search.php` (fallback to `templates/system/404.php` if missing)
 
-Out of scope for v1:
+### Layout behavior
 
-- `templates/pages/{slug}.php` routing
-- `templates/page.php` routing
-- `templates/default.php` routing
+Templates set `$layout` (currently `layouts/default.php` in core runtime templates), and `TemplateRenderer` resolves that file under `templates/`.
+
+### Explicitly not current runtime behavior
+
+The following are **not** part of active runtime template selection:
+
+- `templates/pages/{slug}.php`
+- `templates/pages/page.php`
+- `templates/default.php` as route-resolved default
 - WordPress-style fallback chains
-- content-type/slug template hierarchy
+- content-type template hierarchy as runtime selection logic
+- slug-template hierarchy as runtime selection logic
 - editor-selected template switching
 
-## Pattern System v1 (current)
+Composition is pattern-driven; template dispatch is not hierarchy-driven.
 
-Patterns are filesystem-defined reusable blocks:
+---
+
+## Pattern system (current implementation)
+
+Patterns are filesystem-defined blocks:
 
 - `patterns/{key}/pattern.json`
 - `patterns/{key}/pattern.php`
@@ -86,251 +129,204 @@ Patterns are filesystem-defined reusable blocks:
 Runtime services:
 
 - `PatternRegistry` for deterministic discovery
-- `PatternRenderer` for safe rendering
-- `PatternDataValidator` for field-level validation
+- `PatternRenderer` for rendering
+- `PatternDataValidator` for field validation
 
-Current field support is limited to `text` and `textarea`.
+Current supported inline-edit field types in patterns: `text`, `textarea`.
 
-## Pattern blocks on content items
+### Content composition model
 
-Content items store `pattern_blocks` JSON. Each block contains:
+Content items store ordered `pattern_blocks` JSON blocks, each shaped like:
 
 ```json
 { "pattern": "slug", "data": { "field": "value" } }
 ```
 
-Rendering behavior:
+Rendering path:
 
-- content controller loads published item
-- universal template (`templates/index.php`) iterates blocks
-- each block is rendered via `PatternRenderer` in saved order
+1. `ContentController` loads published content item.
+2. `templates/index.php` iterates `pattern_blocks` in stored order.
+3. Each block renders through `PatternRenderer`.
 
-## Editor Mode foundation (current scope)
+---
+
+## Editor Mode (current implementation)
 
 Editor Mode is session-based and role-gated (`superadmin`, `admin`, `editor`).
 
-Current capabilities:
+### Current capabilities
 
-- enable/disable mode
-- visible mode banner
-- conditional loading of editor assets
-- inline save endpoint: `POST /editor-mode/save-field`
+- enable / disable editor mode
+- editor banner + editor assets when active
+- inline save endpoint for allowlisted fields
 
-Allowed inline edits in v1:
+### Current allowlisted inline edits
 
-- content item title
-- pattern block `text` fields
-- pattern block `textarea` fields
+- content item fields:
+  - `title`
+  - `meta_title`
+  - `meta_description`
+  - `og_image`
+  - `canonical_url`
+  - `noindex`
+- pattern block fields of type `text` and `textarea`
 
-Current hard boundaries:
+### Current hard boundaries
 
-- no template/layout editing
-- no pattern definition editing
+- no template/layout file editing
+- no pattern definition editing (`pattern.json`/`pattern.php`)
 - no CSS/JS editing
-- no routing/PHP editing
-- no arbitrary content JSON mutation
+- no routing/PHP source editing
+- no unrestricted arbitrary JSON mutation outside validator constraints
 
-## Dev Mode foundation (current scope)
+---
+
+## Dev Mode (current implementation)
 
 Dev Mode is session-based and role-gated (`superadmin`, `admin`).
 
-Editable roots:
+### Editable roots
 
 - `templates/`
 - `patterns/`
 - `public/assets/css/`
 - `public/assets/js/`
 
-Safety model:
+### Safety model
 
-- allowlisted roots/extensions
-- path normalization and traversal rejection
-- bounded file size
-- edit history logging to `storage/logs/dev-mode-edits.log`
+- allowlisted roots and supported-file discovery
+- path normalization + traversal rejection
+- blocked sensitive paths (`src`, `vendor`, `.env`, `config`, etc.)
+- bounded file size for edits
+- edit history logging (`storage/logs/dev-mode-edits.log`)
 
-Not allowed:
+### Current capabilities
 
-- unrestricted `src/` edits
-- migrations
-- `.env`/secrets
-- `vendor/`
+- browse allowlisted editable files
+- edit/save allowlisted files
+- export snapshot endpoint (`POST /admin/dev/export`) that returns:
+  - composition snapshot export result
+  - OCF export result when OCF exporter is available
 
-## Install flow and install-state logic
+### Not current behavior
 
-Installation responsibilities:
+- no unrestricted repository editing
+- no migration editing
+- no package/dependency management workflows
+- no guaranteed bidirectional sync/update pipeline beyond current export endpoint behavior
+
+---
+
+## Install flow and install-state logic (current implementation)
+
+Install sequence:
 
 1. run environment checks
 2. validate installer input
 3. connect to target DB
 4. run Phinx migrations
 5. create initial admin user
-6. mark install completed in `settings.install_completed`
+6. create/update `settings.install_completed`
+7. run demo seeder (`BlueprintDemoSeeder`)
+8. verify install state and redirect to `/admin/login`
 
-Install state is considered complete only when all checks pass:
+Install state is complete only when all checks pass:
 
-- required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`)
+- required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`, `settings`)
 - admin/superadmin user exists
-- install flag evaluates true
+- install flag is truthy in `settings.install_completed`
 
-## Deployment and install strategy
+---
 
-### Release artifact packaging
+## OCF / composition / Git boundary (current implementation)
 
-- Production deployment format is a prebuilt release zip artifact.
-- Packaging is handled by CI via `.github/workflows/build-release.yml` and can also be run locally with `scripts/build-release.sh`.
-- The release zip includes runtime-required directories/files (`public/`, `src/`, `templates/`, `patterns/`, `config/`, `database/`, `vendor/`, `storage/`, `composer.json`, `phinx.php`, `README.md`, `.env.example`, and root `index.php`).
-- Non-runtime paths (tests/docs/skills/.git/.github and local tooling) are excluded from the package.
+Runtime architecture enforces strict separation:
 
-### Production server expectation
+- **OCF export = content only** (portable semantic content model)
+- **Composition snapshot = blueprint-specific assembly metadata** (route composition + ordered patterns)
+- **Git repository = presentation/runtime source of truth** (`templates`, `patterns`, assets, PHP runtime code, docs, skills)
 
-- Production target servers should not need Composer installed.
-- Dependencies are resolved during packaging using `composer install --no-dev --optimize-autoloader`.
-- Runtime install remains browser-driven through `/install` after `.env` configuration.
+This keeps portable content from absorbing blueprint-specific rendering/runtime concerns.
 
-### Future deploy ergonomics
+### Composition snapshot format (current)
 
-- Keep deployment automation decoupled from packaging.
-- The release zip provides a stable handoff artifact for future one-step deploy tooling (e.g., upload/unzip/switch symlink orchestration).
+`CompositionExporter` emits `export_format_version: 2` snapshots.
 
-## AI/data boundary architecture
+Scopes:
 
-Runtime architecture keeps strict boundaries between content, composition, and source code.
+- `scope: content-routes` (per-content snapshot)
+- `scope: system-routes` (system route snapshot)
 
-- **OCF = content only** (portable semantic content).
-- **Composition snapshot = separate blueprint-specific layer** (pattern assembly/order and blueprint runtime composition context).
-- **Repository source layer** = templates, patterns, assets, runtime code, docs, skills.
-
-This prevents portable content from absorbing blueprint-specific rendering details.
-
-### Composition snapshot structure (export format v2)
-
-Composition snapshot export reflects runtime rendering assembly metadata.
-
-- `export_format_version: 2`
-- Distinct scopes:
-  - `scope: content-routes` for per-content-item snapshots
-  - `scope: system-routes` for system route snapshot exports
-
-Content-route snapshot shape:
+Current content-route fields:
 
 - `slug`
 - `title`
 - `route_type` (`content`)
 - `renderer_entrypoint` (`templates/index.php`)
-- `layout` (`templates/layout.php`, pending future override support)
-- `patterns` (ordered blocks: `pattern` + `data`)
+- `layout` (current exporter value: `templates/layout.php`)
+- `patterns` (ordered pattern blocks)
 
-System-route snapshot shape:
+Current system-route fields:
 
 - `route`
 - `renderer_entrypoint` (`templates/system/*.php`)
-- `layout` (`templates/layout.php`)
+- `layout` (current exporter value: `templates/layout.php`)
 - `patterns`
 
-`renderer_entrypoint` replaces the older `template` field so snapshot metadata matches actual runtime architecture.
+Notes:
 
-## AI workflow scope
+- `renderer_entrypoint` is the canonical field (replacing older `template` naming).
+- Snapshot metadata is tooling/export context and does not redefine runtime route matching rules.
 
-Current intended operating model:
+---
 
-- AI assists with repository code generation/refactoring.
-- Humans review/refine source changes.
-- Editors manage runtime content updates through admin + Editor Mode.
-- Dev Mode is for high-trust presentation edits only.
+## SEO runtime capabilities (current implementation)
 
-Out of scope in current runtime:
+### Sitemap
 
-- in-app LLM orchestration
-- runtime prompt pipelines
-- external AI API execution inside request flow
+- `GET /sitemap.xml`
+- includes published content items
+- emits `loc` + `lastmod`
+- uses `canonical_url` when available, otherwise `APP_URL + slug`
 
+### robots.txt
 
-## Sitemap generation implemented
+- `GET /robots.txt` dynamic output
+- `APP_ENV=production`: allows crawling and references sitemap
+- privileged/operator paths disallowed in production (`/admin`, `/editor`, `/editor-mode`, `/dev`, `/install`)
+- non-production: `Disallow: /`
 
-Automatic sitemap generation is implemented as a core runtime capability.
+### Social metadata + structured data
 
-Current behavior:
+Handled centrally in `TemplateRenderer` (not per-template duplication):
 
-- `GET /sitemap.xml` returns a valid XML sitemap response.
-- Entries are built from published content items only.
-- Each entry includes `loc` and `lastmod` (`updated_at` timestamp).
-- `canonical_url` metadata is respected when provided.
-- Otherwise, absolute `loc` URLs are generated from `APP_URL` and the content item slug.
+- OpenGraph tags
+- Twitter card tags
+- JSON-LD graph (WebSite, Organization, WebPage, Article when applicable, BreadcrumbList when data exists)
 
-## robots.txt generation implemented
+---
 
-Automatic robots generation is implemented as a core runtime capability.
+## Future roadmap (not current runtime behavior)
 
-Current behavior:
+Only the items below are roadmap-level (planned/possible), not guaranteed current behavior:
 
-- `GET /robots.txt` returns `text/plain; charset=utf-8`.
-- When `APP_ENV=production`, robots output allows public crawling and references sitemap URL built from `APP_URL`.
-- Privileged or operator surfaces remain non-indexable in production via disallow rules:
-  - `/admin`
-  - `/editor`
-  - `/editor-mode`
-  - `/dev`
-  - `/install`
-- When `APP_ENV` is not `production`, robots output blocks all crawling (`Disallow: /`).
-- Route handling is dynamic through application routing instead of static-file ownership.
+### SEO roadmap
 
-Possible future extensions:
-
-- custom disallow rules
-- per-content-type indexing rules
-- multisite support
-- environment overrides
-
-Future roadmap:
-
-- sitemap index generation for larger sites
-- image sitemap support
+- sitemap index generation
+- image sitemaps
 - module-contributed sitemap entries
-- multilingual sitemap support
+- multilingual sitemap variants
+- richer robots customization (custom rules / overrides)
+- per-content-type indexing policies
 
-## Social metadata auto-rendering implemented
+### Metadata roadmap
 
-OpenGraph and Twitter metadata rendering is implemented centrally in `TemplateRenderer`.
+- site-level default OG image wiring from settings/config
+- configurable `og:type` mapping by content type
+- OG image dimension tags
+- multilingual metadata variants
+- expanded schema coverage (product, event, FAQ, author)
 
-Current behavior:
+### Deployment ergonomics roadmap
 
-- OpenGraph metadata is auto-injected into page `<head>` output (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`).
-- Twitter card metadata is auto-injected (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`).
-- Metadata values are derived from structured content metadata with runtime fallbacks:
-  - title fallback to content title
-  - description fallback to generated summary from content blocks
-  - image fallback to optional default image when available
-  - URL fallback to canonical slug URL generation
-- Duplicate social tags are prevented by renderer-level de-duplication, preserving TemplateRenderer as the single metadata source.
-
-Possible future extensions:
-
-- site-level default `og_image` wiring from config/settings
-- per-content-type `og:type` mapping configuration
-- image dimension metadata support (`og:image:width` / `og:image:height`)
-- multi-language metadata variants
-
-## Structured data generation implemented
-
-Schema.org JSON-LD generation is implemented centrally in `TemplateRenderer`.
-
-Current behavior:
-
-- Renderer injects a single `<script type="application/ld+json">` block into page `<head>`.
-- Global schema nodes are emitted automatically:
-  - `WebSite` (`APP_NAME`, `APP_URL`)
-  - `Organization` (`APP_NAME`, `APP_URL`)
-- Per-page schema nodes are emitted automatically:
-  - `WebPage` (name/url/description from metadata with safe fallbacks)
-  - `Article` (for `article` content type, with safe optional fields)
-  - `BreadcrumbList` (only when hierarchy data exists)
-- Missing metadata fields are omitted safely without breaking overall JSON-LD shape.
-- Templates are not responsible for schema logic; renderer remains the centralized metadata source.
-
-Future roadmap:
-
-- product schema
-- event schema
-- faq schema
-- multi-language schema variants
-- author schema support
+- deployment orchestration improvements layered on top of current release artifact packaging
