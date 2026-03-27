@@ -47,6 +47,24 @@ final class Response
         return new self('', $status, ['Location' => $location]);
     }
 
+    public function status(): int
+    {
+        return $this->status;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function headers(): array
+    {
+        return $this->headers;
+    }
+
+    public function header(string $name): ?string
+    {
+        return $this->headers[$name] ?? null;
+    }
+
     public function send(): void
     {
         http_response_code($this->status);

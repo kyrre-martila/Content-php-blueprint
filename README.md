@@ -140,6 +140,18 @@ Current content route:
 
 - `GET /{slug}` for published content items
 
+## Canonical URL enforcement
+
+Canonical routing is enforced automatically for content item routes as part of Blueprint's SEO-first architecture.
+
+- The content item `slug` is the canonical path source of truth (`/{slug}`).
+- Incoming content requests are normalized (lowercase, duplicate slash cleanup, trailing slash normalization, and `/index` removal) before canonical comparison.
+- If a request variant is not already canonical, runtime issues an HTTP `301` redirect to the canonical target.
+- Query parameters are preserved on canonical redirects.
+- If a content item defines `canonical_url`, that value overrides slug-based canonical routing and redirects to the metadata URL.
+- System routes are excluded from canonical enforcement (`/search`, `/login`, `/logout`, `/admin/*`, `/editor/*`, `/dev/*`).
+- Template rendering auto-injects `<link rel="canonical" ...>` using `canonical_url` metadata when present, otherwise from the content slug.
+
 Template mapping in runtime:
 
 - content pages render through `templates/index.php`

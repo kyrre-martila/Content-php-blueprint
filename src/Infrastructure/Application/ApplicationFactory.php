@@ -99,7 +99,15 @@ final class ApplicationFactory
         $editableFieldRenderer = new EditableFieldRenderer();
         $patternDataValidator = new PatternDataValidator();
         $patternRenderer = new PatternRenderer($patternRegistry, $patternDataValidator, $editableFieldRenderer);
-        $templateRenderer = new TemplateRenderer($templatesPath, $patternRenderer, $editableFieldRenderer);
+        $configuredAppUrl = $this->config->get('app.url');
+        $siteUrl = is_string($configuredAppUrl) ? $configuredAppUrl : '';
+
+        $templateRenderer = new TemplateRenderer(
+            $templatesPath,
+            $patternRenderer,
+            $editableFieldRenderer,
+            $siteUrl
+        );
 
         $editorMode = new EditorMode($authSession, $sessionManager);
         $devMode = new DevMode($this->projectRoot, $authSession, $sessionManager);
