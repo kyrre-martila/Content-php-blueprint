@@ -1,18 +1,22 @@
 {
   "name": "Hero section",
   "description": "Large hero section with heading, text, and button",
+  "category": "marketing",
   "fields": [
     {
       "name": "headline",
-      "type": "text"
+      "type": "text",
+      "label": "Headline"
     },
     {
       "name": "subheadline",
-      "type": "textarea"
+      "type": "textarea",
+      "label": "Subheadline"
     },
     {
       "name": "button_text",
-      "type": "text"
+      "type": "text",
+      "label": "Button text"
     }
   ],
   "key": "hero"
