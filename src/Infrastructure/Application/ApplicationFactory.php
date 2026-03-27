@@ -10,6 +10,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Application\Editor\EditorContentService;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
 use App\Application\Content\ListContentItems;
@@ -140,10 +141,14 @@ final class ApplicationFactory
                 $patternRegistry
             );
 
-            $editorModeController = new EditorModeController(
-                $editorMode,
+            $editorContentService = new EditorContentService(
                 $contentItemRepository,
                 $editableFieldValidator
+            );
+
+            $editorModeController = new EditorModeController(
+                $editorMode,
+                $editorContentService
             );
 
             $contentController = new ContentController(
