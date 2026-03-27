@@ -1,8 +1,21 @@
 # Routing
 
-Routing is currently explicit and centralized in `src/Http/Kernel.php`.
+Routing is explicit and centralized through `src/Http/Routing/RouteRegistry.php` (wired in `src/Http/Kernel.php`).
 
-## Public routes (current)
+## Registration order (current)
+
+Routes are registered in this deterministic order:
+
+1. system routes
+2. auth routes
+3. admin routes
+4. dev mode routes
+5. editor mode routes
+6. public content routes
+
+This ensures explicit routes are matched before the universal content catch-all (`GET /{slug}`).
+
+## System routes (current)
 
 System routes:
 
@@ -11,18 +24,15 @@ System routes:
 - `GET /install` and `POST /install` → installer (only while installation is required/not complete).
 - `GET /search` → search controller rendered through `templates/system/search.php`.
 
-Content routes:
-
-- `GET /{slug}` → published content page (enabled when content repositories are available).
-
-Not-found rendering for unresolved/unpublished content routes is handled by `templates/system/404.php` via `TemplateResolver::resolveNotFound()`.
-
-
-## Authentication and admin routes (current)
+## Authentication routes (current)
 
 - `GET /admin/login`
 - `POST /admin/login`
 - `POST /admin/logout`
+- aliases: `GET /login`, `POST /login`, `POST /logout`
+
+## Admin routes (current)
+
 - `GET /admin`
 
 Content admin (when content repositories are available):
@@ -46,6 +56,12 @@ Dev Mode:
 - `GET /admin/dev-mode`
 - `GET /admin/dev-mode/edit`
 - `POST /admin/dev-mode/edit`
+
+## Public content routes (current)
+
+- `GET /{slug}` → published content page (enabled when content repositories are available).
+
+Not-found rendering for unresolved/unpublished content routes is handled by `templates/system/404.php` via `TemplateResolver::resolveNotFound()`.
 
 ## Middleware behavior (current)
 

@@ -47,11 +47,13 @@ final class RouteRegistry
         private readonly ?SitemapController $sitemapController = null,
         private readonly ?RobotsController $robotsController = null,
     ) {
+        // Registration order is explicit so route priority is deterministic.
         $this->registerSystemRoutes();
         $this->registerAuthRoutes();
         $this->registerAdminRoutes();
         $this->registerDevModeRoutes();
         $this->registerEditorRoutes();
+        $this->registerPublicContentRoutes();
     }
 
     public function resolve(Request $request): ?RouteMatch
@@ -150,11 +152,7 @@ final class RouteRegistry
             )
         ));
 
-        if (
-            $this->contentAdminController === null
-            || $this->editorModeController === null
-            || $this->contentController === null
-        ) {
+        if ($this->contentAdminController === null) {
             return;
         }
 
@@ -194,10 +192,6 @@ final class RouteRegistry
             )
         ));
 
-        $this->get('/{slug}', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            [$this->contentController, 'show']
-        ));
     }
 
     private function registerDevModeRoutes(): void
@@ -293,6 +287,19 @@ final class RouteRegistry
         $this->post('/editor/enable', $enableHandler);
         $this->post('/editor/disable', $disableHandler);
         $this->post('/editor/save-field', $saveFieldHandler);
+    }
+
+    private function registerPublicContentRoutes(): void
+    {
+        if ($this->contentController === null) {
+            return;
+        }
+
+        // Keep the universal catch-all route last so explicit routes always win.
+        $this->get('/{slug}', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            [$this->contentController, 'show']
+        ));
     }
 
     /**
