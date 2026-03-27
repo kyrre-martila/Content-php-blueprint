@@ -894,10 +894,28 @@ Validation currently enforces:
 - `fields` as an array of `{name, type}`
 - supported field types: `text`, `textarea`, and future-ready `image`
 
-Future steps:
+## Pattern System v1 implemented
 
-- renderer integration cleanup around metadata-first registry access
-- richer pattern data validation rules
-- admin pattern discovery surfaces
-- editor insertion UI improvements
+Implemented v1 runtime integration:
+
+- metadata-driven pattern discovery through `PatternRegistry`
+- registry-backed, deterministic template resolution for runtime rendering
+- validated rendering through `PatternDataValidator` before include execution
+- safe runtime `PatternRenderer` wiring in kernel/bootstrap flow
+- authenticated admin discovery endpoint: `GET /admin/patterns`
+
+Runtime behavior in v1 remains explicit and conservative:
+
+- only registry-known patterns are renderable
+- unknown keys in pattern input are rejected
+- only `text` and `textarea` field types are accepted at runtime
+- invalid pattern data fails safely without arbitrary file execution
+
+Future roadmap:
+
+- insertion UI
+- ordering UI
+- preview UI
+- grouping/categories
+- richer field types
 

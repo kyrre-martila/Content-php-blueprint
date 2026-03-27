@@ -2,26 +2,24 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Pattern;
+namespace App\Infrastructure\View;
 
 use App\Infrastructure\Editor\EditableFieldRenderer;
+use App\Infrastructure\Pattern\PatternDataValidator;
+use App\Infrastructure\Pattern\PatternRegistry;
+use InvalidArgumentException;
 use RuntimeException;
 
 final class PatternRenderer
 {
     public function __construct(
         private readonly PatternRegistry $registry,
+        private readonly PatternDataValidator $dataValidator,
         private readonly ?EditableFieldRenderer $editableFieldRenderer = null
     ) {
     }
 
     /**
-     * Safety model:
-     * - Only registered pattern files from the filesystem registry are renderable.
-     * - Pattern templates receive only scalar, field-level data via $fields.
-     * - No service container, request, or global application objects are passed.
-     * - Pattern output is rendered through output buffering and returned as HTML string.
-     *
      * @param array<string, mixed> $data
      */
     public function render(string $key, array $data = []): string
@@ -32,31 +30,19 @@ final class PatternRenderer
             return '';
         }
 
-        $fields = [];
-
-        foreach ($pattern->fields() as $field) {
-            $name = $field['name'];
-            $value = $data[$name] ?? '';
-
-            if (is_scalar($value)) {
-                $fields[$name] = (string) $value;
-                continue;
-            }
-
-            $fields[$name] = '';
-        }
-
-        $editor = [
-            'content_id' => is_scalar($data['_editor']['content_id'] ?? null) ? (string) $data['_editor']['content_id'] : '',
-            'block_index' => is_scalar($data['_editor']['block_index'] ?? null) ? (string) $data['_editor']['block_index'] : '',
-            'active' => ($data['_editor']['active'] ?? false) === true,
-        ];
-
         $viewPath = $this->registry->viewPathFor($key);
 
         if (!is_string($viewPath) || !is_file($viewPath)) {
             return '';
         }
+
+        try {
+            $fields = $this->dataValidator->validate($pattern, $this->fieldInput($data));
+        } catch (InvalidArgumentException) {
+            return '';
+        }
+
+        $editor = $this->editorInput($data['_editor'] ?? null);
 
         ob_start();
 
@@ -104,5 +90,37 @@ final class PatternRenderer
         }
 
         return $output;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function fieldInput(array $data): array
+    {
+        unset($data['_editor']);
+
+        return $data;
+    }
+
+    /**
+     * @return array{content_id: string, block_index: string, active: bool}
+     */
+    private function editorInput(mixed $editor): array
+    {
+        if (!is_array($editor)) {
+            return [
+                'content_id' => '',
+                'block_index' => '',
+                'active' => false,
+            ];
+        }
+
+        return [
+            'content_id' => is_scalar($editor['content_id'] ?? null) ? (string) $editor['content_id'] : '',
+            'block_index' => is_scalar($editor['block_index'] ?? null) ? (string) $editor['block_index'] : '',
+            'active' => ($editor['active'] ?? false) === true,
+        ];
     }
 }

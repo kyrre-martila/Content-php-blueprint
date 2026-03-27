@@ -9,6 +9,7 @@ use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
+use App\Admin\Controller\PatternController;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
 use App\Application\Content\ListContentItems;
@@ -32,8 +33,9 @@ use App\Infrastructure\Editor\EditableFileRegistry;
 use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Editor\EditHistoryLogger;
 use App\Infrastructure\Logging\Logger;
+use App\Infrastructure\Pattern\PatternDataValidator;
 use App\Infrastructure\Pattern\PatternRegistry;
-use App\Infrastructure\Pattern\PatternRenderer;
+use App\Infrastructure\View\PatternRenderer;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -94,7 +96,8 @@ final class Kernel
         $templatesPath = $this->projectRoot . '/templates';
         $patternRegistry = new PatternRegistry($this->projectRoot . '/patterns');
         $editableFieldRenderer = new EditableFieldRenderer();
-        $patternRenderer = new PatternRenderer($patternRegistry, $editableFieldRenderer);
+        $patternDataValidator = new PatternDataValidator();
+        $patternRenderer = new PatternRenderer($patternRegistry, $patternDataValidator, $editableFieldRenderer);
         $renderer = new TemplateRenderer($templatesPath, $patternRenderer, $editableFieldRenderer);
         $authSession = new AuthSession($this->session);
         $editorMode = new EditorMode($authSession, $this->session);
@@ -105,6 +108,7 @@ final class Kernel
         $loginUser = new LoginUser($this->userRepository, $authSession);
         $authController = new AuthController($renderer, $loginUser, $authSession, $this->session);
         $dashboardController = new DashboardController($renderer, $authSession, $editorMode, $devMode);
+        $patternController = new PatternController($patternRegistry);
         $devModeController = new DevModeController(
             $renderer,
             $authSession,
@@ -160,6 +164,14 @@ final class Kernel
             static fn (Request $csrfRequest): Response => $requireAuth(
                 $csrfRequest,
                 [$dashboardController, 'index']
+            )
+        ));
+
+        $router->get('/admin/patterns', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$patternController, 'index']
             )
         ));
 

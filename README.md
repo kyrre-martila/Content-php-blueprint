@@ -187,16 +187,33 @@ This keeps presentation extensible for developers while preserving predictable e
 
 ## Pattern metadata and registry foundation
 
-Pattern discovery is now based on explicit metadata files at `patterns/{pattern-key}/pattern.json`.
+Pattern discovery is based on explicit metadata files at `patterns/{pattern-key}/pattern.json`.
 
 Implemented foundation:
 
 - immutable `PatternMetadata` model with required-key validation (`name`, `key`, `description`, `fields`)
 - deterministic `PatternRegistry` filesystem scan and key-sorted registration
 - conservative failure handling (invalid/malformed patterns are ignored safely)
-- field-type validation for `text`, `textarea`, and future-ready `image`
+- field-type validation for `text`, `textarea`, and future-ready `image` metadata
 
-This phase only establishes metadata and registry behavior. Runtime rendering replacement, richer data validation, and editor/admin insertion UX are intentionally deferred.
+## Pattern System v1 implemented
+
+Pattern System v1 runtime integration is now in place:
+
+- metadata-driven patterns discovered through `PatternRegistry`
+- validated runtime rendering through `PatternRenderer`
+- conservative `PatternDataValidator` enforcement before any pattern include
+- authenticated admin discovery endpoint at `GET /admin/patterns`
+
+Current v1 runtime rendering support is intentionally limited to `text` and `textarea` fields.
+
+Roadmap (next iterations):
+
+- insertion UI
+- ordering UI
+- preview UI
+- grouping/categories
+- richer field types
 
 ## Pattern blocks in content items
 
