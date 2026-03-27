@@ -7,6 +7,7 @@ namespace App\Http;
 use App\Admin\Controller\AuthController;
 use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
+use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
@@ -24,7 +25,11 @@ use App\Http\Middleware\RequireAuthMiddleware;
 use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\Editor\DevMode;
+use App\Infrastructure\Editor\EditableFileRegistry;
 use App\Infrastructure\Editor\EditorMode;
+use App\Infrastructure\Editor\EditHistoryLogger;
+use App\Infrastructure\Logging\Logger;
 use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\Pattern\PatternRenderer;
 use App\Infrastructure\View\TemplateRenderer;
@@ -90,9 +95,22 @@ final class Kernel
         $renderer = new TemplateRenderer($templatesPath, $patternRenderer);
         $authSession = new AuthSession($this->session);
         $editorMode = new EditorMode($authSession, $this->session);
+        $devMode = new DevMode($this->projectRoot, $authSession, $this->session);
+        $devModeFiles = new EditableFileRegistry($this->projectRoot, $devMode);
+        $devModeHistory = new EditHistoryLogger($this->projectRoot . '/storage/logs/dev-mode-edits.log');
+        $logger = new Logger($this->projectRoot . '/storage/logs');
         $loginUser = new LoginUser($this->userRepository, $authSession);
         $authController = new AuthController($renderer, $loginUser, $authSession, $this->session);
-        $dashboardController = new DashboardController($renderer, $authSession, $editorMode);
+        $dashboardController = new DashboardController($renderer, $authSession, $editorMode, $devMode);
+        $devModeController = new DevModeController(
+            $renderer,
+            $authSession,
+            $this->session,
+            $devMode,
+            $devModeFiles,
+            $devModeHistory,
+            $logger
+        );
         $requireAuth = new RequireAuthMiddleware($authSession);
         $csrf = new CsrfMiddleware($this->session);
 
@@ -139,6 +157,42 @@ final class Kernel
             static fn (Request $csrfRequest): Response => $requireAuth(
                 $csrfRequest,
                 [$dashboardController, 'index']
+            )
+        ));
+
+        $router->post('/admin/dev-mode/enable', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$devModeController, 'enable']
+            )
+        ));
+        $router->post('/admin/dev-mode/disable', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$devModeController, 'disable']
+            )
+        ));
+        $router->get('/admin/dev-mode', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$devModeController, 'index']
+            )
+        ));
+        $router->get('/admin/dev-mode/edit', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$devModeController, 'edit']
+            )
+        ));
+        $router->post('/admin/dev-mode/edit', static fn (Request $request): Response => $csrf(
+            $request,
+            static fn (Request $csrfRequest): Response => $requireAuth(
+                $csrfRequest,
+                [$devModeController, 'update']
             )
         ));
 

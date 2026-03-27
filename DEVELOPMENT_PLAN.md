@@ -834,3 +834,35 @@ Future roadmap:
 - field-specific validation UX
 - publish workflow integration
 - pattern-aware editor tooling
+
+## Dev Mode v1 implemented
+
+Dev Mode v1 introduces a minimal, explicit foundation for trusted presentation-layer editing.
+
+Implemented scope:
+
+- session-based activation (`/admin/dev-mode/enable`, `/admin/dev-mode/disable`)
+- role-gated access (authenticated superadmin/admin)
+- hardcoded allowed editable roots:
+  - `templates/`
+  - `patterns/`
+  - `public/assets/css/`
+  - `public/assets/js/`
+- deterministic file discovery for supported extensions only
+- safe file edit boundaries:
+  - path traversal rejection
+  - allowed-root enforcement
+  - extension allowlist enforcement
+  - file size limits
+  - atomic writes
+  - rejected-attempt logging
+- lightweight edit audit trail in `storage/logs/dev-mode-edits.log` with timestamp, actor, file path, and before/after hashes
+
+Roadmap (next iterations):
+
+- diff viewer
+- rollback support
+- draft/live separation
+- pattern-aware editing UI
+- syntax highlighting
+- version history browser
