@@ -1,27 +1,39 @@
 # Editor mode
 
-Editor Mode is a role-gated, inline editing mode intended for safe content operations.
+Editor Mode is a role-gated, session-based foundation for safe inline content editing workflows.
 
-## What Editor Mode can do (current)
+## What Editor Mode can do (v1 foundation)
 
 - Enable/disable per authenticated session for `superadmin`, `admin`, `editor` roles.
-- Edit content title inline on content pages.
-- Edit pattern block fields inline when field type is `text` or `textarea`.
-- Persist changes through repository save flow.
+- Show a visible "Editor Mode Active" banner while mode is enabled.
+- Load editor-mode CSS/JS assets only while mode is enabled.
+- Prepare safe frontend hooks for future inline field editing.
 
-## What Editor Mode cannot do (current)
+## What Editor Mode cannot do (explicit boundary)
 
-- Reorder layout structure outside defined pattern block order in admin form.
-- Edit templates, patterns, CSS, or JS source files.
-- Edit domain/application/infrastructure code.
-- Mutate arbitrary database schema or unrestricted fields.
+Editor Mode must not allow:
 
-## Operating boundary
+- layout editing
+- template editing
+- pattern editing
+- CSS editing
+- JS editing
+- routing changes
+- PHP file editing
 
-Editor Mode is a **content-safe layer** only.
+Editor Mode is content-safe only. Presentation architecture and system code remain under developer control.
 
-It exists so editors can update copy safely without crossing into presentation/system code.
+## Current implementation notes
 
-## Planned direction (not yet implemented)
+- Activation routes: `POST /editor-mode/enable`, `POST /editor-mode/disable`.
+- Permission checks are role-aware and enforced before mode activation.
+- Mode state is stored in session under a dedicated key.
+- Unauthorized activation/disable attempts return a safe forbidden response.
 
-- Additional field-level capabilities may be added, but only when they keep editor safety and deterministic rendering intact.
+## Planned direction (next steps)
+
+- inline editable field mapping
+- safe save endpoint with strict field allowlist
+- field validation and error feedback
+- media replacement for supported field types
+- richer editor controls that preserve deterministic rendering

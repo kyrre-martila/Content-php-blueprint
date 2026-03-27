@@ -211,11 +211,7 @@ final class Kernel
                 $authSession,
                 $this->session
             );
-            $editorModeController = new EditorModeController(
-                $editorMode,
-                $this->contentItemRepository,
-                $patternRegistry
-            );
+            $editorModeController = new EditorModeController($editorMode);
 
             $router->get('/admin/content', static fn (Request $request): Response => $csrf(
                 $request,
@@ -252,25 +248,18 @@ final class Kernel
                     [$contentAdminController, 'update']
                 )
             ));
-            $router->post('/admin/editor-mode/enable', static fn (Request $request): Response => $csrf(
+            $router->post('/editor-mode/enable', static fn (Request $request): Response => $csrf(
                 $request,
                 static fn (Request $csrfRequest): Response => $requireAuth(
                     $csrfRequest,
                     [$editorModeController, 'enable']
                 )
             ));
-            $router->post('/admin/editor-mode/disable', static fn (Request $request): Response => $csrf(
+            $router->post('/editor-mode/disable', static fn (Request $request): Response => $csrf(
                 $request,
                 static fn (Request $csrfRequest): Response => $requireAuth(
                     $csrfRequest,
                     [$editorModeController, 'disable']
-                )
-            ));
-            $router->post('/admin/editor-mode/update', static fn (Request $request): Response => $csrf(
-                $request,
-                static fn (Request $csrfRequest): Response => $requireAuth(
-                    $csrfRequest,
-                    [$editorModeController, 'update']
                 )
             ));
 

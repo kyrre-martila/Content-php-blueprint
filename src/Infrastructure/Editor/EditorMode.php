@@ -20,14 +20,14 @@ final class EditorMode
 
     public function isActive(): bool
     {
-        if (!$this->canEdit()) {
+        if (!$this->canUse()) {
             return false;
         }
 
         return $this->session->get(self::SESSION_KEY, false) === true;
     }
 
-    public function canEdit(): bool
+    public function canUse(): bool
     {
         $user = $this->authSession->user();
 
@@ -46,7 +46,7 @@ final class EditorMode
 
     public function enable(): void
     {
-        if (!$this->canEdit()) {
+        if (!$this->canUse()) {
             return;
         }
 

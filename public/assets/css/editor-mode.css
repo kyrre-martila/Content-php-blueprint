@@ -12,28 +12,11 @@
   align-items: center;
 }
 
-.editor-editable {
-  outline: 1px dashed #98a2b3;
+.editor-mode-banner form {
+  margin: 0;
+}
+
+.editor-mode-ready {
+  outline: 1px dashed #d0d5dd;
   outline-offset: 2px;
-  cursor: pointer;
-}
-
-.editor-editable:hover {
-  outline-color: #475467;
-}
-
-.editor-inline-wrapper {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 16rem;
-}
-
-.editor-inline-input {
-  width: 100%;
-}
-
-.editor-inline-actions {
-  display: inline-flex;
-  gap: 0.25rem;
 }

@@ -51,7 +51,7 @@ final class ContentController
             'slug' => $slug->value(),
             'patternBlocks' => $contentItem->patternBlocks(),
             'editorModeActive' => $this->editorMode->isActive(),
-            'editorCanEdit' => $this->editorMode->canEdit(),
+            'editorCanUse' => $this->editorMode->canUse(),
         ]);
 
         return Response::html($html);

@@ -804,23 +804,25 @@ Future roadmap:
 - pattern nesting
 - pattern locking
 
-## Editor Mode v1 implemented
+## Editor Mode foundation implemented
 
-Editor Mode v1 now provides a minimal, explicit foundation for safe inline editing:
+Editor Mode now provides a minimal, explicit foundation for safe inline editing activation:
 
-- session-based enable/disable toggle for authenticated editor-capable roles
-- controlled editable markers rendered only when editor mode is active
-- safe inline updates limited to content title plus pattern `text`/`textarea` fields
-- update endpoint with strict target/field validation and repository persistence
-- explicit protection of layout/template boundaries (no layout/template/CSS/JS editing)
+- session-based enable/disable toggle (`POST /editor-mode/enable`, `POST /editor-mode/disable`)
+- permission-aware access for authenticated `superadmin`/`admin`/`editor` roles
+- safe forbidden response for unauthorized attempts
+- visible frontend "Editor Mode Active" banner while enabled
+- conditional loading of `editor-mode.css` and `editor-mode.js` only when active
+- explicit boundary protection (no layout/template/pattern/CSS/JS/routing/PHP editing via Editor Mode)
 
 Future roadmap:
 
-- richer inline controls
-- media replacement
-- field-specific validation UX
-- publish workflow integration
-- pattern-aware editor tooling
+- inline editable field mapping
+- safe save endpoint with strict field allowlist
+- field validation and editor feedback
+- media replacement support
+- richer inline editor controls
+
 
 ## Dev Mode v1 implemented
 

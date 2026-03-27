@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /** @var callable(string): string $e */
 /** @var string $content */
-$editorModeEnabled = ($editorModeActive ?? false) === true && ($editorCanEdit ?? false) === true;
+$editorModeEnabled = ($editorModeActive ?? false) === true && ($editorCanUse ?? false) === true;
 $csrfToken = is_object($request ?? null) && method_exists($request, 'attribute')
     ? (string) ($request->attribute('csrf_token') ?? '')
     : '';
@@ -20,16 +20,7 @@ $csrfToken = is_object($request ?? null) && method_exists($request, 'attribute')
 </head>
 <body>
 <?php if ($editorModeEnabled): ?>
-    <aside class="editor-mode-banner" aria-label="Editor mode status">
-        <strong>Editor Mode Active</strong>
-        <form method="post" action="/admin/editor-mode/disable">
-            <input type="hidden" name="_csrf_token" value="<?= $e($csrfToken) ?>">
-            <button type="submit">Disable</button>
-        </form>
-    </aside>
-    <script>
-        window.__EDITOR_MODE = { csrfToken: <?= json_encode($csrfToken, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?> };
-    </script>
+    <?php include dirname(__DIR__) . '/partials/editor-mode-banner.php'; ?>
     <script src="/assets/js/editor-mode.js" defer></script>
 <?php endif; ?>
 <main>

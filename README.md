@@ -206,23 +206,25 @@ Editor workflow:
 
 ## Editor Mode
 
-Editor Mode is a role-gated inline editing mode for safe content updates while viewing a published page.
+Editor Mode is a role-gated, session-based activation layer for safe inline content editing workflows.
 
-What it allows in v1:
+Foundation behavior in this phase:
 
-- content item title editing
-- pattern block `text` field editing
-- pattern block `textarea` field editing
+- authenticated `superadmin`/`admin`/`editor` users can enable or disable mode
+- activation is per-session (not global)
+- enabled mode shows a visible Editor Mode banner on site pages
+- editor-mode CSS and JS assets are loaded only while mode is active
 
-What it does **not** allow:
+Editor Mode boundaries are explicit. It is intended for safe inline content editing only, and does **not** allow:
 
-- drag-and-drop layout editing
+- layout editing
 - template editing
-- CSS editing
-- JavaScript editing
-- arbitrary database field mutation
+- pattern editing
+- CSS/JS source editing
+- routing or PHP code changes
 
-Editor Mode is session-based and must be explicitly enabled by an authenticated admin/editor role. Layout, templates, and rendering structure remain developer-controlled.
+This phase establishes the activation and safety foundation. Full inline field editing, persistence, and richer editor controls are planned for the next iteration.
+
 
 ## Dev Mode
 
