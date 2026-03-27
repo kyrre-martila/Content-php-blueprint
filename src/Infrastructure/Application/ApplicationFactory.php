@@ -105,6 +105,8 @@ final class ApplicationFactory
         $patternRenderer = new PatternRenderer($patternRegistry, $patternDataValidator, $editableFieldRenderer);
         $configuredAppUrl = $this->config->get('app.url');
         $siteUrl = is_string($configuredAppUrl) ? $configuredAppUrl : '';
+        $configuredAppName = $this->config->get('app.name', 'Content PHP Blueprint');
+        $siteName = is_string($configuredAppName) ? $configuredAppName : 'Content PHP Blueprint';
         $configuredAppEnvironment = $this->config->get('app.env', 'production');
         $appEnvironment = is_string($configuredAppEnvironment) ? $configuredAppEnvironment : 'production';
 
@@ -112,7 +114,8 @@ final class ApplicationFactory
             $templatesPath,
             $patternRenderer,
             $editableFieldRenderer,
-            $siteUrl
+            $siteUrl,
+            $siteName
         );
 
         $editorMode = new EditorMode($authSession, $sessionManager);

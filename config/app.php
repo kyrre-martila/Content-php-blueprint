@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Infrastructure\Support\Env;
 
 return [
+    'name' => Env::get('APP_NAME', 'Content PHP Blueprint'),
     'env' => Env::get('APP_ENV', 'production'),
     'debug' => Env::bool('APP_DEBUG', false),
     'url' => Env::required('APP_URL'),
