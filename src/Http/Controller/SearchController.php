@@ -19,16 +19,16 @@ final class SearchController
 
     public function index(Request $request): Response
     {
-        $query = $request->queryParams()['q'] ?? '';
-        $query = is_string($query) ? trim($query) : '';
+        $searchQuery = $request->queryParams()['q'] ?? '';
+        $searchQuery = is_string($searchQuery) ? trim($searchQuery) : '';
 
-        /** @var list<array{title: string, url: string, excerpt: string}> $results */
-        $results = [];
+        /** @var list<array{title: string, slug: string, excerpt: string}> $searchResults */
+        $searchResults = [];
 
         $html = $this->templateRenderer->render($this->templateResolver->resolveSystemTemplate('search'), [
             'request' => $request,
-            'query' => $query,
-            'results' => $results,
+            'searchQuery' => $searchQuery,
+            'searchResults' => $searchResults,
         ]);
 
         return Response::html($html);
