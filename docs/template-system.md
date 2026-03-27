@@ -41,3 +41,11 @@ Not included:
 - `resolveSystemTemplate('search')` → `templates/system/search.php`
 
 System template resolution is deterministic: the resolver checks `templates/system/{name}.php` and falls back to `templates/system/404.php` if the requested system template file does not exist.
+
+### Rendering coordination guardrail
+
+- `TemplateRenderer` is the render coordinator, not a mini-framework or feature dump.
+- SEO/social head tags are rendered by `SeoMetaRenderer`.
+- JSON-LD/schema output is rendered by `StructuredDataRenderer`.
+- Future cross-cutting rendering behavior must follow the same pattern: add a dedicated renderer service and delegate from `TemplateRenderer`.
+- Keep behavior explicit and lightweight: no templating engine, no service container requirement.

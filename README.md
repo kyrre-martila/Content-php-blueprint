@@ -304,17 +304,18 @@ The metadata fields are persisted in the core content repositories and are provi
 
 ## OpenGraph and Twitter metadata support
 
-OpenGraph and Twitter card metadata are generated automatically by `TemplateRenderer` as part of centralized metadata rendering.
+OpenGraph and Twitter card metadata are generated automatically through dedicated renderer services coordinated by `TemplateRenderer`.
 
-- OpenGraph tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`) are auto-rendered from structured content metadata with safe fallbacks.
-- Twitter tags (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`) are auto-rendered from the same metadata source.
-- Fallback behavior is handled by runtime metadata resolution (title, description summary fallback, canonical URL fallback, and optional default image support).
-- Metadata rendering is centralized in `TemplateRenderer`, so no plugin wiring is required and templates do not need duplicated social-tag logic.
+- `TemplateRenderer` resolves page metadata, then delegates head-tag output to `SeoMetaRenderer`.
+- `SeoMetaRenderer` renders canonical, meta description, OpenGraph tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`), and Twitter tags (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`).
+- Fallback behavior remains runtime-driven (title, description summary fallback, canonical URL fallback, and optional default image support).
+- Guardrail: `TemplateRenderer` is a coordinator, not a rendering dumping ground; new cross-cutting head concerns must use dedicated services.
 
 ## Structured data support
 
-Schema.org JSON-LD metadata is generated automatically by `TemplateRenderer` as part of the same centralized metadata pipeline.
+Schema.org JSON-LD metadata is generated automatically by `StructuredDataRenderer`, coordinated by `TemplateRenderer`.
 
+- `TemplateRenderer` delegates structured-data construction/injection to `StructuredDataRenderer`.
 - JSON-LD is injected into `<head>` using `<script type="application/ld+json">` and rendered once per page.
 - Renderer-managed schema types are selected from metadata/context:
   - `WebSite` (global)
@@ -323,8 +324,8 @@ Schema.org JSON-LD metadata is generated automatically by `TemplateRenderer` as 
   - `Article` (for `article` content type)
   - `BreadcrumbList` (when hierarchy/breadcrumb data exists)
 - No plugin is required; behavior is metadata-driven and resolved in core runtime rendering.
-- Templates should not implement schema.org logic directly; TemplateRenderer is the single structured data source.
-- Fallback-safe rendering omits only missing fields and preserves valid JSON-LD structure.
+- Templates should not implement schema.org logic directly.
+- Guardrail: future cross-cutting rendering concerns should follow this delegation pattern (new dedicated renderer service + TemplateRenderer coordination).
 
 
 ## Sitemap generation
