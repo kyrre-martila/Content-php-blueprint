@@ -74,7 +74,7 @@ final class EditableFieldValidator
             throw new EditableFieldValidationException('Pattern block type is not registered.');
         }
 
-        $fieldMetadata = $this->resolvePatternField($pattern['fields'], $field);
+        $fieldMetadata = $this->resolvePatternField($pattern->fields(), $field);
 
         if ($fieldMetadata === null) {
             throw new EditableFieldValidationException('Pattern field is not editable.');

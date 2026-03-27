@@ -1,6 +1,5 @@
 {
   "name": "Text block",
-  "slug": "text-block",
   "description": "Simple text content block with heading and body",
   "fields": [
     {
@@ -11,5 +10,6 @@
       "name": "body",
       "type": "textarea"
     }
-  ]
+  ],
+  "key": "text-block"
 }

@@ -1,6 +1,5 @@
 {
   "name": "Call to action",
-  "slug": "cta",
   "description": "Action section with message and optional image slot",
   "fields": [
     {
@@ -15,5 +14,6 @@
       "name": "image",
       "type": "image"
     }
-  ]
+  ],
+  "key": "cta"
 }

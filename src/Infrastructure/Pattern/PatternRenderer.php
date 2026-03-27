@@ -24,9 +24,9 @@ final class PatternRenderer
      *
      * @param array<string, mixed> $data
      */
-    public function render(string $slug, array $data = []): string
+    public function render(string $key, array $data = []): string
     {
-        $pattern = $this->registry->get($slug);
+        $pattern = $this->registry->get($key);
 
         if ($pattern === null) {
             return '';
@@ -34,7 +34,7 @@ final class PatternRenderer
 
         $fields = [];
 
-        foreach ($pattern['fields'] as $field) {
+        foreach ($pattern->fields() as $field) {
             $name = $field['name'];
             $value = $data[$name] ?? '';
 
@@ -52,9 +52,9 @@ final class PatternRenderer
             'active' => ($data['_editor']['active'] ?? false) === true,
         ];
 
-        $viewPath = $pattern['view_path'];
+        $viewPath = $this->registry->viewPathFor($key);
 
-        if (!is_file($viewPath)) {
+        if (!is_string($viewPath) || !is_file($viewPath)) {
             return '';
         }
 
