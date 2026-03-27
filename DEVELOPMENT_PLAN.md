@@ -191,6 +191,33 @@ Runtime architecture keeps strict boundaries between content, composition, and s
 
 This prevents portable content from absorbing blueprint-specific rendering details.
 
+### Composition snapshot structure (export format v2)
+
+Composition snapshot export reflects runtime rendering assembly metadata.
+
+- `export_format_version: 2`
+- Distinct scopes:
+  - `scope: content-routes` for per-content-item snapshots
+  - `scope: system-routes` for system route snapshot exports
+
+Content-route snapshot shape:
+
+- `slug`
+- `title`
+- `route_type` (`content`)
+- `renderer_entrypoint` (`templates/index.php`)
+- `layout` (`templates/layout.php`, pending future override support)
+- `patterns` (ordered blocks: `pattern` + `data`)
+
+System-route snapshot shape:
+
+- `route`
+- `renderer_entrypoint` (`templates/system/*.php`)
+- `layout` (`templates/layout.php`)
+- `patterns`
+
+`renderer_entrypoint` replaces the older `template` field so snapshot metadata matches actual runtime architecture.
+
 ## AI workflow scope
 
 Current intended operating model:

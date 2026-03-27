@@ -12,23 +12,28 @@ use RuntimeException;
  *
  * This export is intentionally separate from OCF content export:
  * - OCF remains portable structured content only.
- * - Composition snapshot captures blueprint-specific page assembly metadata.
+ * - Composition snapshot captures runtime assembly metadata only.
+ *
+ * Composition snapshots intentionally do not represent:
+ * - content-model semantics (handled by OCF)
+ * - template hierarchy assumptions
+ * - presentation source code
  */
 final class CompositionExporter
 {
     /**
-     * @var list<array{route: string, template: string, patterns: list<array{pattern: string, data: array<string, string>}>}>
+     * @var list<array{route: string, renderer_entrypoint: string, layout: string, patterns: list<array{pattern: string, data: array<string, string>}>}>
      */
     private array $systemRouteComposition;
 
     /**
-     * @param list<array{route: string, template: string, patterns: list<array{pattern: string, data: array<string, string>}>}> $systemRouteComposition
+     * @param list<array{route: string, renderer_entrypoint: string, layout: string, patterns: list<array{pattern: string, data: array<string, string>}>}> $systemRouteComposition
      */
     public function __construct(
         private readonly string $projectRoot,
         array $systemRouteComposition = [
-            ['route' => 'search', 'template' => 'templates/system/search.php', 'patterns' => []],
-            ['route' => '404', 'template' => 'templates/system/404.php', 'patterns' => []],
+            ['route' => 'search', 'renderer_entrypoint' => 'templates/system/search.php', 'layout' => 'templates/layout.php', 'patterns' => []],
+            ['route' => '404', 'renderer_entrypoint' => 'templates/system/404.php', 'layout' => 'templates/layout.php', 'patterns' => []],
         ]
     ) {
         $this->systemRouteComposition = $systemRouteComposition;
@@ -39,9 +44,14 @@ final class CompositionExporter
         $this->ensureExportDirectoryExists();
 
         $snapshot = [
+            'kind' => 'blueprint-composition-snapshot',
+            'scope' => 'content-routes',
+            'export_format_version' => 2,
             'slug' => $item->slug()->value(),
             'title' => $item->title(),
-            'template' => $item->type()->defaultTemplate(),
+            'route_type' => 'content',
+            'renderer_entrypoint' => 'templates/index.php',
+            'layout' => 'templates/layout.php',
             'patterns' => array_map(
                 static fn (array $block): array => [
                     'pattern' => $block['pattern'],
@@ -81,6 +91,7 @@ final class CompositionExporter
         $payload = [
             'kind' => 'blueprint-composition-snapshot',
             'scope' => 'system-routes',
+            'export_format_version' => 2,
             'note' => 'Blueprint-specific route composition metadata for AI/tooling. Separate from OCF.',
             'routes' => $this->systemRouteComposition,
         ];
