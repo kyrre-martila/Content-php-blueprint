@@ -159,6 +159,26 @@ Install state is considered complete only when all checks pass:
 - admin/superadmin user exists
 - install flag evaluates true
 
+## Deployment and install strategy
+
+### Release artifact packaging
+
+- Production deployment format is a prebuilt release zip artifact.
+- Packaging is handled by CI via `.github/workflows/build-release.yml` and can also be run locally with `scripts/build-release.sh`.
+- The release zip includes runtime-required directories/files (`public/`, `src/`, `templates/`, `patterns/`, `config/`, `database/`, `vendor/`, `storage/`, `composer.json`, `phinx.php`, `README.md`, `.env.example`, and root `index.php`).
+- Non-runtime paths (tests/docs/skills/.git/.github and local tooling) are excluded from the package.
+
+### Production server expectation
+
+- Production target servers should not need Composer installed.
+- Dependencies are resolved during packaging using `composer install --no-dev --optimize-autoloader`.
+- Runtime install remains browser-driven through `/install` after `.env` configuration.
+
+### Future deploy ergonomics
+
+- Keep deployment automation decoupled from packaging.
+- The release zip provides a stable handoff artifact for future one-step deploy tooling (e.g., upload/unzip/switch symlink orchestration).
+
 ## AI/data boundary architecture
 
 Runtime architecture keeps strict boundaries between content, composition, and source code.
