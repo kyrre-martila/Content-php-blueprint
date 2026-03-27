@@ -4,10 +4,17 @@ Routing is currently explicit and centralized in `src/Http/Kernel.php`.
 
 ## Public routes (current)
 
+System routes:
+
 - `GET /` → home controller.
 - `GET /health` → health controller.
 - `GET /install` and `POST /install` → installer (only while installation is required/not complete).
+- `GET /search` → search controller rendered through `templates/system/search.php`.
+
+Content routes:
+
 - `GET /{slug}` → published content page (enabled when content repositories are available).
+
 Not-found rendering for unresolved/unpublished content routes is handled by `templates/system/404.php` via `TemplateResolver::resolveNotFound()`.
 
 
@@ -56,5 +63,7 @@ The kernel wraps route handlers with callable middleware.
 ## Template routing notes (v1)
 
 - Content routes use a universal template (`templates/index.php`).
+- System routes use explicit templates under `templates/system/*.php`.
+- `404` resolves to `templates/system/404.php`.
+- `search` resolves to `templates/system/search.php`.
 - No WordPress-style slug/content-type template hierarchy is used in v1.
-- Additional system route templates (for example search) are planned for a subsequent step.

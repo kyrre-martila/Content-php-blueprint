@@ -165,6 +165,17 @@ Deployment and installation are different steps:
 - **Deployment** copies application files to the server.
 - **Installation** initializes runtime state (database schema and first admin account).
 
+## System route templates
+
+Template rendering is split between content routes and system routes:
+
+- Content pages render through `templates/index.php`.
+- System pages render through `templates/system/*`.
+- `404` is a system route template at `templates/system/404.php`.
+- `search` is a system route template at `templates/system/search.php` (served at `GET /search`).
+
+This keeps routing and template resolution explicit and deterministic in Template System v1.
+
 ## Pattern system
 
 Patterns are reusable presentation blocks that live in `patterns/` and are loaded directly from the filesystem.
