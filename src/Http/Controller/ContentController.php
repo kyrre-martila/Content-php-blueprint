@@ -9,7 +9,7 @@ use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
 use App\Http\Request;
 use App\Http\Response;
-use App\Infrastructure\Pattern\PatternRenderer;
+use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -19,7 +19,7 @@ final class ContentController
         private readonly ContentItemRepositoryInterface $contentItems,
         private readonly TemplateResolver $templateResolver,
         private readonly TemplateRenderer $templateRenderer,
-        private readonly PatternRenderer $patternRenderer
+        private readonly EditorMode $editorMode
     ) {
     }
 
@@ -43,19 +43,15 @@ final class ContentController
             return Response::html('<h1>404 Not Found</h1>', 404);
         }
 
-        $patternBlocksHtml = '';
-
-        foreach ($contentItem->patternBlocks() as $block) {
-            $patternBlocksHtml .= $this->patternRenderer->render($block['pattern'], $block['data']);
-        }
-
         $templatePath = $this->templateResolver->resolveForSlug($slug->value());
 
         $html = $this->templateRenderer->render($templatePath, [
             'contentItem' => $contentItem,
             'request' => $request,
             'slug' => $slug->value(),
-            'patternBlocksHtml' => $patternBlocksHtml,
+            'patternBlocks' => $contentItem->patternBlocks(),
+            'editorModeActive' => $this->editorMode->isActive(),
+            'editorCanEdit' => $this->editorMode->canEdit(),
         ]);
 
         return Response::html($html);

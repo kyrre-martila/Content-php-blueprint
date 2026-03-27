@@ -816,3 +816,21 @@ Future roadmap:
 - pattern validation rules
 - pattern nesting
 - pattern locking
+
+## Editor Mode v1 implemented
+
+Editor Mode v1 now provides a minimal, explicit foundation for safe inline editing:
+
+- session-based enable/disable toggle for authenticated editor-capable roles
+- controlled editable markers rendered only when editor mode is active
+- safe inline updates limited to content title plus pattern `text`/`textarea` fields
+- update endpoint with strict target/field validation and repository persistence
+- explicit protection of layout/template boundaries (no layout/template/CSS/JS editing)
+
+Future roadmap:
+
+- richer inline controls
+- media replacement
+- field-specific validation UX
+- publish workflow integration
+- pattern-aware editor tooling

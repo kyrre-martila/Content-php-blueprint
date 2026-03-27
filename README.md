@@ -203,3 +203,23 @@ Editor workflow:
 3. Fill the generated pattern fields.
 4. Save content item.
 5. Visit the content page to see pattern blocks rendered in saved order.
+
+## Editor Mode
+
+Editor Mode is a role-gated inline editing mode for safe content updates while viewing a published page.
+
+What it allows in v1:
+
+- content item title editing
+- pattern block `text` field editing
+- pattern block `textarea` field editing
+
+What it does **not** allow:
+
+- drag-and-drop layout editing
+- template editing
+- CSS editing
+- JavaScript editing
+- arbitrary database field mutation
+
+Editor Mode is session-based and must be explicitly enabled by an authenticated admin/editor role. Layout, templates, and rendering structure remain developer-controlled.

@@ -11,6 +11,8 @@ $displayName = is_array($authUser) && is_string($authUser['display_name'] ?? nul
 $role = is_array($authUser) && is_string($authUser['role'] ?? null)
     ? $authUser['role']
     : 'unknown';
+
+$editorModeEnabled = ($editorModeActive ?? false) === true && ($editorCanEdit ?? false) === true;
 ?>
 <section>
     <h1>Admin Dashboard</h1>
@@ -19,7 +21,22 @@ $role = is_array($authUser) && is_string($authUser['role'] ?? null)
 
     <p><a href="/admin/content">Manage content items</a></p>
 
+    <?php if (($editorCanEdit ?? false) === true): ?>
+        <?php if ($editorModeEnabled): ?>
+            <form method="post" action="/admin/editor-mode/disable">
+                <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
+                <button type="submit">Disable editor mode</button>
+            </form>
+        <?php else: ?>
+            <form method="post" action="/admin/editor-mode/enable">
+                <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
+                <button type="submit">Enable editor mode</button>
+            </form>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <form method="post" action="/admin/logout">
+        <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
         <button type="submit">Logout</button>
     </form>
 </section>
