@@ -25,6 +25,7 @@ use App\Http\Controller\SearchController;
 use App\Http\Kernel;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
+use App\Http\Routing\RouteRegistry;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\MySqlUserRepository;
 use App\Infrastructure\Auth\SessionManager;
@@ -153,8 +154,7 @@ final class ApplicationFactory
             );
         }
 
-        return new Kernel(
-            session: $sessionManager,
+        $routeRegistry = new RouteRegistry(
             homeController: new HomeController(),
             healthController: new HealthController(),
             searchController: new SearchController($templateResolver, $templateRenderer),
@@ -175,7 +175,12 @@ final class ApplicationFactory
             installController: $installController,
             contentAdminController: $contentAdminController,
             editorModeController: $editorModeController,
-            contentController: $contentController,
+            contentController: $contentController
+        );
+
+        return new Kernel(
+            session: $sessionManager,
+            routeRegistry: $routeRegistry,
             installState: $installState,
             installationRequired: $installationRequired
         );
