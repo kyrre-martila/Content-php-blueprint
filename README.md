@@ -185,6 +185,19 @@ Key properties:
 
 This keeps presentation extensible for developers while preserving predictable editor-safe behavior.
 
+## Pattern metadata and registry foundation
+
+Pattern discovery is now based on explicit metadata files at `patterns/{pattern-key}/pattern.json`.
+
+Implemented foundation:
+
+- immutable `PatternMetadata` model with required-key validation (`name`, `key`, `description`, `fields`)
+- deterministic `PatternRegistry` filesystem scan and key-sorted registration
+- conservative failure handling (invalid/malformed patterns are ignored safely)
+- field-type validation for `text`, `textarea`, and future-ready `image`
+
+This phase only establishes metadata and registry behavior. Runtime rendering replacement, richer data validation, and editor/admin insertion UX are intentionally deferred.
+
 ## Pattern blocks in content items
 
 Content items can include a `pattern_blocks` payload that stores structured pattern composition per entry.

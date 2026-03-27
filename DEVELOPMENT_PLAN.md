@@ -877,3 +877,27 @@ Roadmap (next iterations):
 - pattern-aware editing UI
 - syntax highlighting
 - version history browser
+
+## Pattern metadata and registry foundation implemented
+
+Implemented scope in this phase:
+
+- explicit metadata contract via `patterns/{pattern-key}/pattern.json`
+- immutable `PatternMetadata` model with creation-time validation
+- deterministic `PatternRegistry` discovery and key-based lookup
+- conservative malformed-pattern handling (ignored safely, non-fatal)
+
+Validation currently enforces:
+
+- required top-level keys (`name`, `key`, `description`, `fields`)
+- non-empty string metadata values for `name`, `key`, `description`
+- `fields` as an array of `{name, type}`
+- supported field types: `text`, `textarea`, and future-ready `image`
+
+Future steps:
+
+- renderer integration cleanup around metadata-first registry access
+- richer pattern data validation rules
+- admin pattern discovery surfaces
+- editor insertion UI improvements
+

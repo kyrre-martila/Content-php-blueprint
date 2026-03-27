@@ -6,8 +6,11 @@ namespace App\Infrastructure\Pattern;
 
 final class PatternRegistry
 {
-    /** @var array<string, array{name: string, slug: string, description: string, fields: array<int, array{name: string, type: string}>, view_path: string}> */
+    /** @var array<string, PatternMetadata> */
     private array $patterns = [];
+
+    /** @var array<string, string> */
+    private array $viewPaths = [];
 
     public function __construct(private readonly string $patternsBasePath)
     {
@@ -15,19 +18,26 @@ final class PatternRegistry
     }
 
     /**
-     * @return array<string, array{name: string, slug: string, description: string, fields: array<int, array{name: string, type: string}>, view_path: string}>
+     * @return array<string, PatternMetadata>
      */
     public function all(): array
     {
         return $this->patterns;
     }
 
-    /**
-     * @return array{name: string, slug: string, description: string, fields: array<int, array{name: string, type: string}>, view_path: string}|null
-     */
-    public function get(string $slug): array|null
+    public function get(string $key): ?PatternMetadata
     {
-        return $this->patterns[$slug] ?? null;
+        return $this->patterns[$key] ?? null;
+    }
+
+    public function exists(string $key): bool
+    {
+        return isset($this->patterns[$key]);
+    }
+
+    public function viewPathFor(string $key): ?string
+    {
+        return $this->viewPaths[$key] ?? null;
     }
 
     private function load(): void
@@ -42,107 +52,52 @@ final class PatternRegistry
             return;
         }
 
-        foreach ($directories as $directory) {
-            $pattern = $this->loadPattern($directory);
+        sort($directories, SORT_STRING);
 
-            if ($pattern === null) {
+        foreach ($directories as $directory) {
+            $metadata = $this->loadMetadata($directory);
+
+            if ($metadata === null) {
                 continue;
             }
 
-            $this->patterns[$pattern['slug']] = $pattern;
+            $this->patterns[$metadata->key()] = $metadata;
+
+            $viewPath = $directory . '/pattern.php';
+
+            if (is_file($viewPath)) {
+                $this->viewPaths[$metadata->key()] = $viewPath;
+            }
         }
+
+        ksort($this->patterns, SORT_STRING);
+        ksort($this->viewPaths, SORT_STRING);
     }
 
-    /**
-     * @return array{name: string, slug: string, description: string, fields: array<int, array{name: string, type: string}>, view_path: string}|null
-     */
-    private function loadPattern(string $directory): ?array
+    private function loadMetadata(string $directory): ?PatternMetadata
     {
         $metadataPath = $directory . '/pattern.json';
-        $viewPath = $directory . '/pattern.php';
 
-        if (!is_file($metadataPath) || !is_file($viewPath)) {
+        if (!is_file($metadataPath)) {
             return null;
         }
 
-        $decoded = json_decode((string) file_get_contents($metadataPath), true);
+        $rawJson = file_get_contents($metadataPath);
+
+        if ($rawJson === false) {
+            return null;
+        }
+
+        $decoded = json_decode($rawJson, true);
 
         if (!is_array($decoded)) {
             return null;
         }
 
-        $validated = $this->validateMetadata($decoded);
-
-        if ($validated === null) {
+        try {
+            return PatternMetadata::fromArray($decoded);
+        } catch (\InvalidArgumentException) {
             return null;
         }
-
-        return [...$validated, 'view_path' => $viewPath];
-    }
-
-    /**
-     * @param array<string, mixed> $metadata
-     * @return array{name: string, slug: string, description: string, fields: array<int, array{name: string, type: string}>}|null
-     */
-    private function validateMetadata(array $metadata): ?array
-    {
-        $name = $this->nonEmptyString($metadata['name'] ?? null);
-        $slug = $this->nonEmptyString($metadata['slug'] ?? null);
-        $description = $this->nonEmptyString($metadata['description'] ?? null);
-        $fields = $metadata['fields'] ?? null;
-
-        if ($name === null || $slug === null || $description === null || !is_array($fields)) {
-            return null;
-        }
-
-        if (!preg_match('/^[a-z0-9-]+$/', $slug)) {
-            return null;
-        }
-
-        $validatedFields = [];
-
-        foreach ($fields as $field) {
-            if (!is_array($field)) {
-                return null;
-            }
-
-            $fieldName = $this->nonEmptyString($field['name'] ?? null);
-            $fieldType = $this->nonEmptyString($field['type'] ?? null);
-
-            if ($fieldName === null || $fieldType === null) {
-                return null;
-            }
-
-            if (!in_array($fieldType, ['text', 'textarea', 'image'], true)) {
-                return null;
-            }
-
-            $validatedFields[] = [
-                'name' => $fieldName,
-                'type' => $fieldType,
-            ];
-        }
-
-        return [
-            'name' => $name,
-            'slug' => $slug,
-            'description' => $description,
-            'fields' => $validatedFields,
-        ];
-    }
-
-    private function nonEmptyString(mixed $value): ?string
-    {
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $trimmed = trim($value);
-
-        if ($trimmed === '') {
-            return null;
-        }
-
-        return $trimmed;
     }
 }

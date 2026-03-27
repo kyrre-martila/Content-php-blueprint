@@ -202,7 +202,7 @@ function addBlock(initialBlock = null) {
 
     Object.values(availablePatterns).forEach((pattern) => {
         const option = document.createElement('option');
-        option.value = pattern.slug;
+        option.value = pattern.key;
         option.textContent = pattern.name;
         select.appendChild(option);
     });

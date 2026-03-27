@@ -1,6 +1,5 @@
 {
   "name": "Hero section",
-  "slug": "hero",
   "description": "Large hero section with heading, text, and button",
   "fields": [
     {
@@ -15,5 +14,6 @@
       "name": "button_text",
       "type": "text"
     }
-  ]
+  ],
+  "key": "hero"
 }

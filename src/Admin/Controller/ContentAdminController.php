@@ -55,7 +55,7 @@ final class ContentAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
-                'availablePatterns' => $this->patternRegistry->all(),
+                'availablePatterns' => $this->availablePatternsForView(),
                 'errors' => [],
                 'old' => [
                     'title' => '',
@@ -106,7 +106,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
-                'availablePatterns' => $this->patternRegistry->all(),
+                'availablePatterns' => $this->availablePatternsForView(),
                 'errors' => [],
                 'old' => [
                     'title' => $item->title(),
@@ -178,7 +178,7 @@ final class ContentAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
-                'availablePatterns' => $this->patternRegistry->all(),
+                'availablePatterns' => $this->availablePatternsForView(),
                 'errors' => $errors,
                 'old' => [
                     'title' => $input->title,
@@ -212,7 +212,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
-                'availablePatterns' => $this->patternRegistry->all(),
+                'availablePatterns' => $this->availablePatternsForView(),
                 'errors' => $errors,
                 'old' => [
                     'title' => $input->title,
@@ -226,6 +226,21 @@ final class ContentAdminController
         );
 
         return Response::html($html, 422);
+    }
+
+
+    /**
+     * @return array<string, array{name: string, key: string, description: string, fields: list<array{name: string, type: string}>}>
+     */
+    private function availablePatternsForView(): array
+    {
+        $patterns = [];
+
+        foreach ($this->patternRegistry->all() as $key => $metadata) {
+            $patterns[$key] = $metadata->toArray();
+        }
+
+        return $patterns;
     }
 
     /**
@@ -260,7 +275,7 @@ final class ContentAdminController
 
             $data = [];
 
-            foreach ($pattern['fields'] as $field) {
+            foreach ($pattern->fields() as $field) {
                 $name = $field['name'];
                 $value = $rawData[$name] ?? '';
                 $data[$name] = is_scalar($value) ? trim((string) $value) : '';

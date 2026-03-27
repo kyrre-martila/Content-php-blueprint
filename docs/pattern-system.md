@@ -1,56 +1,74 @@
 # Pattern system
 
-Patterns are reusable presentation units stored on disk and rendered deterministically.
+Patterns are reusable presentation units stored on disk.
 
-## Current implementation
+## Pattern metadata and registry foundation
 
-## Filesystem model
+The current implementation introduces a metadata contract and deterministic registry discovery, without changing the high-level runtime wiring yet.
+
+### Filesystem layout
 
 Each pattern lives at:
 
-- `patterns/{slug}/pattern.json`
-- `patterns/{slug}/pattern.php`
+- `patterns/{pattern-key}/pattern.json`
+- `patterns/{pattern-key}/pattern.php`
 
-`PatternRegistry` scans pattern directories, validates metadata, and registers valid patterns by slug.
+Only `pattern.json` is required for metadata discovery. `pattern.php` is used by the existing renderer when present.
 
-## Metadata model (current)
+### `pattern.json` structure
 
-`pattern.json` currently requires:
+Each `pattern.json` must contain:
 
-- `name` (string)
-- `slug` (kebab-case)
-- `description` (string)
-- `fields` (array of `{name, type}`)
+- `name` (non-empty string)
+- `key` (non-empty string)
+- `description` (non-empty string)
+- `fields` (array)
 
-Allowed field types in current validator:
+Each `fields` entry must contain:
+
+- `name` (non-empty string)
+- `type` (one of `text`, `textarea`, `image`)
+
+Current editor/runtime support is focused on:
 
 - `text`
 - `textarea`
-- `image`
 
-## Rendering model (current)
+`image` is accepted in metadata to keep the model future-ready.
 
-- `PatternRenderer` accepts pattern slug + data.
-- Only declared scalar fields are passed into template `$fields`.
-- Unknown or non-scalar values are dropped/coerced to safe defaults.
-- Pattern view file is included through controlled output buffering.
+### Metadata model
 
-## Editor usage (current)
+`PatternMetadata` is an immutable value object that:
 
-- Content admin forms read available patterns from `PatternRegistry`.
-- Editors compose ordered `pattern_blocks` per content item.
-- Editor Mode v1 supports inline editing for pattern `text` and `textarea` fields only.
-- Inline saves are validated against pattern metadata before repository persistence.
+- validates required metadata structure at creation time
+- exposes getters only (`name()`, `key()`, `description()`, `fields()`)
+- provides normalized metadata via `toArray()` for view consumption
 
-## Storage model (current)
+### Deterministic discovery
 
-Pattern usage is persisted per content item in `pattern_blocks` JSON payload:
+`PatternRegistry` scans `patterns/` deterministically by:
 
-- block references pattern slug
-- block data stores field values by field name
+1. reading only immediate child directories
+2. sorting discovered directories lexicographically
+3. parsing `pattern.json` safely
+4. validating metadata with `PatternMetadata::fromArray()`
+5. indexing valid patterns by `key`
+6. sorting final keys lexicographically
 
-## Planned direction (not yet implemented)
+### Failure handling
 
-- Versioning/migration strategy for pattern schema evolution.
-- Additional safe field types and validation constraints.
-- Stronger tooling for AI-assisted pattern generation and upgrade paths.
+Registry loading is conservative and non-fatal:
+
+- missing `pattern.json` -> pattern ignored
+- unreadable/invalid JSON -> pattern ignored
+- invalid metadata shape or unsupported field types -> pattern ignored
+- malformed pattern never crashes application boot
+
+### Why metadata exists
+
+Pattern metadata makes pattern discovery explicit and machine-readable, which is required for:
+
+- deterministic pattern listing in admin/editor surfaces
+- future schema-aware data validation
+- future runtime rendering integration improvements
+- future admin discovery and insertion UX
