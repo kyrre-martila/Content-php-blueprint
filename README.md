@@ -135,6 +135,7 @@ Current public/system routes:
 - `GET /health`
 - `GET /search`
 - `GET /sitemap.xml`
+- `GET /robots.txt`
 - `GET|POST /install` (when install is required)
 
 Current content route:
@@ -261,6 +262,26 @@ The metadata fields are persisted in the core content repositories and are provi
 - Each entry includes `loc` and `lastmod` (`updated_at` as ISO-8601).
 - `canonical_url` metadata is used for `loc` when present.
 - When `canonical_url` is missing, absolute URLs are generated from `APP_URL` + `slug`.
+
+## robots.txt generation
+
+`/robots.txt` is generated automatically as a core platform feature (not a static file requirement).
+
+- Non-production environments (`APP_ENV` not equal to `production`) return:
+  - `User-agent: *`
+  - `Disallow: /`
+- Production environments return:
+  - `User-agent: *`
+  - `Allow: /`
+  - `Disallow: /admin`
+  - `Disallow: /editor`
+  - `Disallow: /editor-mode`
+  - `Disallow: /dev`
+  - `Disallow: /install`
+  - `Sitemap: {APP_URL}/sitemap.xml`
+- `APP_URL` is used dynamically to build the sitemap URL in robots output.
+- Runtime route registration guarantees the dynamic `/robots.txt` endpoint takes precedence over catch-all content slug routing.
+- In front-controller deployments, requests resolved by the router always use the dynamic controller response for `/robots.txt` even if `public/robots.txt` also exists.
 
 ## Test commands
 

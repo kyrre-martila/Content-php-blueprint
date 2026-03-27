@@ -22,6 +22,7 @@ This document is the implementation-oriented source of truth for current runtime
 - `GET /health` → health controller.
 - `GET /search` → search controller.
 - `GET /sitemap.xml` → sitemap controller (published content XML sitemap).
+- `GET /robots.txt` → robots controller (dynamic environment-aware robots policy).
 - `GET /install`, `POST /install` → installer (only when install is incomplete or DB bootstrap is unavailable).
 
 ### Content route
@@ -218,10 +219,33 @@ Current behavior:
 - `canonical_url` metadata is respected when provided.
 - Otherwise, absolute `loc` URLs are generated from `APP_URL` and the content item slug.
 
+## robots.txt generation implemented
+
+Automatic robots generation is implemented as a core runtime capability.
+
+Current behavior:
+
+- `GET /robots.txt` returns `text/plain; charset=utf-8`.
+- When `APP_ENV=production`, robots output allows public crawling and references sitemap URL built from `APP_URL`.
+- Privileged or operator surfaces remain non-indexable in production via disallow rules:
+  - `/admin`
+  - `/editor`
+  - `/editor-mode`
+  - `/dev`
+  - `/install`
+- When `APP_ENV` is not `production`, robots output blocks all crawling (`Disallow: /`).
+- Route handling is dynamic through application routing instead of static-file ownership.
+
+Possible future extensions:
+
+- custom disallow rules
+- per-content-type indexing rules
+- multisite support
+- environment overrides
+
 Future roadmap:
 
 - sitemap index generation for larger sites
 - image sitemap support
 - module-contributed sitemap entries
 - multilingual sitemap support
-
