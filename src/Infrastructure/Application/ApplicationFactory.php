@@ -35,6 +35,14 @@ final class ApplicationFactory
         $appEnvironment = is_string($configuredAppEnvironment) ? $configuredAppEnvironment : 'production';
 
         $persistence = (new PersistenceFactory($this->config, $this->logger))->build();
+
+        $upgradeRunner = new UpgradeRunner(
+            $persistence['upgradeState'],
+            $persistence['connection'],
+            $this->logger
+        );
+        $upgradeRunner->runUpgradeIfNeeded();
+
         $views = (new ViewFactory($this->projectRoot, $siteUrl, $siteName))->build();
 
         $sessionManager = new SessionManager($sessionConfig);

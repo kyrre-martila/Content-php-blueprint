@@ -141,12 +141,33 @@ Upgrade-state detection model:
 - runtime compares `app.version` (current code) against `settings.installed_version`
 - if current code version is newer, upgrade is considered pending
 
+### Upgrade lifecycle (prepared architecture)
+
+Blueprint now includes a dedicated `UpgradeRunner` execution layer that runs during bootstrap after persistence services are initialized.
+
+Lifecycle concept:
+
+1. new files are deployed (manual deploy today, future GitHub updater later)
+2. runtime compares `app.version` with `settings.installed_version`
+3. if versions differ and install is complete, `UpgradeRunner` executes upgrade hooks
+4. on success, `settings.installed_version` is updated to the current runtime version and `install_completed` is kept true
+
+Install vs upgrade boundaries:
+
+- **Install** (`/install`): first-time setup, migrations + admin bootstrap + initial settings
+- **Upgrade** (`UpgradeRunner`): post-deploy maintenance after version change, designed for migrations/data fixes/cache/export refresh hooks
+
+Future GitHub updater integration point:
+
+- updater will handle release discovery/download/file replacement
+- immediately after files are replaced, runtime `UpgradeRunner` is the safe execution point for migrations/tasks/version persistence
+
 This is intentionally a foundation layer only. The updater workflow is planned to evolve into:
 
 1. check latest GitHub release
 2. download release artifact
 3. replace application files safely
-4. run upgrade tasks/migrations
+4. run upgrade tasks/migrations via `UpgradeRunner`
 5. preserve runtime state
 
 Not implemented yet: release download, file replacement, GitHub API integration, rollback, or automatic updates.
