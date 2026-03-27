@@ -15,6 +15,7 @@ use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
 use App\Http\Controller\InstallController;
 use App\Http\Controller\SearchController;
+use App\Http\Controller\SitemapController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Http\Request;
@@ -42,6 +43,7 @@ final class RouteRegistry
         private readonly ?ContentAdminController $contentAdminController = null,
         private readonly ?EditorModeController $editorModeController = null,
         private readonly ?ContentController $contentController = null,
+        private readonly ?SitemapController $sitemapController = null,
     ) {
         $this->registerSystemRoutes();
         $this->registerAuthRoutes();
@@ -74,6 +76,10 @@ final class RouteRegistry
             $request,
             [$this->searchController, 'index']
         ));
+
+        if ($this->sitemapController !== null) {
+            $this->get('/sitemap.xml', [$this->sitemapController, 'index']);
+        }
 
         if ($this->installController !== null) {
             $this->get('/install', fn (Request $request): Response => ($this->csrf)(

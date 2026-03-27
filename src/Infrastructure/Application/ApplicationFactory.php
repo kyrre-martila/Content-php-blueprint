@@ -13,6 +13,7 @@ use App\Admin\Controller\PatternController;
 use App\Application\Composition\CompositionExporter;
 use App\Application\DevMode\DevFileService;
 use App\Application\Editor\EditorContentService;
+use App\Application\SEO\SitemapGenerator;
 use App\Application\OCF\OCFExporter;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
@@ -26,6 +27,7 @@ use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
 use App\Http\Controller\InstallController;
 use App\Http\Controller\SearchController;
+use App\Http\Controller\SitemapController;
 use App\Http\Kernel;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
@@ -130,6 +132,7 @@ final class ApplicationFactory
         $contentAdminController = null;
         $editorModeController = null;
         $contentController = null;
+        $sitemapController = null;
 
         if ($contentItemRepository !== null && $contentTypeRepository !== null) {
             $ocfExporter = new OCFExporter(
@@ -175,6 +178,11 @@ final class ApplicationFactory
                 $templateRenderer,
                 $editorMode
             );
+
+            $sitemapController = new SitemapController(
+                $contentItemRepository,
+                new SitemapGenerator($siteUrl)
+            );
         } else {
             $temporaryConnection = new Connection((new \PDO('sqlite::memory:')));
             $ocfExporter = new OCFExporter(
@@ -209,7 +217,8 @@ final class ApplicationFactory
             installController: $installController,
             contentAdminController: $contentAdminController,
             editorModeController: $editorModeController,
-            contentController: $contentController
+            contentController: $contentController,
+            sitemapController: $sitemapController
         );
 
         return new Kernel(

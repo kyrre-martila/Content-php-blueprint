@@ -142,6 +142,11 @@ function repositoryWithSingleItem(ContentItem $contentItem): ContentItemReposito
             return [];
         }
 
+        public function findPublished(): array
+        {
+            return $this->contentItem->isPublished() ? [$this->contentItem] : [];
+        }
+
         public function remove(ContentItem $contentItem): void
         {
         }

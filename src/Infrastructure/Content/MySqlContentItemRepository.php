@@ -75,6 +75,22 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         return $contentItems;
     }
 
+    public function findPublished(): array
+    {
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' WHERE ci.status = :status ORDER BY ci.updated_at DESC, ci.id DESC',
+            ['status' => ContentStatus::Published->value]
+        );
+
+        $contentItems = [];
+
+        foreach ($rows as $row) {
+            $contentItems[] = $this->mapRowToContentItem($row);
+        }
+
+        return $contentItems;
+    }
+
     public function remove(ContentItem $contentItem): void
     {
         if ($contentItem->id() === null) {
