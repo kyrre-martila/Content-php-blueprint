@@ -21,6 +21,14 @@ $editorModeEnabled = ($editorModeActive ?? false) === true && ($editorCanUse ?? 
 
     <p><a href="/admin/content">Manage content items</a></p>
 
+
+    <p>Application version: <strong><?= $e((string) ($currentVersion ?? 'unknown')) ?></strong></p>
+    <p>Installed version: <strong><?= $e((string) (($installedVersion ?? null) ?? 'not recorded')) ?></strong></p>
+
+    <?php if (($upgradeRequired ?? false) === true): ?>
+        <p><strong>Upgrade pending:</strong> runtime code is newer than installed_version.</p>
+    <?php endif; ?>
+
     <?php if (($editorCanUse ?? false) === true): ?>
         <?php if ($editorModeEnabled): ?>
             <form method="post" action="/editor-mode/disable">

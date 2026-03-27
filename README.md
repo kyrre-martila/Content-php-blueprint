@@ -21,6 +21,7 @@ Set at minimum in `.env`:
 APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://localhost:8000
+APP_VERSION=0.1.0
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -102,7 +103,7 @@ Browser flow:
 1. Deploy files.
 2. Open `/install`.
 3. Submit DB settings and first admin credentials.
-4. Installer runs migrations, creates initial admin, writes `settings.install_completed = true`.
+4. Installer runs migrations, creates initial admin, writes `settings.install_completed = true`, and writes `settings.installed_version` from the runtime app version source.
 5. On success, user is redirected to `/admin/login`.
 
 ### Demo seed content
@@ -118,12 +119,37 @@ Install-state checks require all of the following:
 - required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`)
 - at least one admin/superadmin user exists
 - install flag is true in `settings.install_completed`
+- installed runtime version is persisted in `settings.installed_version`
 
 Routing behavior tied to install-state:
 
 - if setup is incomplete, `/admin` and `/admin/*` are redirected to `/install`
 - `/install` is available while installation is required
 - once installed, `/install` redirects to `/`
+
+
+## Application version and upgrade foundations
+
+Current version source of truth:
+
+- `config/app.php` (`app.version`, sourced from `APP_VERSION`)
+- Runtime reads this through `App\Infrastructure\Application\AppVersion`
+
+Upgrade-state detection model:
+
+- installer persists `settings.installed_version` after a successful install
+- runtime compares `app.version` (current code) against `settings.installed_version`
+- if current code version is newer, upgrade is considered pending
+
+This is intentionally a foundation layer only. The updater workflow is planned to evolve into:
+
+1. check latest GitHub release
+2. download release artifact
+3. replace application files safely
+4. run upgrade tasks/migrations
+5. preserve runtime state
+
+Not implemented yet: release download, file replacement, GitHub API integration, rollback, or automatic updates.
 
 ## Runtime routing architecture
 

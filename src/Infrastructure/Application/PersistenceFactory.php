@@ -34,6 +34,8 @@ final class PersistenceFactory
      * @return array{
      *   migrationsTable: string,
      *   connection: ?Connection,
+     *   appVersion: AppVersion,
+     *   upgradeState: UpgradeState,
      *   installState: ?InstallState,
      *   installationRequired: bool,
      *   persistenceUnavailableReason: ?string,
@@ -45,8 +47,12 @@ final class PersistenceFactory
      */
     public function build(): array
     {
-        /** @var string $migrationsTable */
-        $migrationsTable = (string) $this->config->get('database.migrations.table', 'phinxlog');
+        $configuredMigrationsTable = $this->config->get('database.migrations.table', 'phinxlog');
+        $migrationsTable = is_string($configuredMigrationsTable) && $configuredMigrationsTable !== ''
+            ? $configuredMigrationsTable
+            : 'phinxlog';
+
+        $appVersion = new AppVersion($this->config);
 
         $connection = null;
         $installState = null;
@@ -69,10 +75,13 @@ final class PersistenceFactory
         }
 
         $repositories = $this->buildRepositories($connection, $persistenceUnavailableReason);
+        $upgradeState = new UpgradeState($appVersion, $connection);
 
         return [
             'migrationsTable' => $migrationsTable,
             'connection' => $connection,
+            'appVersion' => $appVersion,
+            'upgradeState' => $upgradeState,
             'installState' => $installState,
             'installationRequired' => $installationRequired,
             'persistenceUnavailableReason' => $persistenceUnavailableReason,

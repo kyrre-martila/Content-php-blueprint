@@ -14,6 +14,10 @@ use App\Domain\Auth\User;
  */
 final class UnavailableUserRepository implements UserRepositoryInterface
 {
+    public function __construct(private readonly string $reason = 'Database persistence unavailable.')
+    {
+    }
+
     public function findByEmail(string $email): ?User
     {
         return null;

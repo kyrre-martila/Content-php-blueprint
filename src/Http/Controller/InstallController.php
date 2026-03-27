@@ -6,6 +6,7 @@ namespace App\Http\Controller;
 
 use App\Http\Request;
 use App\Http\Response;
+use App\Infrastructure\Application\AppVersion;
 use App\Infrastructure\Application\EnvironmentCheck;
 use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\MySqlUserRepository;
@@ -23,6 +24,7 @@ final class InstallController
     public function __construct(
         private readonly string $projectRoot,
         private readonly TemplateRenderer $templateRenderer,
+        private readonly AppVersion $appVersion,
         private readonly ?InstallState $installState,
         private readonly string $migrationsTable = 'phinxlog'
     ) {
@@ -196,6 +198,9 @@ final class InstallController
         $manager->migrate('installer');
     }
 
+    /**
+     * @param array<string, string> $input
+     */
     private function runBlueprintDemoSeeder(array $input): void
     {
         $config = new Config([
@@ -228,12 +233,16 @@ final class InstallController
     {
         $connection->execute(
             <<<'SQL'
-INSERT INTO settings (id, install_completed)
-VALUES (1, :install_completed)
+INSERT INTO settings (id, install_completed, installed_version)
+VALUES (1, :install_completed, :installed_version)
 ON DUPLICATE KEY UPDATE
-    id = VALUES(id)
+    id = VALUES(id),
+    installed_version = VALUES(installed_version)
 SQL,
-            ['install_completed' => false]
+            [
+                'install_completed' => false,
+                'installed_version' => $this->appVersion->currentVersion(),
+            ]
         );
     }
 
@@ -241,12 +250,16 @@ SQL,
     {
         $connection->execute(
             <<<'SQL'
-INSERT INTO settings (id, install_completed)
-VALUES (1, :install_completed)
+INSERT INTO settings (id, install_completed, installed_version)
+VALUES (1, :install_completed, :installed_version)
 ON DUPLICATE KEY UPDATE
-    install_completed = VALUES(install_completed)
+    install_completed = VALUES(install_completed),
+    installed_version = VALUES(installed_version)
 SQL,
-            ['install_completed' => true]
+            [
+                'install_completed' => true,
+                'installed_version' => $this->appVersion->currentVersion(),
+            ]
         );
     }
 
