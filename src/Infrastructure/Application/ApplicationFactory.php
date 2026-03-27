@@ -14,6 +14,7 @@ use App\Application\Composition\CompositionExporter;
 use App\Application\DevMode\DevFileService;
 use App\Application\Editor\EditorContentService;
 use App\Application\SEO\SitemapGenerator;
+use App\Application\SEO\RobotsGenerator;
 use App\Application\OCF\OCFExporter;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
@@ -26,6 +27,7 @@ use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
 use App\Http\Controller\InstallController;
+use App\Http\Controller\RobotsController;
 use App\Http\Controller\SearchController;
 use App\Http\Controller\SitemapController;
 use App\Http\Kernel;
@@ -103,6 +105,8 @@ final class ApplicationFactory
         $patternRenderer = new PatternRenderer($patternRegistry, $patternDataValidator, $editableFieldRenderer);
         $configuredAppUrl = $this->config->get('app.url');
         $siteUrl = is_string($configuredAppUrl) ? $configuredAppUrl : '';
+        $configuredAppEnvironment = $this->config->get('app.env', 'production');
+        $appEnvironment = is_string($configuredAppEnvironment) ? $configuredAppEnvironment : 'production';
 
         $templateRenderer = new TemplateRenderer(
             $templatesPath,
@@ -133,6 +137,9 @@ final class ApplicationFactory
         $editorModeController = null;
         $contentController = null;
         $sitemapController = null;
+        $robotsController = new RobotsController(
+            new RobotsGenerator($appEnvironment, $siteUrl)
+        );
 
         if ($contentItemRepository !== null && $contentTypeRepository !== null) {
             $ocfExporter = new OCFExporter(
@@ -218,7 +225,8 @@ final class ApplicationFactory
             contentAdminController: $contentAdminController,
             editorModeController: $editorModeController,
             contentController: $contentController,
-            sitemapController: $sitemapController
+            sitemapController: $sitemapController,
+            robotsController: $robotsController
         );
 
         return new Kernel(

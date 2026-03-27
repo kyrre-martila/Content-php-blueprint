@@ -14,6 +14,7 @@ use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
 use App\Http\Controller\InstallController;
+use App\Http\Controller\RobotsController;
 use App\Http\Controller\SearchController;
 use App\Http\Controller\SitemapController;
 use App\Http\Middleware\CsrfMiddleware;
@@ -44,6 +45,7 @@ final class RouteRegistry
         private readonly ?EditorModeController $editorModeController = null,
         private readonly ?ContentController $contentController = null,
         private readonly ?SitemapController $sitemapController = null,
+        private readonly ?RobotsController $robotsController = null,
     ) {
         $this->registerSystemRoutes();
         $this->registerAuthRoutes();
@@ -79,6 +81,11 @@ final class RouteRegistry
 
         if ($this->sitemapController !== null) {
             $this->get('/sitemap.xml', [$this->sitemapController, 'index']);
+        }
+
+        if ($this->robotsController !== null) {
+            // Explicitly register robots as a system route so runtime output wins over slug/catch-all resolution.
+            $this->get('/robots.txt', [$this->robotsController, 'index']);
         }
 
         if ($this->installController !== null) {
