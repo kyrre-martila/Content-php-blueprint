@@ -248,6 +248,32 @@ Runtime architecture enforces strict separation:
 
 This keeps portable content from absorbing blueprint-specific rendering/runtime concerns.
 
+### OCF export structure (current)
+
+`OCFExporter` emits content-only payloads with portable semantic structure:
+
+- header metadata:
+  - `export_format_version: 2`
+  - `ocf_version: "0.1-draft"`
+  - `generated_by`
+  - `generated_at` (ISO timestamp)
+- `content_types` including semantic field schemas
+  - dynamic `fieldDefinitions()` are used when provided by the domain model
+  - fallback schema remains available for compatibility
+- `content_items` including:
+  - semantic fields (`title`, `slug`, `status`)
+  - `pattern_blocks` as structured semantic content data (not layout instructions)
+  - relationships object with `content_type` and future-safe room for `parent_slug` / `related_items`
+  - optional SEO metadata (`meta_title`, `meta_description`, `canonical_url`) when present
+  - creation/update timestamps
+
+### Boundary clarification
+
+- OCF export includes portable structured content and semantics only.
+- Composition snapshot export includes blueprint-specific composition/assembly context.
+- Runtime rendering remains responsible for templates/layout/renderers/assets.
+- OCF export does **not** include templates, layout files, renderer entrypoints, CSS classes, or pattern rendering instructions.
+
 ### Composition snapshot format (current)
 
 `CompositionExporter` emits `export_format_version: 2` snapshots.

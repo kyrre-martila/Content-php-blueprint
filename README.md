@@ -247,6 +247,29 @@ Boundary model:
 
 This keeps portable content, blueprint composition, and source code workflows separate and predictable.
 
+## OCF export capabilities
+
+OCF export is intentionally presentation-independent while still carrying portable, structured content.
+
+Current OCF payloads include:
+
+- export metadata header:
+  - `export_format_version: 2`
+  - `ocf_version: "0.1-draft"`
+  - `generated_by`
+  - `generated_at` (ISO timestamp)
+- content type definitions with semantic field schemas
+  - uses domain-provided field definitions when available
+  - falls back to a safe default portable schema otherwise
+- content items with:
+  - core semantic fields (title/slug/status)
+  - structured `pattern_blocks` semantic data (no layout/rendering instructions)
+  - semantic relationships (`content_type`, with room for future `parent_slug` and `related_items`)
+  - SEO metadata when available (`meta_title`, `meta_description`, `canonical_url`)
+  - item metadata timestamps
+
+OCF export intentionally excludes presentation/runtime concerns such as templates, layout files, renderer entrypoints, CSS classes, and pattern rendering instructions. Those concerns belong to blueprint-specific composition snapshots and runtime rendering, not the portable OCF boundary.
+
 ## Composition snapshot export
 
 Composition snapshot export is a blueprint-specific runtime assembly export designed for AI tooling and blueprint-aware assistants.

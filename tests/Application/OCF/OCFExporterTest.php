@@ -10,7 +10,15 @@ use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Domain\Content\Slug;
 
 it('builds a content-only OCF payload without presentation concerns', function (): void {
-    $pageType = new ContentType('page', 'Page', 'content/default.php');
+    $pageType = new ContentType(
+        'page',
+        'Page',
+        'content/default.php',
+        [
+            ['key' => 'title', 'type' => 'string', 'required' => true],
+            ['key' => 'summary', 'type' => 'text', 'required' => false],
+        ]
+    );
 
     $item = ContentItem::draft(
         id: 1,
@@ -21,7 +29,14 @@ it('builds a content-only OCF payload without presentation concerns', function (
         updatedAt: new DateTimeImmutable('2026-03-27T11:00:00+00:00')
     )->withPatternBlocks([
         ['pattern' => 'hero', 'data' => ['headline' => 'About us']],
-    ], new DateTimeImmutable('2026-03-27T11:00:00+00:00'));
+    ], new DateTimeImmutable('2026-03-27T11:00:00+00:00'))->withSeoMetadata(
+        metaTitle: 'About Blueprint',
+        metaDescription: 'Learn about our content blueprint.',
+        ogImage: null,
+        canonicalUrl: 'https://example.test/about',
+        noindex: false,
+        updatedAt: new DateTimeImmutable('2026-03-27T11:05:00+00:00')
+    );
 
     $exporter = new OCFExporter(
         new class([$pageType]) implements ContentTypeRepositoryInterface {
@@ -101,10 +116,28 @@ it('builds a content-only OCF payload without presentation concerns', function (
 
     expect($payload['content_types'])->toHaveCount(1)
         ->and($payload['content_types'][0]['name'])->toBe('page')
+        ->and($payload['content_types'][0]['fields'])->toBe([
+            ['key' => 'title', 'type' => 'string', 'required' => true],
+            ['key' => 'summary', 'type' => 'text', 'required' => false],
+        ])
+        ->and($payload['export_format_version'])->toBe(2)
+        ->and($payload['ocf_version'])->toBe('0.1-draft')
+        ->and($payload['generated_by'])->toBe('content-php-blueprint')
+        ->and($payload)->toHaveKey('generated_at')
         ->and($payload['content_items'])->toHaveCount(1)
         ->and($payload['content_items'][0]['slug'])->toBe('about')
         ->and($payload['content_items'][0]['fields']['title'])->toBe('About us')
-        ->and($payload['content_items'][0])->not->toHaveKey('pattern_blocks')
+        ->and($payload['content_items'][0]['pattern_blocks'])->toBe([
+            ['pattern' => 'hero', 'data' => ['headline' => 'About us']],
+        ])
+        ->and($payload['content_items'][0]['seo'])->toBe([
+            'meta_title' => 'About Blueprint',
+            'meta_description' => 'Learn about our content blueprint.',
+            'canonical_url' => 'https://example.test/about',
+        ])
+        ->and($payload['content_items'][0]['relationships'])->toBe([
+            'content_type' => 'page',
+        ])
         ->and($payload['content_items'][0])->not->toHaveKey('template')
         ->and($payload['content_items'][0])->not->toHaveKey('layout');
 });
@@ -191,5 +224,10 @@ it('writes content-export.json and creates storage/exports/ocf automatically', f
 
     $decoded = json_decode((string) file_get_contents($exportPath), true, 512, JSON_THROW_ON_ERROR);
 
-    expect($decoded['content_items'][0]['slug'])->toBe('contact');
+    expect($decoded['export_format_version'])->toBe(2)
+        ->and($decoded['ocf_version'])->toBe('0.1-draft')
+        ->and($decoded['generated_by'])->toBe('content-php-blueprint')
+        ->and($decoded['content_items'][0]['slug'])->toBe('contact')
+        ->and($decoded['content_items'][0]['pattern_blocks'])->toBe([])
+        ->and($decoded['content_items'][0])->not->toHaveKey('seo');
 });

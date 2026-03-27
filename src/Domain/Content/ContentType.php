@@ -8,10 +8,14 @@ use App\Domain\Content\Exception\InvalidContentTypeException;
 
 final class ContentType
 {
+    /**
+     * @param list<array{key: string, type: string, required: bool}>|null $fieldDefinitions
+     */
     public function __construct(
         private readonly string $name,
         private readonly string $label,
-        private readonly string $defaultTemplate
+        private readonly string $defaultTemplate,
+        private readonly ?array $fieldDefinitions = null
     ) {
         $this->assertNameIsValid($name);
         $this->assertLabelIsValid($label);
@@ -36,6 +40,14 @@ final class ContentType
     public function equals(self $other): bool
     {
         return $this->name === $other->name;
+    }
+
+    /**
+     * @return list<array{key: string, type: string, required: bool}>|null
+     */
+    public function fieldDefinitions(): ?array
+    {
+        return $this->fieldDefinitions;
     }
 
     private function assertNameIsValid(string $name): void
