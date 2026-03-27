@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Admin\Controller;
 
+use App\Application\DevMode\DevFileService;
 use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
@@ -23,6 +24,7 @@ final class DevModeController
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly DevMode $devMode,
+        private readonly DevFileService $devFileService,
         private readonly EditableFileRegistry $fileRegistry,
         private readonly EditHistoryLogger $editHistory,
         private readonly Logger $logger
@@ -96,18 +98,16 @@ final class DevModeController
             return Response::redirect('/admin/dev-mode');
         }
 
-        $absolutePath = $this->fileRegistry->absolutePath($path);
-
-        if ($absolutePath === null || !$this->isSafeEditableFile($absolutePath, $path)) {
+        if (!$this->fileRegistry->isSupportedPath($path) || !$this->devFileService->isAllowedPath($path)) {
             $this->logRejectedAttempt('path_not_allowed', $path);
             $this->session->flash('error', 'Selected file is not editable in Dev Mode.');
 
             return Response::redirect('/admin/dev-mode');
         }
 
-        $contents = file_get_contents($absolutePath);
-
-        if (!is_string($contents)) {
+        try {
+            $contents = $this->devFileService->safeReadFile($path);
+        } catch (\RuntimeException) {
             $this->session->flash('error', 'Failed to read selected file.');
 
             return Response::redirect('/admin/dev-mode');
@@ -153,9 +153,7 @@ final class DevModeController
             return Response::redirect('/admin/dev-mode');
         }
 
-        $absolutePath = $this->fileRegistry->absolutePath($path);
-
-        if ($absolutePath === null || !$this->isSafeEditableFile($absolutePath, $path)) {
+        if (!$this->fileRegistry->isSupportedPath($path) || !$this->devFileService->isAllowedPath($path)) {
             $this->logRejectedAttempt('path_not_allowed', $path);
             $this->session->flash('error', 'Selected file is not editable in Dev Mode.');
 
@@ -169,13 +167,24 @@ final class DevModeController
             return Response::redirect('/admin/dev-mode/edit?path=' . rawurlencode($path));
         }
 
+        try {
+            $absolutePath = $this->devFileService->absolutePath($path);
+        } catch (\RuntimeException) {
+            $this->logRejectedAttempt('path_not_allowed', $path);
+            $this->session->flash('error', 'Selected file is not editable in Dev Mode.');
+
+            return Response::redirect('/admin/dev-mode');
+        }
+
         $hashBefore = is_file($absolutePath) ? hash_file('sha256', $absolutePath) : null;
 
         if (!is_string($hashBefore) && $hashBefore !== null) {
             $hashBefore = null;
         }
 
-        if (!$this->writeAtomically($absolutePath, $newContents)) {
+        try {
+            $this->devFileService->safeWriteFile($path, $newContents);
+        } catch (\RuntimeException) {
             $this->logRejectedAttempt('write_failed', $path);
             $this->session->flash('error', 'Unable to save file.');
 
@@ -212,47 +221,6 @@ final class DevModeController
         $path = trim((string) $query['path']);
 
         return $path === '' ? null : $path;
-    }
-
-    private function isSafeEditableFile(string $absolutePath, string $relativePath): bool
-    {
-        if (!$this->fileRegistry->isSupportedPath($relativePath)) {
-            return false;
-        }
-
-        if (!is_file($absolutePath) || !is_readable($absolutePath) || !is_writable($absolutePath)) {
-            return false;
-        }
-
-        $size = filesize($absolutePath);
-
-        if (!is_int($size) || $size > self::MAX_EDITABLE_BYTES) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private function writeAtomically(string $path, string $content): bool
-    {
-        $directory = dirname($path);
-        $tempPath = sprintf('%s/.devmode-%s.tmp', $directory, uniqid('', true));
-
-        $written = file_put_contents($tempPath, $content, LOCK_EX);
-
-        if ($written === false) {
-            return false;
-        }
-
-        $renamed = rename($tempPath, $path);
-
-        if (!$renamed) {
-            @unlink($tempPath);
-
-            return false;
-        }
-
-        return true;
     }
 
     private function redirectTarget(Request $request): string

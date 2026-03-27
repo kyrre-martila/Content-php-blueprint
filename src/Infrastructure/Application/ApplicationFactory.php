@@ -10,6 +10,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Application\DevMode\DevFileService;
 use App\Application\Editor\EditorContentService;
 use App\Application\Auth\LoginUser;
 use App\Application\Content\CreateContentItem;
@@ -100,6 +101,7 @@ final class ApplicationFactory
 
         $editorMode = new EditorMode($authSession, $sessionManager);
         $devMode = new DevMode($this->projectRoot, $authSession, $sessionManager);
+        $devFileService = new DevFileService($this->projectRoot);
         $devModeFiles = new EditableFileRegistry($this->projectRoot, $devMode);
         $devModeHistory = new EditHistoryLogger($this->projectRoot . '/storage/logs/dev-mode-edits.log');
         $loginUser = new LoginUser($userRepository, $authSession);
@@ -171,6 +173,7 @@ final class ApplicationFactory
                 $authSession,
                 $sessionManager,
                 $devMode,
+                $devFileService,
                 $devModeFiles,
                 $devModeHistory,
                 $this->logger
