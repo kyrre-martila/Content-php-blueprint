@@ -50,20 +50,12 @@ final class ContentController
         }
 
         $templatePath = $this->templateResolver->resolveContentTemplate();
-        $contentSummary = $this->buildSummaryFromPatternBlocks($contentItem->patternBlocks());
-        $metaTitle = $contentItem->metaTitle();
-        $metaDescription = $contentItem->metaDescription() ?? ($contentSummary !== '' ? $contentSummary : null);
-
         $html = $this->templateRenderer->render($templatePath, [
             'contentItem' => $contentItem,
             'request' => $request,
             'slug' => $slug->value(),
             'patternBlocks' => $contentItem->patternBlocks(),
             'meta' => [
-                'title' => $metaTitle ?? $contentItem->title(),
-                'description' => $metaDescription,
-                'og_image' => $contentItem->ogImage(),
-                'canonical' => $contentItem->canonicalUrl(),
                 'noindex' => $contentItem->noindex(),
             ],
             'editorModeActive' => $this->editorMode->isActive(),
@@ -203,35 +195,4 @@ final class ContentController
         return Response::html($html, 404);
     }
 
-    /**
-     * @param list<array{pattern: string, data: array<string, string>}> $patternBlocks
-     */
-    private function buildSummaryFromPatternBlocks(array $patternBlocks): string
-    {
-        $parts = [];
-
-        foreach ($patternBlocks as $block) {
-            foreach ($block['data'] as $value) {
-                if (!is_string($value)) {
-                    continue;
-                }
-
-                $trimmed = trim(preg_replace('/\s+/', ' ', strip_tags($value)) ?? '');
-
-                if ($trimmed === '') {
-                    continue;
-                }
-
-                $parts[] = $trimmed;
-            }
-        }
-
-        if ($parts === []) {
-            return '';
-        }
-
-        $summary = implode(' ', $parts);
-
-        return mb_substr($summary, 0, 160);
-    }
 }

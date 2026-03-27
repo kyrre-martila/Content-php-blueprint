@@ -249,3 +249,25 @@ Future roadmap:
 - image sitemap support
 - module-contributed sitemap entries
 - multilingual sitemap support
+
+## Social metadata auto-rendering implemented
+
+OpenGraph and Twitter metadata rendering is implemented centrally in `TemplateRenderer`.
+
+Current behavior:
+
+- OpenGraph metadata is auto-injected into page `<head>` output (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`).
+- Twitter card metadata is auto-injected (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`).
+- Metadata values are derived from structured content metadata with runtime fallbacks:
+  - title fallback to content title
+  - description fallback to generated summary from content blocks
+  - image fallback to optional default image when available
+  - URL fallback to canonical slug URL generation
+- Duplicate social tags are prevented by renderer-level de-duplication, preserving TemplateRenderer as the single metadata source.
+
+Possible future extensions:
+
+- site-level default `og_image` wiring from config/settings
+- per-content-type `og:type` mapping configuration
+- image dimension metadata support (`og:image:width` / `og:image:height`)
+- multi-language metadata variants

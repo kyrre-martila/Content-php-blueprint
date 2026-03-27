@@ -252,6 +252,15 @@ Each content item supports:
 
 The metadata fields are persisted in the core content repositories and are provided automatically to templates through the content render payload as `meta`, so templates can consume metadata without adding plugin wiring.
 
+## OpenGraph and Twitter metadata support
+
+OpenGraph and Twitter card metadata are generated automatically by `TemplateRenderer` as part of centralized metadata rendering.
+
+- OpenGraph tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`) are auto-rendered from structured content metadata with safe fallbacks.
+- Twitter tags (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`) are auto-rendered from the same metadata source.
+- Fallback behavior is handled by runtime metadata resolution (title, description summary fallback, canonical URL fallback, and optional default image support).
+- Metadata rendering is centralized in `TemplateRenderer`, so no plugin wiring is required and templates do not need duplicated social-tag logic.
+
 
 ## Sitemap generation
 
