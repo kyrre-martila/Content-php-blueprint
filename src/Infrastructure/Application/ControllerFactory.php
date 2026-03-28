@@ -36,7 +36,7 @@ use App\Infrastructure\Editor\DevMode;
 use App\Infrastructure\Editor\EditableFileRegistry;
 use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Editor\EditHistoryLogger;
-use App\Infrastructure\Logging\Logger;
+use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\Security\LoginRateLimiter;
 use App\Infrastructure\View\TemplateRenderer;
@@ -48,7 +48,7 @@ final class ControllerFactory
         private readonly string $projectRoot,
         private readonly string $appEnvironment,
         private readonly string $siteUrl,
-        private readonly Logger $logger
+        private readonly LoggerInterface $logger
     ) {
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Error;
 
-use App\Infrastructure\Logging\Logger;
+use App\Domain\Logging\LoggerInterface;
 use ErrorException;
 use Throwable;
 
@@ -12,7 +12,7 @@ final class ErrorHandler
 {
     public function __construct(
         private readonly bool $debug,
-        private readonly Logger $logger
+        private readonly LoggerInterface $logger
     ) {
     }
 

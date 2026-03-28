@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Logging;
 
+use App\Domain\Logging\LoggerInterface;
 use DateTimeImmutable;
 use RuntimeException;
 
-final class Logger
+final class Logger implements LoggerInterface
 {
     public function __construct(private readonly string $logsDirectory)
     {
@@ -35,6 +36,14 @@ final class Logger
     public function error(string $message, array $context = [], string $channel = 'errors'): void
     {
         $this->log('ERROR', $channel, $message, $context);
+    }
+
+    /**
+     * @param array<string, scalar|null> $context
+     */
+    public function debug(string $message, array $context = [], string $channel = 'application'): void
+    {
+        $this->log('DEBUG', $channel, $message, $context);
     }
 
     /**

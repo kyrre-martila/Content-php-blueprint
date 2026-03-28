@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Application;
 
 use App\Infrastructure\Database\Connection;
-use App\Infrastructure\Logging\Logger;
+use App\Domain\Logging\LoggerInterface;
 use Throwable;
 
 final class UpgradeRunner
@@ -13,7 +13,7 @@ final class UpgradeRunner
     public function __construct(
         private readonly UpgradeState $upgradeState,
         private readonly ?Connection $connection,
-        private readonly ?Logger $logger = null
+        private readonly ?LoggerInterface $logger = null
     ) {
     }
 

@@ -12,16 +12,22 @@ use App\Http\Routing\RouteRegistry;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigRepository;
-use App\Infrastructure\Logging\Logger;
+use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\Security\LoginRateLimiter;
 
 final class ApplicationFactory
 {
+    /** @var array<class-string, object> */
+    private array $bindings;
+
     public function __construct(
         private readonly string $projectRoot,
         private readonly ConfigRepository $config,
-        private readonly Logger $logger
+        private readonly LoggerInterface $logger
     ) {
+        $this->bindings = [
+            LoggerInterface::class => $this->logger,
+        ];
     }
 
     public function createKernel(): Kernel
@@ -36,12 +42,13 @@ final class ApplicationFactory
         $configuredAppEnvironment = $this->config->get('app.env', 'production');
         $appEnvironment = is_string($configuredAppEnvironment) ? $configuredAppEnvironment : 'production';
 
-        $persistence = (new PersistenceFactory($this->config, $this->logger))->build();
+        $logger = $this->resolveLogger();
+        $persistence = (new PersistenceFactory($this->config, $logger))->build();
 
         $upgradeRunner = new UpgradeRunner(
             $persistence['upgradeState'],
             $persistence['connection'],
-            $this->logger
+            $logger
         );
         $upgradeRunner->runUpgradeIfNeeded();
 
@@ -83,7 +90,7 @@ final class ApplicationFactory
             $this->projectRoot,
             $appEnvironment,
             $siteUrl,
-            $this->logger
+            $logger
         ))->build(
             $persistence['userRepository'],
             $persistence['contentItemRepository'],
@@ -136,5 +143,16 @@ final class ApplicationFactory
             installState: $persistence['installState'],
             installationRequired: $persistence['installationRequired']
         );
+    }
+
+    private function resolveLogger(): LoggerInterface
+    {
+        $binding = $this->bindings[LoggerInterface::class] ?? null;
+
+        if (!$binding instanceof LoggerInterface) {
+            return $this->logger;
+        }
+
+        return $binding;
     }
 }
