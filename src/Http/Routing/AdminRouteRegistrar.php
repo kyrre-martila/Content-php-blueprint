@@ -8,6 +8,7 @@ use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\PatternController;
 use App\Http\Middleware\CsrfMiddleware;
+use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Http\Request;
 use App\Http\Response;
@@ -20,79 +21,55 @@ final class AdminRouteRegistrar
         private readonly ?ContentAdminController $contentAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
+        private readonly MiddlewareStackBuilder $middlewareStackBuilder,
     ) {
     }
 
     public function register(RouteRegistry $routeRegistry): void
     {
-        $routeRegistry->get('/admin', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->dashboardController, 'index']
-            )
-        ));
+        $middleware = [$this->csrf, $this->requireAuth];
 
-        $routeRegistry->get('/admin/patterns', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->patternController, 'index']
-            )
-        ));
+        $routeRegistry->get('/admin', $this->middlewareStackBuilder->wrap([
+            $this->dashboardController,
+            'index',
+        ], $middleware));
+
+        $routeRegistry->get('/admin/patterns', $this->middlewareStackBuilder->wrap([
+            $this->patternController,
+            'index',
+        ], $middleware));
 
         if ($this->contentAdminController === null) {
             return;
         }
 
-        $routeRegistry->get('/admin/content', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'index']
-            )
-        ));
-        $routeRegistry->get('/admin/content/create', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'create']
-            )
-        ));
-        $routeRegistry->post('/admin/content/create', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'store']
-            )
-        ));
-        $routeRegistry->get('/admin/content/{id}/edit', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'edit']
-            )
-        ));
-        $routeRegistry->post('/admin/content/{id}/edit', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'update']
-            )
-        ));
-        $routeRegistry->delete('/admin/content/{id}', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'destroy']
-            )
-        ));
-        $routeRegistry->post('/admin/content/{id}', fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->contentAdminController, 'destroy']
-            )
-        ));
+        $routeRegistry->get('/admin/content', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'index',
+        ], $middleware));
+        $routeRegistry->get('/admin/content/create', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'create',
+        ], $middleware));
+        $routeRegistry->post('/admin/content/create', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'store',
+        ], $middleware));
+        $routeRegistry->get('/admin/content/{id}/edit', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'edit',
+        ], $middleware));
+        $routeRegistry->post('/admin/content/{id}/edit', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'update',
+        ], $middleware));
+        $routeRegistry->delete('/admin/content/{id}', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'destroy',
+        ], $middleware));
+        $routeRegistry->post('/admin/content/{id}', $this->middlewareStackBuilder->wrap([
+            $this->contentAdminController,
+            'destroy',
+        ], $middleware));
     }
 }

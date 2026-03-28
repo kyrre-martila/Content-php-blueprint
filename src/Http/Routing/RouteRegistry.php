@@ -18,6 +18,7 @@ use App\Http\Controller\RobotsController;
 use App\Http\Controller\SearchController;
 use App\Http\Controller\SitemapController;
 use App\Http\Middleware\CsrfMiddleware;
+use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
 use App\Http\Request;
 use App\Http\Response;
@@ -40,6 +41,7 @@ final class RouteRegistry
         DevModeController $devModeController,
         CsrfMiddleware $csrf,
         RequireAuthMiddleware $requireAuth,
+        MiddlewareStackBuilder $middlewareStackBuilder,
         ?InstallController $installController = null,
         ?ContentAdminController $contentAdminController = null,
         ?EditorModeController $editorModeController = null,
@@ -73,7 +75,8 @@ final class RouteRegistry
             patternController: $patternController,
             contentAdminController: $contentAdminController,
             csrf: $csrf,
-            requireAuth: $requireAuth
+            requireAuth: $requireAuth,
+            middlewareStackBuilder: $middlewareStackBuilder
         ))->register($this);
 
         /** Dev mode routes: privileged source-editing and export surfaces. */
@@ -93,7 +96,8 @@ final class RouteRegistry
         /** Public content routes: catch-all content resolution, always last. */
         (new PublicContentRouteRegistrar(
             contentController: $contentController,
-            csrf: $csrf
+            csrf: $csrf,
+            middlewareStackBuilder: $middlewareStackBuilder
         ))->register($this);
     }
 
