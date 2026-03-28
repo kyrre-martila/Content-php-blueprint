@@ -80,5 +80,19 @@ final class AdminRouteRegistrar
                 [$this->contentAdminController, 'update']
             )
         ));
+        $routeRegistry->delete('/admin/content/{id}', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->contentAdminController, 'destroy']
+            )
+        ));
+        $routeRegistry->post('/admin/content/{id}', fn (Request $request): Response => ($this->csrf)(
+            $request,
+            fn (Request $csrfRequest): Response => ($this->requireAuth)(
+                $csrfRequest,
+                [$this->contentAdminController, 'destroy']
+            )
+        ));
     }
 }

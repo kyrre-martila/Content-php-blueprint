@@ -127,4 +127,12 @@ final class RouteRegistry
     {
         $this->routes[] = Route::create('POST', $path, $handler);
     }
+
+    /**
+     * @param callable(Request): Response $handler
+     */
+    public function delete(string $path, callable $handler): void
+    {
+        $this->routes[] = Route::create('DELETE', $path, $handler);
+    }
 }

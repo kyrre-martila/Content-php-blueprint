@@ -152,6 +152,37 @@ final class ContentAdminController
         return Response::redirect('/admin/content');
     }
 
+    public function destroy(Request $request): Response
+    {
+        if (!$this->authSession->isAuthenticated()) {
+            return Response::json(['success' => false], 401);
+        }
+
+        if (!$this->isDeleteMethod($request)) {
+            return Response::json(['success' => false], 405);
+        }
+
+        if (!$this->hasValidCsrfToken($request)) {
+            return Response::json(['success' => false], 419);
+        }
+
+        $id = $this->resolveContentItemId($request);
+
+        if ($id === null) {
+            return Response::json(['success' => false], 404);
+        }
+
+        $contentItem = $this->contentItems->findById($id);
+
+        if ($contentItem === null) {
+            return Response::json(['success' => false], 404);
+        }
+
+        $this->contentItems->remove($contentItem);
+
+        return Response::json(['success' => true]);
+    }
+
     private function buildInput(Request $request): ContentItemInput
     {
         $post = $request->postParams();
@@ -326,5 +357,39 @@ final class ContentAdminController
         }
 
         return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function isDeleteMethod(Request $request): bool
+    {
+        if ($request->method() === 'DELETE') {
+            return true;
+        }
+
+        if ($request->method() !== 'POST') {
+            return false;
+        }
+
+        $methodOverride = $request->postParams()['_method'] ?? null;
+
+        return is_string($methodOverride) && strtoupper(trim($methodOverride)) === 'DELETE';
+    }
+
+    private function hasValidCsrfToken(Request $request): bool
+    {
+        $sessionToken = $this->session->get('_csrf_token');
+
+        if (!is_string($sessionToken) || $sessionToken === '') {
+            return false;
+        }
+
+        $submittedToken = $request->postParams()['_csrf_token'] ?? null;
+
+        if (!is_string($submittedToken) || $submittedToken === '') {
+            $server = $request->serverParams();
+            $headerToken = $server['HTTP_X_CSRF_TOKEN'] ?? null;
+            $submittedToken = is_string($headerToken) ? $headerToken : null;
+        }
+
+        return is_string($submittedToken) && hash_equals($sessionToken, $submittedToken);
     }
 }

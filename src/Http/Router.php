@@ -30,6 +30,14 @@ final class Router
     /**
      * @param callable(Request): Response $handler
      */
+    public function delete(string $path, callable $handler): void
+    {
+        $this->add('DELETE', $path, $handler);
+    }
+
+    /**
+     * @param callable(Request): Response $handler
+     */
     public function add(string $method, string $path, callable $handler): void
     {
         $this->routes[] = Route::create($method, $path, $handler);
