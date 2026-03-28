@@ -49,7 +49,7 @@ final class ContentController
             return Response::redirect($canonicalRedirect, 301);
         }
 
-        $templatePath = $this->templateResolver->resolveContentTemplate();
+        $templatePath = $this->templateResolver->resolveContentTemplate($contentItem);
         $html = $this->templateRenderer->render($templatePath, [
             'contentItem' => $contentItem,
             'request' => $request,
