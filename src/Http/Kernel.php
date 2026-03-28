@@ -6,6 +6,7 @@ namespace App\Http;
 
 use App\Infrastructure\Application\InstallState;
 use App\Infrastructure\Auth\SessionManager;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Routing\RouteRegistry;
 
 final class Kernel
@@ -13,6 +14,7 @@ final class Kernel
     public function __construct(
         private readonly SessionManager $session,
         private readonly RouteRegistry $routeRegistry,
+        private readonly SecurityHeadersMiddleware $securityHeaders,
         private readonly ?InstallState $installState = null,
         private readonly bool $installationRequired = false
     ) {
@@ -20,19 +22,21 @@ final class Kernel
 
     public function handle(Request $request): Response
     {
-        if ($this->shouldRedirectToInstall($request)) {
-            return Response::redirect('/install');
-        }
+        return ($this->securityHeaders)($request, function (Request $incomingRequest): Response {
+            if ($this->shouldRedirectToInstall($incomingRequest)) {
+                return Response::redirect('/install');
+            }
 
-        $this->session->start();
+            $this->session->start();
 
-        $routeMatch = $this->routeRegistry->resolve($request);
+            $routeMatch = $this->routeRegistry->resolve($incomingRequest);
 
-        if ($routeMatch === null) {
-            return Response::html('<h1>404 Not Found</h1>', 404);
-        }
+            if ($routeMatch === null) {
+                return Response::html('<h1>404 Not Found</h1>', 404);
+            }
 
-        return $routeMatch->run($request);
+            return $routeMatch->run($incomingRequest);
+        });
     }
 
     private function shouldRedirectToInstall(Request $request): bool
