@@ -14,7 +14,7 @@ use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Editor\DevMode;
 use App\Infrastructure\Editor\EditableFileRegistry;
 use App\Infrastructure\Editor\EditHistoryLogger;
-use App\Infrastructure\Logging\Logger;
+use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\View\TemplateRenderer;
 
 final class DevModeController
@@ -32,7 +32,7 @@ final class DevModeController
         private readonly DevFileService $devFileService,
         private readonly EditableFileRegistry $fileRegistry,
         private readonly EditHistoryLogger $editHistory,
-        private readonly Logger $logger,
+        private readonly LoggerInterface $logger,
         private readonly string $projectRoot
     ) {
     }

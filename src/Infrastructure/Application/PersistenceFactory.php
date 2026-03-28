@@ -13,14 +13,14 @@ use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
 use App\Infrastructure\Database\PdoFactory;
-use App\Infrastructure\Logging\Logger;
+use App\Domain\Logging\LoggerInterface;
 use RuntimeException;
 
 final class PersistenceFactory
 {
     public function __construct(
         private readonly ConfigRepository $config,
-        private readonly Logger $logger
+        private readonly LoggerInterface $logger
     ) {
     }
 
