@@ -20,6 +20,7 @@ use App\Application\Editor\EditorContentService;
 use App\Application\OCF\OCFExporter;
 use App\Application\SEO\RobotsGenerator;
 use App\Application\SEO\SitemapGenerator;
+use App\Application\Validation\ContentItemValidator;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
@@ -120,8 +121,9 @@ final class ControllerFactory
             && $editorContentService !== null
         ) {
             $listContentItems = new ListContentItems($contentItemRepository, $contentTypeRepository);
-            $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository);
-            $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository);
+            $contentItemValidator = new ContentItemValidator();
+            $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator);
+            $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator);
 
             $contentAdminController = new ContentAdminController(
                 $templateRenderer,

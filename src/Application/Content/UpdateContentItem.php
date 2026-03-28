@@ -7,19 +7,19 @@ namespace App\Application\Content;
 use App\Application\Content\Dto\ContentItemInput;
 use App\Application\Content\Dto\ContentItemValidationResult;
 use App\Domain\Content\ContentItem;
+use App\Application\Validation\ContentItemValidator;
 use App\Domain\Content\ContentStatus;
-use App\Domain\Content\Exception\InvalidSlugException;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Domain\Content\Slug;
 use DateTimeImmutable;
-use ValueError;
 
 final class UpdateContentItem
 {
     public function __construct(
         private readonly ContentItemRepositoryInterface $contentItems,
-        private readonly ContentTypeRepositoryInterface $contentTypes
+        private readonly ContentTypeRepositoryInterface $contentTypes,
+        private readonly ContentItemValidator $validator
     ) {
     }
 
@@ -34,12 +34,14 @@ final class UpdateContentItem
         }
 
         $errors = [];
-        $title = trim($input->title);
 
-        if ($title === '') {
-            $errors['title'] = 'Title is required.';
+        $validationResult = $this->validator->validate($input);
+
+        if (!$validationResult->isValid) {
+            $errors = array_merge($errors, $validationResult->errors);
         }
 
+        $title = $validationResult->values['title'] ?? trim($input->title);
         $contentTypeKey = trim($input->contentType);
         $contentType = $contentTypeKey !== '' ? $this->contentTypes->findByName($contentTypeKey) : null;
 
@@ -49,19 +51,9 @@ final class UpdateContentItem
             $errors['content_type'] = 'Selected content type does not exist.';
         }
 
-        try {
-            $slug = Slug::fromString($input->slug);
-        } catch (InvalidSlugException) {
-            $errors['slug'] = 'Slug is required and may only include lowercase letters, numbers, and hyphens.';
-            $slug = null;
-        }
 
-        try {
-            $status = ContentStatus::fromString($input->status);
-        } catch (ValueError) {
-            $errors['status'] = 'Status is required.';
-            $status = null;
-        }
+        $slug = $validationResult->values['slug'] ?? null;
+        $status = $validationResult->values['status'] ?? null;
 
         if ($slug instanceof Slug) {
             $duplicate = $this->contentItems->findBySlug($slug);
