@@ -25,7 +25,13 @@ final class UpgradeRunner
             return;
         }
 
-        if (!$this->isInstallCompleted()) {
+        if (!$this->upgradeState->hasSettingsRecord()) {
+            $this->logInfo('Upgrade check skipped because settings row is missing; installer should be shown.');
+
+            return;
+        }
+
+        if (!$this->upgradeState->isInstallCompleted()) {
             $this->logInfo('Upgrade check skipped because installation is not completed yet.');
 
             return;
@@ -75,68 +81,6 @@ final class UpgradeRunner
 
         // Future integration point: execute any additional schema/data maintenance routines.
         $this->logInfo('Upgrade task placeholder: future schema upgrade hook is ready.');
-    }
-
-    private function isInstallCompleted(): bool
-    {
-        if (!$this->settingsTableExists()) {
-            return false;
-        }
-
-        try {
-            $result = $this->connection?->fetchOne(
-                <<<'SQL'
-SELECT install_completed
-FROM settings
-ORDER BY id ASC
-LIMIT 1
-SQL
-            );
-        } catch (Throwable) {
-            return false;
-        }
-
-        if ($result === null || !array_key_exists('install_completed', $result)) {
-            return false;
-        }
-
-        $value = $result['install_completed'];
-
-        return match (true) {
-            is_bool($value) => $value,
-            is_int($value) => $value === 1,
-            is_string($value) => in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true),
-            default => false,
-        };
-    }
-
-    private function settingsTableExists(): bool
-    {
-        try {
-            $result = $this->connection?->fetchOne(
-                <<<'SQL'
-SELECT COUNT(*) AS table_count
-FROM information_schema.tables
-WHERE table_schema = DATABASE()
-  AND table_name = 'settings'
-LIMIT 1
-SQL
-            );
-        } catch (Throwable) {
-            return false;
-        }
-
-        if ($result === null || !array_key_exists('table_count', $result)) {
-            return false;
-        }
-
-        $tableCount = $result['table_count'];
-
-        if (is_int($tableCount)) {
-            return $tableCount > 0;
-        }
-
-        return is_string($tableCount) && ctype_digit($tableCount) && (int) $tableCount > 0;
     }
 
     private function persistInstalledVersion(string $version): void

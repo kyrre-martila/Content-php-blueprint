@@ -237,6 +237,7 @@ INSERT INTO settings (id, install_completed, installed_version)
 VALUES (1, :install_completed, :installed_version)
 ON DUPLICATE KEY UPDATE
     id = VALUES(id),
+    install_completed = VALUES(install_completed),
     installed_version = VALUES(installed_version)
 SQL,
             [
