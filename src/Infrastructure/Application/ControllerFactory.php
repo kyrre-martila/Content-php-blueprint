@@ -38,6 +38,7 @@ use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Editor\EditHistoryLogger;
 use App\Infrastructure\Logging\Logger;
 use App\Infrastructure\Pattern\PatternRegistry;
+use App\Infrastructure\Security\LoginRateLimiter;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -77,6 +78,7 @@ final class ControllerFactory
         PatternRegistry $patternRegistry,
         AuthSession $authSession,
         SessionManager $sessionManager,
+        LoginRateLimiter $loginRateLimiter,
         EditorMode $editorMode,
         DevMode $devMode,
         CompositionExporter $compositionExporter,
@@ -155,7 +157,13 @@ final class ControllerFactory
             'homeController' => new HomeController(),
             'healthController' => new HealthController(),
             'searchController' => new SearchController($templateResolver, $templateRenderer),
-            'authController' => new AuthController($templateRenderer, $loginUser, $authSession, $sessionManager),
+            'authController' => new AuthController(
+                $templateRenderer,
+                $loginUser,
+                $authSession,
+                $sessionManager,
+                $loginRateLimiter
+            ),
             'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
             'devModeController' => new DevModeController(
