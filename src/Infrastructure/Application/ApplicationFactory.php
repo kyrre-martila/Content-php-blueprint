@@ -12,6 +12,7 @@ use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Logging\Logger;
+use App\Infrastructure\Security\LoginRateLimiter;
 
 final class ApplicationFactory
 {
@@ -49,6 +50,19 @@ final class ApplicationFactory
         $csrf = new CsrfMiddleware($sessionManager);
         $authSession = new AuthSession($sessionManager);
         $requireAuth = new RequireAuthMiddleware($authSession);
+        $configuredRateLimitAttempts = $this->config->get('security.login_rate_limit_attempts', 5);
+        $rateLimitAttempts = is_int($configuredRateLimitAttempts)
+            ? $configuredRateLimitAttempts
+            : 5;
+        $configuredRateLimitWindowMinutes = $this->config->get('security.login_rate_limit_window_minutes', 10);
+        $rateLimitWindowMinutes = is_int($configuredRateLimitWindowMinutes)
+            ? $configuredRateLimitWindowMinutes
+            : 10;
+        $loginRateLimiter = new LoginRateLimiter(
+            $sessionManager,
+            $rateLimitAttempts,
+            $rateLimitWindowMinutes
+        );
 
         $editors = (new EditorFactory($this->projectRoot))->build(
             $authSession,
@@ -77,6 +91,7 @@ final class ApplicationFactory
             $views['patternRegistry'],
             $authSession,
             $sessionManager,
+            $loginRateLimiter,
             $editors['editorMode'],
             $editors['devMode'],
             $exporters['compositionExporter'],
