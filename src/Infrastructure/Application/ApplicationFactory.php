@@ -7,6 +7,7 @@ namespace App\Infrastructure\Application;
 use App\Http\Kernel;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Routing\RouteRegistry;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
@@ -50,6 +51,7 @@ final class ApplicationFactory
         $csrf = new CsrfMiddleware($sessionManager);
         $authSession = new AuthSession($sessionManager);
         $requireAuth = new RequireAuthMiddleware($authSession);
+        $securityHeaders = new SecurityHeadersMiddleware();
         $configuredRateLimitAttempts = $this->config->get('security.login_rate_limit_attempts', 5);
         $rateLimitAttempts = is_int($configuredRateLimitAttempts)
             ? $configuredRateLimitAttempts
@@ -130,6 +132,7 @@ final class ApplicationFactory
         return new Kernel(
             session: $sessionManager,
             routeRegistry: $routeRegistry,
+            securityHeaders: $securityHeaders,
             installState: $persistence['installState'],
             installationRequired: $persistence['installationRequired']
         );

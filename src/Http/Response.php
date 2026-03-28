@@ -65,6 +65,15 @@ final class Response
         return $this->headers[$name] ?? null;
     }
 
+
+    public function withHeader(string $name, string $value): self
+    {
+        $headers = $this->headers;
+        $headers[$name] = $value;
+
+        return new self($this->body, $this->status, $headers);
+    }
+
     public function send(): void
     {
         http_response_code($this->status);
