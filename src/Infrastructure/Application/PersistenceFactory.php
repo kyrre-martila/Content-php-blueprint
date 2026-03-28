@@ -8,13 +8,13 @@ use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Infrastructure\Auth\MySqlUserRepository;
-use App\Infrastructure\Auth\UnavailableUserRepository;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
 use App\Infrastructure\Database\PdoFactory;
 use App\Infrastructure\Logging\Logger;
+use RuntimeException;
 
 final class PersistenceFactory
 {
@@ -28,21 +28,21 @@ final class PersistenceFactory
      * Build persistence services for runtime.
      *
      * Boundary rules:
-     * - If MySQL bootstrap fails, we DO NOT create temporary/fake repositories.
-     * - Database-backed repositories are marked unavailable and callers must gate construction.
+     * - MySQL bootstrap is required; failures throw immediately.
+     * - Runtime never degrades to unavailable/fallback repositories.
      *
      * @return array{
      *   migrationsTable: string,
-     *   connection: ?Connection,
+     *   connection: Connection,
      *   appVersion: AppVersion,
      *   upgradeState: UpgradeState,
-     *   installState: ?InstallState,
-     *   installationRequired: bool,
-     *   persistenceUnavailableReason: ?string,
+     *   installState: InstallState,
+     *   installationRequired: false,
+     *   persistenceUnavailableReason: null,
      *   repositoriesAvailable: bool,
      *   userRepository: UserRepositoryInterface,
-     *   contentItemRepository: ?ContentItemRepositoryInterface,
-     *   contentTypeRepository: ?ContentTypeRepositoryInterface
+     *   contentItemRepository: ContentItemRepositoryInterface,
+     *   contentTypeRepository: ContentTypeRepositoryInterface
      * }
      */
     public function build(): array
@@ -54,11 +54,6 @@ final class PersistenceFactory
 
         $appVersion = new AppVersion($this->config);
 
-        $connection = null;
-        $installState = null;
-        $installationRequired = false;
-        $persistenceUnavailableReason = null;
-
         try {
             /** @var array<string, mixed> $connectionConfig */
             $connectionConfig = $this->config->get('database.connections.mysql', []);
@@ -66,15 +61,14 @@ final class PersistenceFactory
             $connection = new Connection($pdo);
             $installState = new InstallState($connection, $migrationsTable);
         } catch (\RuntimeException $runtimeException) {
-            $installationRequired = true;
-            $persistenceUnavailableReason = $runtimeException->getMessage();
-
-            $this->logger->warning('Database bootstrap unavailable; database-backed repositories are disabled.', [
-                'error' => $persistenceUnavailableReason,
+            $this->logger->error('Database bootstrap unavailable; aborting application startup.', [
+                'error' => $runtimeException->getMessage(),
             ]);
+
+            throw new RuntimeException('Database connection required but not available', 0, $runtimeException);
         }
 
-        $repositories = $this->buildRepositories($connection, $persistenceUnavailableReason);
+        $repositories = $this->buildRepositories($connection);
         $upgradeState = new UpgradeState($appVersion, $connection);
 
         return [
@@ -83,9 +77,9 @@ final class PersistenceFactory
             'appVersion' => $appVersion,
             'upgradeState' => $upgradeState,
             'installState' => $installState,
-            'installationRequired' => $installationRequired,
-            'persistenceUnavailableReason' => $persistenceUnavailableReason,
-            'repositoriesAvailable' => $connection !== null,
+            'installationRequired' => false,
+            'persistenceUnavailableReason' => null,
+            'repositoriesAvailable' => true,
             'userRepository' => $repositories['userRepository'],
             'contentItemRepository' => $repositories['contentItemRepository'],
             'contentTypeRepository' => $repositories['contentTypeRepository'],
@@ -95,22 +89,12 @@ final class PersistenceFactory
     /**
      * @return array{
      *   userRepository: UserRepositoryInterface,
-     *   contentItemRepository: ?ContentItemRepositoryInterface,
-     *   contentTypeRepository: ?ContentTypeRepositoryInterface
+     *   contentItemRepository: ContentItemRepositoryInterface,
+     *   contentTypeRepository: ContentTypeRepositoryInterface
      * }
      */
-    private function buildRepositories(?Connection $connection, ?string $unavailableReason): array
+    private function buildRepositories(Connection $connection): array
     {
-        if ($connection === null) {
-            return [
-                'userRepository' => new UnavailableUserRepository(
-                    $unavailableReason ?? 'Database bootstrap failed before repositories were available.'
-                ),
-                'contentItemRepository' => null,
-                'contentTypeRepository' => null,
-            ];
-        }
-
         return [
             'userRepository' => new MySqlUserRepository($connection),
             'contentItemRepository' => new MySqlContentItemRepository($connection),
