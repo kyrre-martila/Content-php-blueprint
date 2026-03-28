@@ -156,7 +156,7 @@ final class ControllerFactory
         return [
             'homeController' => new HomeController(),
             'healthController' => new HealthController(),
-            'searchController' => new SearchController($templateResolver, $templateRenderer),
+            'searchController' => new SearchController($templateRenderer),
             'authController' => new AuthController(
                 $templateRenderer,
                 $loginUser,

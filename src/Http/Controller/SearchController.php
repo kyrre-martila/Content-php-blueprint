@@ -7,30 +7,23 @@ namespace App\Http\Controller;
 use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\View\TemplateRenderer;
-use App\Infrastructure\View\TemplateResolver;
 
 final class SearchController
 {
-    public function __construct(
-        private readonly TemplateResolver $templateResolver,
-        private readonly TemplateRenderer $templateRenderer
-    ) {
+    public function __construct(private readonly TemplateRenderer $templateRenderer)
+    {
     }
 
     public function index(Request $request): Response
     {
-        $searchQuery = $request->queryParams()['q'] ?? '';
-        $searchQuery = is_string($searchQuery) ? trim($searchQuery) : '';
-
-        /** @var list<array{title: string, slug: string, excerpt: string}> $searchResults */
-        $searchResults = [];
-
-        $html = $this->templateRenderer->render($this->templateResolver->resolveSystemTemplate('search'), [
+        // TODO: Implement search via ContentRepository full-text search.
+        // TODO: Add MySQL MATCH AGAINST support.
+        // TODO: Add SQLite fallback LIKE search.
+        $html = $this->templateRenderer->render(__DIR__ . '/../../../templates/errors/501.php', [
             'request' => $request,
-            'searchQuery' => $searchQuery,
-            'searchResults' => $searchResults,
+            'message' => 'Search functionality not implemented yet.',
         ]);
 
-        return Response::html($html);
+        return Response::html($html, 501);
     }
 }
