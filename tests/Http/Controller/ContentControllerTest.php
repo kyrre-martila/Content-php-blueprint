@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
 use App\Http\Controller\ContentController;
@@ -98,13 +99,52 @@ it('does not redirect when the request is already canonical', function (): void 
     expect($response->status())->toBe(200);
 });
 
-function makeContentItem(string $slug, ?string $canonicalUrl = null): ContentItem
+it('renders collection template for content types configured as collection view', function (): void {
+    $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-content-controller-' . uniqid('', true);
+    mkdir($templatesBasePath . '/content', 0777, true);
+    mkdir($templatesBasePath . '/collections', 0777, true);
+    mkdir($templatesBasePath . '/system', 0777, true);
+    file_put_contents($templatesBasePath . '/content/page.php', '<?php echo "single-template";');
+    file_put_contents($templatesBasePath . '/collections/page.php', '<?php echo "collection-template";');
+    file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
+
+    $contentItem = makeContentItem('about', null, ContentViewType::COLLECTION);
+    $controller = new ContentController(
+        repositoryWithSingleItem($contentItem),
+        new TemplateResolver($templatesBasePath),
+        new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
+        editorModeForTests()
+    );
+
+    $request = new Request(
+        'GET',
+        '/about',
+        [],
+        [],
+        [],
+        [],
+        ['HTTP_HOST' => 'example.com', 'REQUEST_SCHEME' => 'https'],
+        ['slug' => 'about'],
+        '/about'
+    );
+
+    $response = $controller->show($request);
+
+    expect($response->status())->toBe(200)
+        ->and($response->body())->toContain('collection-template');
+});
+
+function makeContentItem(
+    string $slug,
+    ?string $canonicalUrl = null,
+    ContentViewType $viewType = ContentViewType::SINGLE
+): ContentItem
 {
     $now = new \DateTimeImmutable('2026-03-27 00:00:00');
 
     return new ContentItem(
         id: 1,
-        type: new ContentType('page', 'Page', 'content/default.php'),
+        type: new ContentType('page', 'Page', 'content/default.php', null, $viewType),
         title: 'About',
         slug: Slug::fromString($slug),
         status: ContentStatus::Published,

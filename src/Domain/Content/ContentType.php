@@ -15,7 +15,8 @@ final class ContentType
         private readonly string $name,
         private readonly string $label,
         private readonly string $defaultTemplate,
-        private readonly ?array $fieldDefinitions = null
+        private readonly ?array $fieldDefinitions = null,
+        private readonly ContentViewType $viewType = ContentViewType::SINGLE,
     ) {
         $this->assertNameIsValid($name);
         $this->assertLabelIsValid($label);
@@ -48,6 +49,21 @@ final class ContentType
     public function fieldDefinitions(): ?array
     {
         return $this->fieldDefinitions;
+    }
+
+    public function viewType(): ContentViewType
+    {
+        return $this->viewType;
+    }
+
+    public function isSingleView(): bool
+    {
+        return $this->viewType === ContentViewType::SINGLE;
+    }
+
+    public function isCollectionView(): bool
+    {
+        return $this->viewType === ContentViewType::COLLECTION;
     }
 
     private function assertNameIsValid(string $name): void

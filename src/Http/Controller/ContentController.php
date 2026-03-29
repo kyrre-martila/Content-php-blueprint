@@ -49,7 +49,9 @@ final class ContentController
             return Response::redirect($canonicalRedirect, 301);
         }
 
-        $templatePath = $this->templateResolver->resolveContentTemplate($contentItem->type());
+        $templatePath = $contentItem->type()->isCollectionView()
+            ? $this->templateResolver->resolveCollectionTemplate($contentItem->type())
+            : $this->templateResolver->resolveContentTemplate($contentItem->type());
         $html = $this->templateRenderer->render($templatePath, [
             'contentItem' => $contentItem,
             'request' => $request,

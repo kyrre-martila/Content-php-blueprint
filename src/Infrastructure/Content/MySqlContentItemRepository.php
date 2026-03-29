@@ -7,6 +7,7 @@ namespace App\Infrastructure\Content;
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
 use App\Infrastructure\Database\Connection;
@@ -253,7 +254,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ci.updated_at,
                     ct.slug AS type_slug,
                     ct.name AS type_name,
-                    ct.description AS type_template
+                    ct.description AS type_template,
+                    ct.view_type AS type_view_type
                 FROM content_items ci
                 INNER JOIN content_types ct ON ct.id = ci.content_type_id';
     }
@@ -269,7 +271,9 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         $contentType = new ContentType(
             $this->rowString($row, 'type_slug'),
             $this->rowString($row, 'type_name'),
-            $defaultTemplate
+            $defaultTemplate,
+            null,
+            ContentViewType::fromString($this->rowString($row, 'type_view_type'))
         );
 
         return new ContentItem(
