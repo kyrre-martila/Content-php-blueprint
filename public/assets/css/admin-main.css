@@ -272,6 +272,66 @@
     color: var(--admin-color-danger);
 }
 
+.admin-badge--muted {
+    background: var(--admin-color-bg-subtle);
+    color: var(--admin-color-text-muted);
+}
+
+.admin-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--admin-space-2);
+    min-height: 2rem;
+    padding: var(--admin-space-1) var(--admin-space-3);
+    border: 1px solid var(--admin-color-border-default);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-color-surface);
+    color: var(--admin-color-text-secondary);
+    font-size: var(--admin-font-size-xs);
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--admin-motion-fast) ease, border-color var(--admin-motion-fast) ease, color var(--admin-motion-fast) ease;
+}
+
+.admin-action:hover {
+    border-color: var(--admin-color-border-strong);
+    background: var(--admin-color-bg-subtle);
+    color: var(--admin-color-text-primary);
+}
+
+.admin-action--primary {
+    border-color: var(--admin-color-accent);
+    background: var(--admin-color-accent);
+    color: var(--admin-color-text-inverse);
+}
+
+.admin-action--primary:hover {
+    border-color: var(--admin-color-accent-hover);
+    background: var(--admin-color-accent-hover);
+    color: var(--admin-color-text-inverse);
+}
+
+.admin-action--secondary {
+    background: var(--admin-color-surface-muted);
+    color: var(--admin-color-text-secondary);
+}
+
+.admin-action--danger {
+    border-color: var(--admin-color-danger);
+    background: var(--admin-color-danger-soft);
+    color: var(--admin-color-danger);
+}
+
+.admin-action--danger:hover {
+    border-color: var(--admin-color-danger);
+    background: var(--admin-color-danger);
+    color: var(--admin-color-text-inverse);
+}
+
 .admin-input {
     width: 100%;
     min-height: 2.5rem;
@@ -321,29 +381,79 @@
 
 .admin-table {
     width: 100%;
-    border-collapse: collapse;
     border: 1px solid var(--admin-color-border-soft);
     border-radius: var(--admin-radius-md);
-    overflow: hidden;
     background: var(--admin-color-surface);
+    box-shadow: var(--admin-shadow-xs);
+    overflow: hidden;
 }
 
-.admin-table th,
-.admin-table td {
-    padding: var(--admin-space-3);
+.admin-table__header,
+.admin-table__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-table__header {
+    background: var(--admin-color-surface-muted);
     border-bottom: 1px solid var(--admin-color-border-soft);
-    text-align: left;
-    font-size: var(--admin-font-size-sm);
 }
 
-.admin-table th {
+.admin-table__row {
+    border-bottom: 1px solid var(--admin-color-border-soft);
+    transition: background-color var(--admin-motion-fast) ease;
+}
+
+.admin-table__row:last-child {
+    border-bottom: none;
+}
+
+.admin-table__row:hover {
+    background: var(--admin-color-bg-subtle);
+}
+
+.admin-table__cell {
+    min-width: 0;
+    padding: var(--admin-space-3);
+    color: var(--admin-color-text-secondary);
+    font-size: var(--admin-font-size-sm);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.admin-table__header .admin-table__cell {
     color: var(--admin-color-text-muted);
-    font-weight: 600;
+    font-size: var(--admin-font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-table__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--admin-space-2);
+}
+
+.admin-table--compact .admin-table__cell {
+    padding: var(--admin-space-2) var(--admin-space-3);
+    font-size: var(--admin-font-size-xs);
+}
+
+.admin-table__row--empty {
     background: var(--admin-color-surface-muted);
 }
 
-.admin-table tr:last-child td {
-    border-bottom: none;
+.admin-table__row--empty:hover {
+    background: var(--admin-color-surface-muted);
+}
+
+.admin-table__row--empty .admin-table__cell {
+    text-align: center;
+    color: var(--admin-color-text-muted);
+    padding: var(--admin-space-6) var(--admin-space-4);
 }
 
 @media (min-width: 64rem) {
