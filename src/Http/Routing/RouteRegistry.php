@@ -10,6 +10,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\TemplateAdminController;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
@@ -46,6 +47,7 @@ final class RouteRegistry
         MiddlewareStackBuilder $middlewareStackBuilder,
         ?InstallController $installController = null,
         ?ContentAdminController $contentAdminController = null,
+        ?TemplateAdminController $templateAdminController = null,
         ?EditorModeController $editorModeController = null,
         ?ContentController $contentController = null,
         ?SitemapController $sitemapController = null,
@@ -76,6 +78,7 @@ final class RouteRegistry
             dashboardController: $dashboardController,
             patternController: $patternController,
             contentAdminController: $contentAdminController,
+            templateAdminController: $templateAdminController,
             csrf: $csrf,
             requireAuth: $requireAuth,
             requireRole: $requireAdminRole,

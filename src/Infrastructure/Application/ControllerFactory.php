@@ -10,6 +10,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\TemplateAdminController;
 use App\Application\Auth\LoginUser;
 use App\Application\Composition\CompositionExporter;
 use App\Application\Content\CreateContentItem;
@@ -62,6 +63,7 @@ final class ControllerFactory
      *   authController: AuthController,
      *   dashboardController: DashboardController,
      *   patternController: PatternController,
+ *   templateAdminController: ?TemplateAdminController,
      *   devModeController: DevModeController,
      *   installController: ?InstallController,
      *   contentAdminController: ?ContentAdminController,
@@ -112,6 +114,7 @@ final class ControllerFactory
         }
 
         $contentAdminController = null;
+        $templateAdminController = null;
         $editorModeController = null;
         $contentController = null;
         $sitemapController = null;
@@ -137,6 +140,13 @@ final class ControllerFactory
                 $patternRegistry,
                 $authSession,
                 $sessionManager
+            );
+
+            $templateAdminController = new TemplateAdminController(
+                $templateRenderer,
+                $contentTypeRepository,
+                $authSession,
+                $this->projectRoot
             );
 
             $editorModeController = new EditorModeController(
@@ -171,6 +181,7 @@ final class ControllerFactory
             ),
             'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
+            'templateAdminController' => $templateAdminController,
             'devModeController' => new DevModeController(
                 $templateRenderer,
                 $authSession,

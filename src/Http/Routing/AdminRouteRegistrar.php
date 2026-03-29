@@ -6,6 +6,7 @@ namespace App\Http\Routing;
 
 use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
+use App\Admin\Controller\TemplateAdminController;
 use App\Admin\Controller\PatternController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\MiddlewareStackBuilder;
@@ -18,6 +19,7 @@ final class AdminRouteRegistrar
         private readonly DashboardController $dashboardController,
         private readonly PatternController $patternController,
         private readonly ?ContentAdminController $contentAdminController,
+        private readonly ?TemplateAdminController $templateAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
         private readonly RequireRoleMiddleware $requireRole,
@@ -38,6 +40,13 @@ final class AdminRouteRegistrar
             $this->patternController,
             'index',
         ], $middleware));
+
+        if ($this->templateAdminController !== null) {
+            $routeRegistry->get('/admin/templates', $this->middlewareStackBuilder->wrap([
+                $this->templateAdminController,
+                'index',
+            ], $middleware));
+        }
 
         if ($this->contentAdminController === null) {
             return;

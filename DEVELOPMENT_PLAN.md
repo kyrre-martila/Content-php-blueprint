@@ -58,6 +58,7 @@ This ordering is the active runtime route-priority model.
 
 - `GET /admin` dashboard
 - `GET /admin/patterns` pattern registry endpoint
+- `GET /admin/templates` template manager overview
 - content management (`/admin/content`, create/edit/store/update)
 
 ### Dev Mode routes

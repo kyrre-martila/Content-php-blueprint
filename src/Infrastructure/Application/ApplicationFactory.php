@@ -149,6 +149,7 @@ final class ApplicationFactory
             requireAdminRole: $requireAdminRole,
             installController: $controllers['installController'],
             contentAdminController: $controllers['contentAdminController'],
+            templateAdminController: $controllers['templateAdminController'],
             editorModeController: $controllers['editorModeController'],
             contentController: $controllers['contentController'],
             sitemapController: $controllers['sitemapController'],
