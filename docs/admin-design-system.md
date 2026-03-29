@@ -33,3 +33,45 @@ For any new admin screen:
 2. Reuse base primitives first (`.admin-panel`, `.admin-grid`, `.admin-btn`, `.admin-input`, `.admin-table`, `.admin-badge`).
 3. Add new block classes only when needed, and implement with existing tokens.
 4. Keep CSS mobile-first; add media queries for enhancements, not overrides of desktop-first assumptions.
+
+## Reusable admin table system
+
+### `admin-table` usage
+
+Use `.admin-table` as a generic container and compose rows/cells with BEM elements:
+
+- `.admin-table__header` for the heading row.
+- `.admin-table__row` for each data row.
+- `.admin-table__cell` for each column cell.
+- `.admin-table__actions` to group action controls in a cell.
+- `.admin-table__row--empty` for an empty-state row.
+- `.admin-table--compact` to reduce table density.
+
+The table pattern is intentionally feature-agnostic so the same structure can be reused across any admin list (content, collections, users, settings, and future entities).
+
+### `admin-badge` usage
+
+Status labels use `.admin-badge` with semantic modifiers:
+
+- `.admin-badge--success`
+- `.admin-badge--warning`
+- `.admin-badge--danger`
+- `.admin-badge--muted`
+
+Badge colors come from existing semantic and neutral design tokens only.
+
+### `admin-action` usage
+
+Inline/list row actions use `.admin-action` and optional variants:
+
+- `.admin-action--primary`
+- `.admin-action--secondary`
+- `.admin-action--danger`
+
+These actions are designed for table rows but can be reused in any compact admin control area.
+
+## Summary
+
+- **Components created:** reusable table block/elements (`admin-table` family), status badges (`admin-badge--muted`), and row action controls (`admin-action` family).
+- **Selectors added:** `.admin-badge--muted`, `.admin-action`, `.admin-action--primary`, `.admin-action--secondary`, `.admin-action--danger`, `.admin-table__header`, `.admin-table__row`, `.admin-table__cell`, `.admin-table__actions`, `.admin-table--compact`, `.admin-table__row--empty`.
+- **Reusable table capabilities:** row hover states, compact density mode, semantic badges, reusable action buttons, explicit empty-state rows, and mobile-friendly wrapping to minimize horizontal scrolling.
