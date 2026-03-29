@@ -22,9 +22,9 @@ $primaryNavigation = [
     ],
     [
         'label' => 'Templates',
-        'href' => '#',
+        'href' => '/admin/templates',
         'icon' => '◇',
-        'active' => false,
+        'active' => str_starts_with($currentPath, '/admin/templates'),
     ],
 ];
 

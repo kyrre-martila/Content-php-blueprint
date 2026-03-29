@@ -802,6 +802,36 @@
     font-weight: 700;
 }
 
+
+.admin-table--template-manager {
+    overflow: hidden;
+}
+
+.admin-table__row--template {
+    grid-template-columns: minmax(12rem, 1.25fr) minmax(7rem, 0.75fr) minmax(14rem, 1.5fr) minmax(10rem, 1fr) minmax(7rem, 0.6fr);
+}
+
+.admin-table__row--template .admin-table__cell {
+    display: flex;
+    align-items: center;
+    gap: var(--admin-space-2);
+}
+
+.admin-template-manager__meta {
+    color: var(--admin-color-text-muted);
+    font-size: var(--admin-font-size-xs);
+}
+
+@media (max-width: 63.99rem) {
+    .admin-table__row--template {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-table__row--template .admin-table__cell {
+        padding-block: var(--admin-space-2);
+    }
+}
+
 .admin-table-wrap {
     overflow-x: auto;
 }
