@@ -18,6 +18,14 @@ use RuntimeException;
 
 final class ContentTypeAdminController
 {
+    /**
+     * Core/system content types must not be removable from the admin UI because
+     * routes, templates, and CMS behavior can depend on their existence.
+     *
+     * @var list<string>
+     */
+    private const PROTECTED_CONTENT_TYPES = ['page'];
+
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
@@ -358,7 +366,14 @@ final class ContentTypeAdminController
 
     private function canDelete(ContentType $type): bool
     {
-        return $type->name() !== 'page';
+        return !$this->isProtectedContentType($type);
+    }
+
+    private function isProtectedContentType(ContentType $type): bool
+    {
+        // Future extension: replace/augment this list with a DB-backed
+        // `is_protected` flag or a configuration mapping.
+        return in_array($type->name(), self::PROTECTED_CONTENT_TYPES, true);
     }
 
     private function isDeleteMethod(Request $request): bool
