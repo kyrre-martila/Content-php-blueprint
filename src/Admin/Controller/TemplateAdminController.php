@@ -45,8 +45,21 @@ final class TemplateAdminController
                     'Index' => $this->buildIndexTemplates(),
                     'Content' => $this->buildContentTemplates($contentTypes),
                     'Collections' => $this->buildCollectionTemplates($contentTypes),
-                    'System' => $this->buildSystemTemplates(),
                 ],
+            ]
+        );
+
+        return Response::html($html);
+    }
+
+    public function systemIndex(Request $request): Response
+    {
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/system-templates/index.php',
+            [
+                'request' => $request,
+                'authUser' => $this->authSession->user(),
+                'templates' => $this->buildSystemTemplates(),
             ]
         );
 
@@ -243,8 +256,8 @@ final class TemplateAdminController
     private function buildSystemTemplates(): array
     {
         return [
-            $this->createTemplateEntry('404', 'System', 'templates/system/404.php', null),
-            $this->createTemplateEntry('Search', 'System', 'templates/system/search.php', 'templates/system/404.php'),
+            $this->createTemplateEntry('404 template', 'System', 'templates/system/404.php', null),
+            $this->createTemplateEntry('Search template', 'System', 'templates/system/search.php', null),
         ];
     }
 
