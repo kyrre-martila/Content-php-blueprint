@@ -60,6 +60,37 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         return $this->mapRowToContentItem($row);
     }
 
+    public function findChildrenOf(int $parentId): array
+    {
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' WHERE ci.parent_id = :parent_id ORDER BY ci.sort_order ASC, ci.id ASC',
+            ['parent_id' => $parentId]
+        );
+
+        $contentItems = [];
+
+        foreach ($rows as $row) {
+            $contentItems[] = $this->mapRowToContentItem($row);
+        }
+
+        return $contentItems;
+    }
+
+    public function findRootItems(): array
+    {
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' WHERE ci.parent_id IS NULL ORDER BY ci.sort_order ASC, ci.id ASC'
+        );
+
+        $contentItems = [];
+
+        foreach ($rows as $row) {
+            $contentItems[] = $this->mapRowToContentItem($row);
+        }
+
+        return $contentItems;
+    }
+
     public function findByType(
         ContentType $contentType,
         int $limit = ContentItemRepositoryInterface::DEFAULT_LIMIT,
@@ -255,6 +286,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 og_image,
                 canonical_url,
                 noindex,
+                parent_id,
+                sort_order,
                 created_at,
                 updated_at
             )
@@ -269,6 +302,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 :og_image,
                 :canonical_url,
                 :noindex,
+                :parent_id,
+                :sort_order,
                 :created_at,
                 :updated_at
             )',
@@ -283,6 +318,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 'og_image' => $contentItem->ogImage(),
                 'canonical_url' => $contentItem->canonicalUrl(),
                 'noindex' => $contentItem->noindex() ? 1 : 0,
+                'parent_id' => $contentItem->parentId(),
+                'sort_order' => $contentItem->sortOrder(),
                 'created_at' => $contentItem->createdAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $contentItem->updatedAt()->format('Y-m-d H:i:s'),
             ]
@@ -323,6 +360,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                  og_image = :og_image,
                  canonical_url = :canonical_url,
                  noindex = :noindex,
+                 parent_id = :parent_id,
+                 sort_order = :sort_order,
                  updated_at = :updated_at
              WHERE id = :id',
             [
@@ -337,6 +376,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 'og_image' => $contentItem->ogImage(),
                 'canonical_url' => $contentItem->canonicalUrl(),
                 'noindex' => $contentItem->noindex() ? 1 : 0,
+                'parent_id' => $contentItem->parentId(),
+                'sort_order' => $contentItem->sortOrder(),
                 'updated_at' => $contentItem->updatedAt()->format('Y-m-d H:i:s'),
             ]
         );
@@ -381,6 +422,8 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ci.og_image,
                     ci.canonical_url,
                     ci.noindex,
+                    ci.parent_id,
+                    ci.sort_order,
                     ci.created_at,
                     ci.updated_at,
                     ct.slug AS type_slug,
@@ -434,7 +477,9 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $this->nullableString($row, 'meta_description'),
             $this->nullableString($row, 'og_image'),
             $this->nullableString($row, 'canonical_url'),
-            $this->rowBool($row, 'noindex')
+            $this->rowBool($row, 'noindex'),
+            $this->nullableInt($row, 'parent_id'),
+            $this->rowInt($row, 'sort_order')
         );
     }
 
@@ -484,6 +529,24 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         $string = trim((string) $value);
 
         return $string === '' ? null : $string;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function nullableInt(array $row, string $key): ?int
+    {
+        $value = $row[$key] ?? null;
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (!is_scalar($value) || !is_numeric((string) $value)) {
+            throw new RuntimeException(sprintf('Column "%s" is not a valid nullable integer.', $key));
+        }
+
+        return (int) $value;
     }
 
     /**
