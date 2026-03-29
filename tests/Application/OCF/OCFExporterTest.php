@@ -89,25 +89,29 @@ it('builds a content-only OCF payload without presentation concerns', function (
                 return null;
             }
 
-            public function findByType(ContentType $contentType): array
+            public function findByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
             {
-                return array_values(array_filter(
+                $items = array_values(array_filter(
                     $this->items,
                     static fn (ContentItem $item): bool => $item->type()->equals($contentType)
                 ));
+
+                return ['items' => $items, 'total_count' => count($items), 'limit' => $limit, 'offset' => $offset];
             }
 
-            public function findAllWithTypes(): array
+            public function findAllWithTypes(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
             {
-                return [];
+                return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
             }
 
-            public function findPublished(): array
+            public function findPublished(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
             {
-                return array_values(array_filter(
+                $items = array_values(array_filter(
                     $this->items,
                     static fn (ContentItem $item): bool => $item->isPublished()
                 ));
+
+                return ['items' => $items, 'total_count' => count($items), 'limit' => $limit, 'offset' => $offset];
             }
 
             public function remove(ContentItem $contentItem): void
@@ -205,19 +209,21 @@ it('writes content-export.json and creates storage/exports/ocf automatically', f
                 return null;
             }
 
-            public function findByType(ContentType $contentType): array
+            public function findByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
             {
-                return [$this->item];
+                return ['items' => [$this->item], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset];
             }
 
-            public function findAllWithTypes(): array
+            public function findAllWithTypes(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
             {
-                return [];
+                return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
             }
 
-            public function findPublished(): array
+            public function findPublished(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
             {
-                return $this->item->isPublished() ? [$this->item] : [];
+                $items = $this->item->isPublished() ? [$this->item] : [];
+
+                return ['items' => $items, 'total_count' => count($items), 'limit' => $limit, 'offset' => $offset];
             }
 
             public function remove(ContentItem $contentItem): void

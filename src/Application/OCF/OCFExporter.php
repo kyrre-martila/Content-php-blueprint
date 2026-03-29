@@ -84,7 +84,7 @@ final class OCFExporter
                 'fields' => $contentType->fieldDefinitions() ?? $this->defaultPortableFieldSchema(),
             ];
 
-            foreach ($this->contentItems->findByType($contentType) as $item) {
+            foreach ($this->contentItems->findByType($contentType, PHP_INT_MAX, 0)['items'] as $item) {
                 $id = $item->id();
 
                 if ($id === null) {

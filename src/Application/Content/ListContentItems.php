@@ -14,13 +14,19 @@ final class ListContentItems
     }
 
     /**
-     * @return list<ContentItemSummary>
+     * @return array{
+     *   items: list<ContentItemSummary>,
+     *   total_count: int,
+     *   limit: int,
+     *   offset: int
+     * }
      */
-    public function execute(): array
+    public function execute(int $limit = ContentItemRepositoryInterface::DEFAULT_LIMIT, int $offset = ContentItemRepositoryInterface::DEFAULT_OFFSET): array
     {
+        $result = $this->contentItems->findAllWithTypes($limit, $offset);
         $summaries = [];
 
-        foreach ($this->contentItems->findAllWithTypes() as $items) {
+        foreach ($result['items'] as $items) {
             foreach ($items as $item) {
                 $id = $item->id();
 
@@ -44,6 +50,11 @@ final class ListContentItems
             static fn (ContentItemSummary $a, ContentItemSummary $b): int => strcmp($b->updatedAt, $a->updatedAt)
         );
 
-        return $summaries;
+        return [
+            'items' => $summaries,
+            'total_count' => $result['total_count'],
+            'limit' => $result['limit'],
+            'offset' => $result['offset'],
+        ];
     }
 }

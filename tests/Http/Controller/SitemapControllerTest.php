@@ -34,19 +34,19 @@ it('returns application/xml output from published content items', function (): v
             return null;
         }
 
-        public function findByType(ContentType $contentType): array
+        public function findByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
         {
-            return [];
+            return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
         }
 
-        public function findAllWithTypes(): array
+        public function findAllWithTypes(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
         {
-            return [];
+            return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
         }
 
-        public function findPublished(): array
+        public function findPublished(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
         {
-            return [$this->published];
+            return ['items' => [$this->published], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset];
         }
 
         public function remove(ContentItem $contentItem): void
