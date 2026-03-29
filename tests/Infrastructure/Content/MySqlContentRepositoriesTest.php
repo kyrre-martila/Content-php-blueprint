@@ -6,6 +6,10 @@ use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Slug;
+use App\Domain\Content\Category;
+use App\Domain\Content\CategoryGroup;
+use App\Infrastructure\Content\MySqlCategoryGroupRepository;
+use App\Infrastructure\Content\MySqlCategoryRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
@@ -49,6 +53,45 @@ function buildConnectionForRepositoryTests(): Connection
             updated_at TEXT NOT NULL,
             FOREIGN KEY(content_type_id) REFERENCES content_types(id),
             FOREIGN KEY(parent_id) REFERENCES content_items(id)
+        )'
+    );
+
+
+    $pdo->exec(
+        'CREATE TABLE category_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            description TEXT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            parent_id INTEGER NULL,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL,
+            description TEXT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(group_id) REFERENCES category_groups(id),
+            FOREIGN KEY(parent_id) REFERENCES categories(id),
+            UNIQUE(group_id, slug)
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE content_item_categories (
+            content_item_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL,
+            PRIMARY KEY(content_item_id, category_id),
+            FOREIGN KEY(content_item_id) REFERENCES content_items(id),
+            FOREIGN KEY(category_id) REFERENCES categories(id)
         )'
     );
 
@@ -230,4 +273,106 @@ it('finds root items and children using hierarchy fields', function (): void {
         ->toBe(['child-b0', 'child-b1'])
         ->and($children[0]->hasParent())->toBeTrue()
         ->and($children[0]->parentId())->toBe($rootB->id());
+});
+
+
+it('persists and queries category groups and hierarchical categories', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $groupRepository = new MySqlCategoryGroupRepository($connection);
+    $categoryRepository = new MySqlCategoryRepository($connection);
+
+    $group = $groupRepository->save(new CategoryGroup(
+        id: null,
+        name: 'Locations',
+        slug: Slug::fromString('locations'),
+        description: 'Location grouping',
+        createdAt: new DateTimeImmutable('2026-03-22 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-22 10:00:00')
+    ));
+
+    $root = $categoryRepository->save(new Category(
+        id: null,
+        groupId: $group->id() ?? 0,
+        parentId: null,
+        name: 'Kirkenes',
+        slug: Slug::fromString('kirkenes'),
+        description: null,
+        sortOrder: 1,
+        createdAt: new DateTimeImmutable('2026-03-22 10:01:00'),
+        updatedAt: new DateTimeImmutable('2026-03-22 10:01:00')
+    ));
+
+    $child = $categoryRepository->save(new Category(
+        id: null,
+        groupId: $group->id() ?? 0,
+        parentId: $root->id(),
+        name: 'Harbor',
+        slug: Slug::fromString('harbor'),
+        description: null,
+        sortOrder: 2,
+        createdAt: new DateTimeImmutable('2026-03-22 10:02:00'),
+        updatedAt: new DateTimeImmutable('2026-03-22 10:02:00')
+    ));
+
+    expect($groupRepository->findAllGroups())->toHaveCount(1)
+        ->and($groupRepository->findBySlug('locations')?->name())->toBe('Locations')
+        ->and($categoryRepository->findCategoriesByGroup($group))->toHaveCount(2)
+        ->and($categoryRepository->findRootCategoriesByGroup($group))->toHaveCount(1)
+        ->and($categoryRepository->findRootCategoriesByGroup($group)[0]->name())->toBe('Kirkenes')
+        ->and($categoryRepository->findChildrenOf($root))->toHaveCount(1)
+        ->and($categoryRepository->findChildrenOf($root)[0]->name())->toBe('Harbor')
+        ->and($child->parentId())->toBe($root->id());
+});
+
+it('attaches and detaches categories on content items', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+    $groupRepository = new MySqlCategoryGroupRepository($connection);
+    $categoryRepository = new MySqlCategoryRepository($connection);
+
+    $type = new ContentType('article', 'Article', 'content/default.php');
+    $typeRepository->save($type);
+
+    $item = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $type,
+        title: 'News post',
+        slug: Slug::fromString('news-post'),
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $group = $groupRepository->save(new CategoryGroup(
+        id: null,
+        name: 'Blog categories',
+        slug: Slug::fromString('blog-categories'),
+        description: null,
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $category = $categoryRepository->save(new Category(
+        id: null,
+        groupId: $group->id() ?? 0,
+        parentId: null,
+        name: 'News',
+        slug: Slug::fromString('news'),
+        description: null,
+        sortOrder: 0,
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $categoryRepository->attachCategoryToContentItem($item, $category);
+    $categoryRepository->attachCategoryToContentItem($item, $category);
+
+    $attached = $categoryRepository->findCategoriesForContentItem($item);
+
+    expect($attached)->toHaveCount(1)
+        ->and($attached[0]->name())->toBe('News');
+
+    $categoryRepository->detachCategoryFromContentItem($item, $category);
+
+    expect($categoryRepository->findCategoriesForContentItem($item))->toHaveCount(0);
 });

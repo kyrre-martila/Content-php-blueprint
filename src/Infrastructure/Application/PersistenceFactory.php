@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Infrastructure\Application;
 
 use App\Domain\Auth\Repository\UserRepositoryInterface;
+use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
+use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Infrastructure\Auth\MySqlUserRepository;
 use App\Infrastructure\Config\ConfigRepository;
+use App\Infrastructure\Content\MySqlCategoryGroupRepository;
+use App\Infrastructure\Content\MySqlCategoryRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
@@ -42,7 +46,9 @@ final class PersistenceFactory
      *   repositoriesAvailable: bool,
      *   userRepository: UserRepositoryInterface,
      *   contentItemRepository: ContentItemRepositoryInterface,
-     *   contentTypeRepository: ContentTypeRepositoryInterface
+     *   contentTypeRepository: ContentTypeRepositoryInterface,
+     *   categoryGroupRepository: CategoryGroupRepositoryInterface,
+     *   categoryRepository: CategoryRepositoryInterface
      * }
      */
     public function build(): array
@@ -83,6 +89,8 @@ final class PersistenceFactory
             'userRepository' => $repositories['userRepository'],
             'contentItemRepository' => $repositories['contentItemRepository'],
             'contentTypeRepository' => $repositories['contentTypeRepository'],
+            'categoryGroupRepository' => $repositories['categoryGroupRepository'],
+            'categoryRepository' => $repositories['categoryRepository'],
         ];
     }
 
@@ -90,7 +98,9 @@ final class PersistenceFactory
      * @return array{
      *   userRepository: UserRepositoryInterface,
      *   contentItemRepository: ContentItemRepositoryInterface,
-     *   contentTypeRepository: ContentTypeRepositoryInterface
+     *   contentTypeRepository: ContentTypeRepositoryInterface,
+     *   categoryGroupRepository: CategoryGroupRepositoryInterface,
+     *   categoryRepository: CategoryRepositoryInterface
      * }
      */
     private function buildRepositories(Connection $connection): array
@@ -99,6 +109,8 @@ final class PersistenceFactory
             'userRepository' => new MySqlUserRepository($connection),
             'contentItemRepository' => new MySqlContentItemRepository($connection),
             'contentTypeRepository' => new MySqlContentTypeRepository($connection),
+            'categoryGroupRepository' => new MySqlCategoryGroupRepository($connection),
+            'categoryRepository' => new MySqlCategoryRepository($connection),
         ];
     }
 }
