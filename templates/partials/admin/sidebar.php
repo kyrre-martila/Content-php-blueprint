@@ -111,13 +111,13 @@ $navigationSections = [
                                 >
                                     <span class="admin-sidebar__active-indicator" aria-hidden="true"></span>
                                     <span class="admin-sidebar__icon" aria-hidden="true"><?= $e($item['icon']) ?></span>
-                                    <span><?= $e($item['label']) ?></span>
+                                    <span class="admin-sidebar__label"><?= $e($item['label']) ?></span>
                                 </a>
                             <?php else: ?>
                                 <span class="admin-sidebar__link admin-sidebar__link--future" aria-disabled="true">
                                     <span class="admin-sidebar__active-indicator" aria-hidden="true"></span>
                                     <span class="admin-sidebar__icon" aria-hidden="true"><?= $e($item['icon']) ?></span>
-                                    <span><?= $e($item['label']) ?></span>
+                                    <span class="admin-sidebar__label"><?= $e($item['label']) ?></span>
                                     <span class="admin-sidebar__future-label">Future</span>
                                 </span>
                             <?php endif; ?>
