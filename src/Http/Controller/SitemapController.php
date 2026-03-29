@@ -19,7 +19,7 @@ final class SitemapController
 
     public function index(Request $request): Response
     {
-        $xml = $this->sitemapGenerator->generate($this->contentItems->findPublished());
+        $xml = $this->sitemapGenerator->generate($this->contentItems->findPublished()['items']);
 
         return new Response($xml, 200, ['Content-Type' => 'application/xml; charset=utf-8']);
     }

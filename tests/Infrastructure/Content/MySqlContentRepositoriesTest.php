@@ -101,7 +101,7 @@ it('persists updates and queries content items by id slug and type', function ()
     expect($savedItem->id())->toBeInt()
         ->and($itemRepository->findById($savedItem->id() ?? 0)?->slug()->value())->toBe('hello-world')
         ->and($itemRepository->findBySlug(Slug::fromString('hello-world'))?->title())->toBe('Hello World')
-        ->and($itemRepository->findByType($contentType))->toHaveCount(1);
+        ->and($itemRepository->findByType($contentType)['items'])->toHaveCount(1);
 
     $updated = $savedItem
         ->withTitle('Updated Title', new DateTimeImmutable('2026-03-21 10:00:00'))
@@ -149,9 +149,10 @@ it('loads all content items grouped by content type slug in one repository call'
 
     $grouped = $itemRepository->findAllWithTypes();
 
-    expect($grouped)->toHaveKeys(['article', 'page'])
-        ->and($grouped['page'])->toHaveCount(1)
-        ->and($grouped['page'][0]->slug()->value())->toBe('about')
-        ->and($grouped['article'])->toHaveCount(1)
-        ->and($grouped['article'][0]->slug()->value())->toBe('news');
+    expect($grouped)->toHaveKeys(['items', 'total_count', 'limit', 'offset'])
+        ->and($grouped['items'])->toHaveKeys(['article', 'page'])
+        ->and($grouped['items']['page'])->toHaveCount(1)
+        ->and($grouped['items']['page'][0]->slug()->value())->toBe('about')
+        ->and($grouped['items']['article'])->toHaveCount(1)
+        ->and($grouped['items']['article'][0]->slug()->value())->toBe('news');
 });

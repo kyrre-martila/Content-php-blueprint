@@ -10,6 +10,9 @@ use App\Domain\Content\Slug;
 
 interface ContentItemRepositoryInterface
 {
+    public const DEFAULT_LIMIT = 20;
+    public const DEFAULT_OFFSET = 0;
+
     public function save(ContentItem $contentItem): ContentItem;
 
     public function findById(int $id): ?ContentItem;
@@ -17,19 +20,44 @@ interface ContentItemRepositoryInterface
     public function findBySlug(Slug $slug): ?ContentItem;
 
     /**
-     * @return list<ContentItem>
+     * @return array{
+     *   items: list<ContentItem>,
+     *   total_count: int,
+     *   limit: int,
+     *   offset: int
+     * }
      */
-    public function findByType(ContentType $contentType): array;
+    public function findByType(
+        ContentType $contentType,
+        int $limit = self::DEFAULT_LIMIT,
+        int $offset = self::DEFAULT_OFFSET
+    ): array;
 
     /**
-     * @return array<string, list<ContentItem>>
+     * @return array{
+     *   items: array<string, list<ContentItem>>,
+     *   total_count: int,
+     *   limit: int,
+     *   offset: int
+     * }
      */
-    public function findAllWithTypes(): array;
+    public function findAllWithTypes(
+        int $limit = self::DEFAULT_LIMIT,
+        int $offset = self::DEFAULT_OFFSET
+    ): array;
 
     /**
-     * @return list<ContentItem>
+     * @return array{
+     *   items: list<ContentItem>,
+     *   total_count: int,
+     *   limit: int,
+     *   offset: int
+     * }
      */
-    public function findPublished(): array;
+    public function findPublished(
+        int $limit = self::DEFAULT_LIMIT,
+        int $offset = self::DEFAULT_OFFSET
+    ): array;
 
     public function remove(ContentItem $contentItem): void;
 }

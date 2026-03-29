@@ -34,12 +34,19 @@ final class ContentAdminController
 
     public function index(Request $request): Response
     {
+        $listing = $this->listContentItems->execute();
+
         $html = $this->templateRenderer->render(
             dirname(__DIR__, 3) . '/templates/admin/content/index.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
-                'items' => $this->listContentItems->execute(),
+                'items' => $listing['items'],
+                'pagination' => [
+                    'total_count' => $listing['total_count'],
+                    'limit' => $listing['limit'],
+                    'offset' => $listing['offset'],
+                ],
                 'success' => $this->session->pullFlash('content_success'),
             ]
         );

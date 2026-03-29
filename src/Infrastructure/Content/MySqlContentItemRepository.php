@@ -60,11 +60,31 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         return $this->mapRowToContentItem($row);
     }
 
-    public function findByType(ContentType $contentType): array
+    public function findByType(
+        ContentType $contentType,
+        int $limit = ContentItemRepositoryInterface::DEFAULT_LIMIT,
+        int $offset = ContentItemRepositoryInterface::DEFAULT_OFFSET
+    ): array
     {
-        $rows = $this->connection->fetchAll(
-            $this->baseSelectSql() . ' WHERE ct.slug = :slug ORDER BY ci.created_at DESC, ci.id DESC',
+        ['limit' => $safeLimit, 'offset' => $safeOffset] = $this->normalizePagination($limit, $offset);
+
+        $countRow = $this->connection->fetchOne(
+            'SELECT COUNT(*) AS total_count
+             FROM content_items ci
+             INNER JOIN content_types ct ON ct.id = ci.content_type_id
+             WHERE ct.slug = :slug',
             ['slug' => $contentType->name()]
+        );
+
+        $totalCount = $countRow === null ? 0 : $this->rowInt($countRow, 'total_count');
+
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' WHERE ct.slug = :slug ORDER BY ci.created_at DESC, ci.id DESC LIMIT :limit OFFSET :offset',
+            [
+                'slug' => $contentType->name(),
+                'limit' => $safeLimit,
+                'offset' => $safeOffset,
+            ]
         );
 
         $contentItems = [];
@@ -73,13 +93,30 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $contentItems[] = $this->mapRowToContentItem($row);
         }
 
-        return $contentItems;
+        return [
+            'items' => $contentItems,
+            'total_count' => $totalCount,
+            'limit' => $safeLimit,
+            'offset' => $safeOffset,
+        ];
     }
 
-    public function findAllWithTypes(): array
+    public function findAllWithTypes(
+        int $limit = ContentItemRepositoryInterface::DEFAULT_LIMIT,
+        int $offset = ContentItemRepositoryInterface::DEFAULT_OFFSET
+    ): array
     {
+        ['limit' => $safeLimit, 'offset' => $safeOffset] = $this->normalizePagination($limit, $offset);
+
+        $countRow = $this->connection->fetchOne('SELECT COUNT(*) AS total_count FROM content_items');
+        $totalCount = $countRow === null ? 0 : $this->rowInt($countRow, 'total_count');
+
         $rows = $this->connection->fetchAll(
-            $this->baseSelectSql() . ' ORDER BY ct.slug ASC, ci.created_at DESC, ci.id DESC'
+            $this->baseSelectSql() . ' ORDER BY ct.slug ASC, ci.created_at DESC, ci.id DESC LIMIT :limit OFFSET :offset',
+            [
+                'limit' => $safeLimit,
+                'offset' => $safeOffset,
+            ]
         );
 
         /** @var array<string, list<ContentItem>> $groupedContentItems */
@@ -95,14 +132,35 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $groupedContentItems[$typeSlug][] = $this->mapRowToContentItem($row);
         }
 
-        return $groupedContentItems;
+        return [
+            'items' => $groupedContentItems,
+            'total_count' => $totalCount,
+            'limit' => $safeLimit,
+            'offset' => $safeOffset,
+        ];
     }
 
-    public function findPublished(): array
+    public function findPublished(
+        int $limit = ContentItemRepositoryInterface::DEFAULT_LIMIT,
+        int $offset = ContentItemRepositoryInterface::DEFAULT_OFFSET
+    ): array
     {
-        $rows = $this->connection->fetchAll(
-            $this->baseSelectSql() . ' WHERE ci.status = :status ORDER BY ci.updated_at DESC, ci.id DESC',
+        ['limit' => $safeLimit, 'offset' => $safeOffset] = $this->normalizePagination($limit, $offset);
+
+        $countRow = $this->connection->fetchOne(
+            'SELECT COUNT(*) AS total_count FROM content_items ci WHERE ci.status = :status',
             ['status' => ContentStatus::Published->value]
+        );
+
+        $totalCount = $countRow === null ? 0 : $this->rowInt($countRow, 'total_count');
+
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' WHERE ci.status = :status ORDER BY ci.updated_at DESC, ci.id DESC LIMIT :limit OFFSET :offset',
+            [
+                'status' => ContentStatus::Published->value,
+                'limit' => $safeLimit,
+                'offset' => $safeOffset,
+            ]
         );
 
         $contentItems = [];
@@ -111,7 +169,12 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $contentItems[] = $this->mapRowToContentItem($row);
         }
 
-        return $contentItems;
+        return [
+            'items' => $contentItems,
+            'total_count' => $totalCount,
+            'limit' => $safeLimit,
+            'offset' => $safeOffset,
+        ];
     }
 
     public function remove(ContentItem $contentItem): void
@@ -280,6 +343,20 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ct.view_type AS type_view_type
                 FROM content_items ci
                 INNER JOIN content_types ct ON ct.id = ci.content_type_id';
+    }
+
+    /**
+     * @return array{limit: int, offset: int}
+     */
+    private function normalizePagination(int $limit, int $offset): array
+    {
+        $safeLimit = $limit > 0 ? $limit : ContentItemRepositoryInterface::DEFAULT_LIMIT;
+        $safeOffset = max(0, $offset);
+
+        return [
+            'limit' => $safeLimit,
+            'offset' => $safeOffset,
+        ];
     }
 
     /**
