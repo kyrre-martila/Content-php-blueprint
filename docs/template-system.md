@@ -9,16 +9,20 @@ Implemented template structure:
 ```text
 templates/
   index.php
+  content/
+    {content_type}.php
+  collections/
+    {content_type}.php
   system/
+    {route}.php
     404.php
-    search.php
 ```
 
 ### Rendering model
 
-- `templates/index.php` is the universal renderer for content-driven pages.
-- `templates/system/404.php` is the dedicated renderer for not-found responses.
-- `templates/system/search.php` is the dedicated renderer for search responses.
+- Content routes try `templates/content/{content_type}.php` first, then fall back to `templates/index.php`.
+- Collection routes try `templates/collections/{content_type}.php` first, then fall back to `templates/system/404.php`.
+- System routes try `templates/system/{route}.php` first, then fall back to `templates/system/404.php`.
 - Pattern blocks remain the primary mechanism for page structure within content templates.
 
 ### Intentional exclusions in v1
@@ -28,7 +32,7 @@ Template System v1 does **not** implement a WordPress-style hierarchy.
 Not included:
 
 - slug templates
-- content-type templates
+- per-content-item template overrides
 - editor-selected template switching
 - dynamic arbitrary include chains
 
@@ -36,11 +40,10 @@ Not included:
 
 `TemplateResolver` maps routes to templates with explicit methods:
 
-- `resolveContentTemplate()` → `templates/index.php`
-- `resolveNotFound()` → `templates/system/404.php`
-- `resolveSystemTemplate('search')` → `templates/system/search.php`
-
-System template resolution is deterministic: the resolver checks `templates/system/{name}.php` and falls back to `templates/system/404.php` if the requested system template file does not exist.
+- `resolveContentTemplate(ContentType $type)` → `templates/content/{content_type}.php`, then `templates/index.php`
+- `resolveCollectionTemplate(ContentType $type)` → `templates/collections/{content_type}.php`, then `templates/system/404.php`
+- `resolveSystemTemplate(string $route)` → `templates/system/{route}.php`, then `templates/system/404.php`
+- `resolveNotFound()` → `resolveSystemTemplate('404')`
 
 ### Rendering coordination guardrail
 

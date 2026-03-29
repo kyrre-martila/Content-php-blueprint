@@ -95,9 +95,10 @@ Template runtime is intentionally minimal and deterministic.
 
 ### Resolver behavior
 
-- `resolveContentTemplate()` → `templates/index.php`
-- `resolveNotFound()` → `templates/system/404.php`
-- `resolveSystemTemplate('search')` → `templates/system/search.php` (fallback to `templates/system/404.php` if missing)
+- `resolveContentTemplate(ContentType $type)` → `templates/content/{content_type}.php`, fallback `templates/index.php`
+- `resolveCollectionTemplate(ContentType $type)` → `templates/collections/{content_type}.php`, fallback `templates/system/404.php`
+- `resolveSystemTemplate(string $route)` → `templates/system/{route}.php`, fallback `templates/system/404.php`
+- `resolveNotFound()` → `resolveSystemTemplate('404')`
 
 ### Layout behavior
 
