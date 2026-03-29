@@ -518,13 +518,16 @@
     color: var(--admin-color-text-muted);
 }
 
+.admin-sidebar__navs {
+    display: grid;
+    gap: var(--admin-space-4);
+}
+
 .admin-sidebar__nav {
     display: grid;
     gap: var(--admin-space-2);
-}
-
-.admin-sidebar__nav--system {
-    margin-top: auto;
+    padding-top: var(--admin-space-3);
+    border-top: 1px solid var(--admin-color-border-soft);
 }
 
 .admin-sidebar__section-title {
@@ -546,9 +549,11 @@
 }
 
 .admin-sidebar__link {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--admin-space-3);
+    min-height: 2.5rem;
     padding: var(--admin-space-2) var(--admin-space-3);
     border-radius: var(--admin-radius-md);
     color: var(--admin-color-text-secondary);
@@ -562,15 +567,48 @@
 }
 
 .admin-sidebar__link--active {
-    background: var(--admin-color-bg-subtle);
+    background: var(--admin-color-accent-soft);
     color: var(--admin-color-text-primary);
     font-weight: 600;
+}
+
+.admin-sidebar__active-indicator {
+    width: var(--admin-space-1);
+    align-self: stretch;
+    border-radius: var(--admin-radius-pill);
+    background: transparent;
+}
+
+.admin-sidebar__link--active .admin-sidebar__active-indicator {
+    background: var(--admin-color-accent);
 }
 
 .admin-sidebar__icon {
     width: 1rem;
     text-align: center;
     color: var(--admin-color-text-muted);
+}
+
+.admin-sidebar__link--future {
+    color: var(--admin-color-text-muted);
+}
+
+.admin-sidebar__future-label {
+    margin-left: auto;
+    font-size: var(--admin-font-size-xs);
+    color: var(--admin-color-text-muted);
+}
+
+/* Future-ready collapsed sidebar shell; collapse logic intentionally not implemented yet. */
+.admin__sidebar.sidebar--collapsed {
+    width: var(--admin-space-12);
+}
+
+.admin__sidebar.sidebar--collapsed .admin-sidebar__brand-subtitle,
+.admin__sidebar.sidebar--collapsed .admin-sidebar__section-title,
+.admin__sidebar.sidebar--collapsed .admin-sidebar__future-label,
+.admin__sidebar.sidebar--collapsed .admin-sidebar__link span:not(.admin-sidebar__icon):not(.admin-sidebar__active-indicator) {
+    display: none;
 }
 
 .admin-topbar__title-group {
@@ -916,6 +954,14 @@
 }
 
 @media (max-width: 63.99rem) {
+    .admin__sidebar {
+        position: static;
+    }
+
+    .admin-sidebar__navs {
+        grid-template-columns: 1fr;
+    }
+
     .admin__topbar {
         flex-wrap: wrap;
         gap: var(--admin-space-3);
