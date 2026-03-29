@@ -93,17 +93,17 @@ final class DashboardController
                     [
                         'label' => 'Open Template Manager',
                         'href' => '/admin/templates',
-                        'class' => 'admin-action admin-action--secondary',
+                        'class' => 'admin-action admin-action--primary',
                     ],
                     [
                         'label' => 'Open System Templates',
                         'href' => '/admin/system-templates',
-                        'class' => 'admin-action admin-action--secondary',
+                        'class' => 'admin-action admin-action--primary',
                     ],
                     [
                         'label' => 'Create Content Item',
                         'href' => '#',
-                        'class' => 'admin-action admin-action--secondary',
+                        'class' => 'admin-action admin-action--primary',
                         'isPlaceholder' => true,
                     ],
                 ],
