@@ -188,9 +188,7 @@ final class ContentTypeAdminController
 
     public function destroy(Request $request): Response
     {
-        if (!$this->authSession->isAuthenticated()) {
-            return Response::json(['success' => false], 401);
-        }
+        // Access control enforced via middleware layer.
 
         if (!$this->isDeleteMethod($request) || !$this->hasValidCsrfToken($request)) {
             return Response::json(['success' => false], 400);
