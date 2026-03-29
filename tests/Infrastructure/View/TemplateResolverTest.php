@@ -99,3 +99,31 @@ function createTemplateDirectory(array $files): string
 
     return $templatesPath;
 }
+
+
+it('reports template file existence for relative and templates-prefixed paths', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'content/page.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->templateExists('content/page.php'))->toBeTrue()
+        ->and($resolver->templateExists('templates/content/page.php'))->toBeTrue()
+        ->and($resolver->templateExists('content/missing.php'))->toBeFalse();
+});
+
+it('builds template existence map for configured directories', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'content/page.php' => '<?php',
+        'collections/article.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->templateExistsMap())
+        ->toMatchArray([
+            'content/page.php' => true,
+            'collections/article.php' => true,
+        ]);
+});

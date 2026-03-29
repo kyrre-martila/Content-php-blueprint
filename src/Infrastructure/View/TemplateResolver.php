@@ -19,7 +19,7 @@ final class TemplateResolver
         // 2) templates/index.php fallback
         $contentTypeTemplate = $this->resolveTemplatePath('content/' . $type->name() . '.php');
 
-        if (is_file($contentTypeTemplate)) {
+        if ($this->templateExists($contentTypeTemplate)) {
             return $contentTypeTemplate;
         }
 
@@ -33,7 +33,7 @@ final class TemplateResolver
         // 2) templates/system/404.php fallback
         $collectionTemplate = $this->resolveTemplatePath('collections/' . $type->name() . '.php');
 
-        if (is_file($collectionTemplate)) {
+        if ($this->templateExists($collectionTemplate)) {
             return $collectionTemplate;
         }
 
@@ -43,6 +43,52 @@ final class TemplateResolver
     public function resolveNotFound(): string
     {
         return $this->resolveSystemTemplate('404');
+    }
+
+    public function templateExists(string $path): bool
+    {
+        $normalizedPath = ltrim(trim($path), '/');
+
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        if (str_starts_with($normalizedPath, 'templates/')) {
+            $normalizedPath = substr($normalizedPath, strlen('templates/'));
+        }
+
+        return is_file($this->resolveTemplatePath($normalizedPath));
+    }
+
+    /**
+     * @param list<string> $directories
+     * @return array<string, bool>
+     */
+    public function templateExistsMap(array $directories = ['content', 'collections']): array
+    {
+        $map = [];
+
+        foreach ($directories as $directory) {
+            $normalizedDirectory = trim($directory, '/');
+
+            if ($normalizedDirectory === '') {
+                continue;
+            }
+
+            $pattern = $this->resolveTemplatePath($normalizedDirectory . '/*.php');
+            $files = glob($pattern);
+
+            if ($files === false) {
+                continue;
+            }
+
+            foreach ($files as $file) {
+                $path = $normalizedDirectory . '/' . basename($file);
+                $map[$path] = true;
+            }
+        }
+
+        return $map;
     }
 
     public function resolveSystemTemplate(string $route): string
@@ -56,7 +102,7 @@ final class TemplateResolver
         // 2) templates/system/404.php fallback
         $systemTemplate = $this->resolveTemplatePath('system/' . $normalizedRoute . '.php');
 
-        if (is_file($systemTemplate)) {
+        if ($this->templateExists($systemTemplate)) {
             return $systemTemplate;
         }
 

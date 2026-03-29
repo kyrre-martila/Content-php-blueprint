@@ -10,6 +10,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\View\TemplateRenderer;
+use App\Infrastructure\View\TemplateResolver;
 
 final class TemplateAdminController
 {
@@ -17,7 +18,7 @@ final class TemplateAdminController
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
         private readonly AuthSession $authSession,
-        private readonly string $projectRoot,
+        private readonly TemplateResolver $templateResolver,
     ) {
     }
 
@@ -120,8 +121,8 @@ final class TemplateAdminController
         ?string $fallbackPath,
         bool $isFallbackRole = false,
     ): array {
-        $exists = $this->fileExists($path);
-        $fallbackExists = $fallbackPath !== null ? $this->fileExists($fallbackPath) : false;
+        $exists = $this->templateResolver->templateExists($path);
+        $fallbackExists = $fallbackPath !== null ? $this->templateResolver->templateExists($fallbackPath) : false;
 
         $status = 'missing';
         if ($exists) {
@@ -141,8 +142,4 @@ final class TemplateAdminController
         ];
     }
 
-    private function fileExists(string $relativePath): bool
-    {
-        return is_file($this->projectRoot . '/' . ltrim($relativePath, '/'));
-    }
 }
