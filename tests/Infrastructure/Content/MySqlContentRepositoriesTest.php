@@ -97,6 +97,16 @@ function buildConnectionForRepositoryTests(): Connection
     );
 
     $pdo->exec(
+        'CREATE TABLE content_type_category_groups (
+            content_type_id INTEGER NOT NULL,
+            category_group_id INTEGER NOT NULL,
+            PRIMARY KEY(content_type_id, category_group_id),
+            FOREIGN KEY(content_type_id) REFERENCES content_types(id),
+            FOREIGN KEY(category_group_id) REFERENCES category_groups(id)
+        )'
+    );
+
+    $pdo->exec(
         'CREATE TABLE content_item_relationships (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             from_content_item_id INTEGER NOT NULL,
@@ -130,6 +140,53 @@ it('persists and reads content types', function (): void {
         ->and($found?->defaultTemplate())->toBe('templates/pages/article.php')
         ->and($found?->viewType())->toBe(ContentViewType::COLLECTION)
         ->and($repository->findAll())->toHaveCount(1);
+});
+
+it('loads and manages allowed category groups for a content type', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $repository = new MySqlContentTypeRepository($connection);
+    $groupRepository = new MySqlCategoryGroupRepository($connection);
+
+    $contentType = new ContentType('article', 'Article', 'content/default.php');
+    $repository->save($contentType);
+
+    $blogCategories = $groupRepository->save(new CategoryGroup(
+        id: null,
+        name: 'Blog categories',
+        slug: Slug::fromString('blog-categories'),
+        description: null,
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $locations = $groupRepository->save(new CategoryGroup(
+        id: null,
+        name: 'Locations',
+        slug: Slug::fromString('locations'),
+        description: null,
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $repository->attachCategoryGroup($contentType, $blogCategories);
+    $repository->attachCategoryGroup($contentType, $blogCategories);
+    $repository->attachCategoryGroup($contentType, $locations);
+
+    $allowedGroups = $repository->getAllowedCategoryGroups($contentType);
+    $loadedType = $repository->findByName('article');
+
+    expect($allowedGroups)->toHaveCount(2)
+        ->and(array_map(static fn (CategoryGroup $group): string => $group->slug()->value(), $allowedGroups))
+        ->toBe(['blog-categories', 'locations'])
+        ->and($loadedType)->not->toBeNull()
+        ->and($loadedType?->allowedCategoryGroupIds())->toBe([
+            $blogCategories->id(),
+            $locations->id(),
+        ]);
+
+    $repository->detachCategoryGroup($contentType, $blogCategories);
+
+    expect($repository->findByName('article')?->allowedCategoryGroupIds())->toBe([$locations->id()]);
 });
 
 it('persists updates and queries content items by id slug and type', function (): void {
@@ -380,6 +437,7 @@ it('attaches and detaches categories on content items', function (): void {
         updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
     ));
 
+    $typeRepository->attachCategoryGroup($type, $group);
     $categoryRepository->attachCategoryToContentItem($item, $category);
     $categoryRepository->attachCategoryToContentItem($item, $category);
 
@@ -391,6 +449,50 @@ it('attaches and detaches categories on content items', function (): void {
     $categoryRepository->detachCategoryFromContentItem($item, $category);
 
     expect($categoryRepository->findCategoriesForContentItem($item))->toHaveCount(0);
+});
+
+it('rejects attaching categories from category groups not allowed by content type', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+    $groupRepository = new MySqlCategoryGroupRepository($connection);
+    $categoryRepository = new MySqlCategoryRepository($connection);
+
+    $type = new ContentType('event', 'Event', 'content/default.php');
+    $typeRepository->save($type);
+
+    $item = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $type,
+        title: 'Expo',
+        slug: Slug::fromString('expo'),
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $group = $groupRepository->save(new CategoryGroup(
+        id: null,
+        name: 'Product categories',
+        slug: Slug::fromString('product-categories'),
+        description: null,
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    $category = $categoryRepository->save(new Category(
+        id: null,
+        groupId: $group->id() ?? 0,
+        parentId: null,
+        name: 'Widgets',
+        slug: Slug::fromString('widgets'),
+        description: null,
+        sortOrder: 0,
+        createdAt: new DateTimeImmutable('2026-03-23 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-23 10:00:00')
+    ));
+
+    expect(static fn () => $categoryRepository->attachCategoryToContentItem($item, $category))
+        ->toThrow(RuntimeException::class, 'Cannot attach category from a group that is not allowed for this content type.');
 });
 
 it('attaches finds and detaches content relationships independently of hierarchy and categories', function (): void {
