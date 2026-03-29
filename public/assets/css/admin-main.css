@@ -808,12 +808,43 @@
 
 .admin-dashboard {
     display: grid;
-    gap: var(--admin-space-4);
+    gap: var(--admin-space-6);
+}
+
+.admin-dashboard__header {
+    display: grid;
+    gap: var(--admin-space-2);
+}
+
+.admin-dashboard__eyebrow {
+    margin: 0;
+    color: var(--admin-color-text-muted);
+    font-size: var(--admin-font-size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.admin-dashboard__title {
+    margin: 0;
+    font-size: var(--admin-font-size-2xl);
+    line-height: 1.15;
+}
+
+.admin-dashboard__description {
+    margin: 0;
+    color: var(--admin-color-text-muted);
+    font-size: var(--admin-font-size-md);
 }
 
 .admin-section {
     display: grid;
-    gap: var(--admin-space-3);
+    gap: var(--admin-space-4);
+}
+
+.admin-section--divided {
+    padding-top: var(--admin-space-5);
+    border-top: 1px solid var(--admin-color-border-soft);
 }
 
 .admin-section__title {
@@ -837,9 +868,24 @@
     gap: var(--admin-space-3);
 }
 
+.admin-card__header--stacked {
+    display: grid;
+    justify-items: start;
+    gap: var(--admin-space-2);
+}
+
 .admin-card__title {
     margin: 0;
     font-size: var(--admin-font-size-lg);
+}
+
+.admin-card__meta {
+    margin: 0;
+    color: var(--admin-color-text-muted);
+    font-size: var(--admin-font-size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .admin-hero {
@@ -861,6 +907,12 @@
 
 .admin-actions--stack {
     display: grid;
+    gap: var(--admin-space-3);
+}
+
+.admin-action--block {
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .admin-grid--stats-wide {
