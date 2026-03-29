@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Application;
 
+use App\Domain\Auth\Role;
 use App\Http\Kernel;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\RequireAuthMiddleware;
+use App\Http\Middleware\RequireRoleMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Routing\RouteRegistry;
 use App\Infrastructure\Auth\AuthSession;
@@ -60,6 +62,10 @@ final class ApplicationFactory
         $csrf = new CsrfMiddleware($sessionManager);
         $authSession = new AuthSession($sessionManager);
         $requireAuth = new RequireAuthMiddleware($authSession);
+        $requireAdminRole = new RequireRoleMiddleware(
+            $authSession,
+            [Role::ADMIN, Role::SUPERADMIN]
+        );
         $securityHeaders = new SecurityHeadersMiddleware();
         $configuredRateLimitAttempts = $this->config->get('security.login_rate_limit_attempts', 5);
         $rateLimitAttempts = is_int($configuredRateLimitAttempts)
@@ -140,6 +146,7 @@ final class ApplicationFactory
             devModeController: $controllers['devModeController'],
             csrf: $csrf,
             requireAuth: $requireAuth,
+            requireAdminRole: $requireAdminRole,
             installController: $controllers['installController'],
             contentAdminController: $controllers['contentAdminController'],
             editorModeController: $controllers['editorModeController'],
