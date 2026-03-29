@@ -149,7 +149,11 @@ final class ControllerFactory
                 $templateRenderer,
                 $contentTypeRepository,
                 $authSession,
-                $templateResolver
+                $sessionManager,
+                $templateResolver,
+                $devModeFiles,
+                $devFileService,
+                $this->logger
             );
 
             $contentTypeAdminController = new ContentTypeAdminController(

@@ -62,7 +62,7 @@ $adminPageDescription = 'Manage index, content, collection, and system template 
                                 </div>
                                 <div class="admin-table__cell">
                                     <a class="admin-action admin-action--secondary" href="<?= $e((string) $entry['editPath']) ?>">
-                                        <?= (($entry['status'] ?? '') === 'exists') ? 'Edit' : 'Create' ?>
+                                        Edit
                                     </a>
                                 </div>
                             </div>
