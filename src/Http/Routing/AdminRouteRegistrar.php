@@ -10,8 +10,7 @@ use App\Admin\Controller\PatternController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
-use App\Http\Request;
-use App\Http\Response;
+use App\Http\Middleware\RequireRoleMiddleware;
 
 final class AdminRouteRegistrar
 {
@@ -21,13 +20,14 @@ final class AdminRouteRegistrar
         private readonly ?ContentAdminController $contentAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
+        private readonly RequireRoleMiddleware $requireRole,
         private readonly MiddlewareStackBuilder $middlewareStackBuilder,
     ) {
     }
 
     public function register(RouteRegistry $routeRegistry): void
     {
-        $middleware = [$this->csrf, $this->requireAuth];
+        $middleware = [$this->csrf, $this->requireAuth, $this->requireRole];
 
         $routeRegistry->get('/admin', $this->middlewareStackBuilder->wrap([
             $this->dashboardController,

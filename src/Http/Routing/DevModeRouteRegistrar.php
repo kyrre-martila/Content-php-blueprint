@@ -6,9 +6,9 @@ namespace App\Http\Routing;
 
 use App\Admin\Controller\DevModeController;
 use App\Http\Middleware\CsrfMiddleware;
+use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
-use App\Http\Request;
-use App\Http\Response;
+use App\Http\Middleware\RequireRoleMiddleware;
 
 final class DevModeRouteRegistrar
 {
@@ -16,66 +16,61 @@ final class DevModeRouteRegistrar
         private readonly DevModeController $devModeController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
+        private readonly RequireRoleMiddleware $requireRole,
+        private readonly MiddlewareStackBuilder $middlewareStackBuilder,
     ) {
     }
 
     public function register(RouteRegistry $routeRegistry): void
     {
-        $enableHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'enable']
-            )
-        );
-        $disableHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'disable']
-            )
-        );
-        $indexHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'index']
-            )
-        );
-        $editHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'edit']
-            )
-        );
-        $updateHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'update']
-            )
-        );
-        $exportHandler = fn (Request $request): Response => ($this->csrf)(
-            $request,
-            fn (Request $csrfRequest): Response => ($this->requireAuth)(
-                $csrfRequest,
-                [$this->devModeController, 'exportSnapshot']
-            )
-        );
+        $middleware = [$this->csrf, $this->requireAuth, $this->requireRole];
 
-        $routeRegistry->post('/admin/dev-mode/enable', $enableHandler);
-        $routeRegistry->post('/admin/dev-mode/disable', $disableHandler);
-        $routeRegistry->get('/admin/dev-mode', $indexHandler);
-        $routeRegistry->get('/admin/dev-mode/edit', $editHandler);
-        $routeRegistry->post('/admin/dev-mode/edit', $updateHandler);
-        $routeRegistry->post('/admin/dev/export', $exportHandler);
+        $routeRegistry->post('/admin/dev-mode/enable', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'enable',
+        ], $middleware));
+        $routeRegistry->post('/admin/dev-mode/disable', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'disable',
+        ], $middleware));
+        $routeRegistry->get('/admin/dev-mode', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'index',
+        ], $middleware));
+        $routeRegistry->get('/admin/dev-mode/edit', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'edit',
+        ], $middleware));
+        $routeRegistry->post('/admin/dev-mode/edit', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'update',
+        ], $middleware));
+        $routeRegistry->post('/admin/dev/export', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'exportSnapshot',
+        ], $middleware));
 
         // System aliases
-        $routeRegistry->post('/dev/enable', $enableHandler);
-        $routeRegistry->post('/dev/disable', $disableHandler);
-        $routeRegistry->get('/dev', $indexHandler);
-        $routeRegistry->get('/dev/edit', $editHandler);
-        $routeRegistry->post('/dev/edit', $updateHandler);
+        $routeRegistry->post('/dev/enable', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'enable',
+        ], $middleware));
+        $routeRegistry->post('/dev/disable', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'disable',
+        ], $middleware));
+        $routeRegistry->get('/dev', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'index',
+        ], $middleware));
+        $routeRegistry->get('/dev/edit', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'edit',
+        ], $middleware));
+        $routeRegistry->post('/dev/edit', $this->middlewareStackBuilder->wrap([
+            $this->devModeController,
+            'update',
+        ], $middleware));
     }
+
 }

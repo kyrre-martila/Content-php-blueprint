@@ -20,6 +20,7 @@ use App\Http\Controller\SitemapController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
+use App\Http\Middleware\RequireRoleMiddleware;
 use App\Http\Request;
 use App\Http\Response;
 use App\Http\Route;
@@ -41,6 +42,7 @@ final class RouteRegistry
         DevModeController $devModeController,
         CsrfMiddleware $csrf,
         RequireAuthMiddleware $requireAuth,
+        RequireRoleMiddleware $requireAdminRole,
         MiddlewareStackBuilder $middlewareStackBuilder,
         ?InstallController $installController = null,
         ?ContentAdminController $contentAdminController = null,
@@ -76,6 +78,7 @@ final class RouteRegistry
             contentAdminController: $contentAdminController,
             csrf: $csrf,
             requireAuth: $requireAuth,
+            requireRole: $requireAdminRole,
             middlewareStackBuilder: $middlewareStackBuilder
         ))->register($this);
 
@@ -83,7 +86,9 @@ final class RouteRegistry
         (new DevModeRouteRegistrar(
             devModeController: $devModeController,
             csrf: $csrf,
-            requireAuth: $requireAuth
+            requireAuth: $requireAuth,
+            requireRole: $requireAdminRole,
+            middlewareStackBuilder: $middlewareStackBuilder
         ))->register($this);
 
         /** Editor mode routes: authenticated inline editing controls. */
