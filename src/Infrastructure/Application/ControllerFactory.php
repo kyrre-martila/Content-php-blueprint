@@ -194,7 +194,7 @@ final class ControllerFactory
                 $loginRateLimiter,
                 $clientIpResolver
             ),
-            'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $editorMode, $devMode),
+            'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $templateResolver, $contentTypeRepository, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
             'templateAdminController' => $templateAdminController,
             'contentTypeAdminController' => $contentTypeAdminController,
