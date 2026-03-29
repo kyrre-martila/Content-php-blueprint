@@ -67,8 +67,8 @@ final class DevModeController
             return Response::redirect('/admin');
         }
 
-        $html = $this->renderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/dev-mode/index.php',
+        $html = $this->renderer->renderTemplate(
+            'admin/dev-mode/index.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
@@ -119,8 +119,8 @@ final class DevModeController
             return Response::redirect('/admin/dev-mode');
         }
 
-        $html = $this->renderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/dev-mode/edit.php',
+        $html = $this->renderer->renderTemplate(
+            'admin/dev-mode/edit.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),

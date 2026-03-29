@@ -25,8 +25,8 @@ final class DashboardController
 
     public function index(Request $request): Response
     {
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/dashboard.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/dashboard.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),

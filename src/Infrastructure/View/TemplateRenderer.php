@@ -46,6 +46,14 @@ final class TemplateRenderer
 
     /**
      * @param array<string, mixed> $data
+     */
+    public function renderTemplate(string $templateRelativePath, array $data = []): string
+    {
+        return $this->render($this->templatesBasePath . '/' . ltrim(trim($templateRelativePath), '/'), $data);
+    }
+
+    /**
+     * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
     private function withResolvedMeta(array $data): array

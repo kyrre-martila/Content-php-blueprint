@@ -36,8 +36,8 @@ final class ContentAdminController
     {
         $listing = $this->listContentItems->execute();
 
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/content/index.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/content/index.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
@@ -56,8 +56,8 @@ final class ContentAdminController
 
     public function create(Request $request): Response
     {
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/content/create.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/content/create.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
@@ -111,8 +111,8 @@ final class ContentAdminController
             return Response::html('<h1>Not Found</h1>', 404);
         }
 
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/content/edit.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/content/edit.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
@@ -225,8 +225,8 @@ final class ContentAdminController
      */
     private function renderCreateWithErrors(Request $request, array $errors, ContentItemInput $input): Response
     {
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/content/create.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/content/create.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
@@ -263,8 +263,8 @@ final class ContentAdminController
             return Response::html('<h1>Not Found</h1>', 404);
         }
 
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/content/edit.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/content/edit.php',
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
