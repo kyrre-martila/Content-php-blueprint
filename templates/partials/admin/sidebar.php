@@ -72,6 +72,12 @@ $navigationSections = [
                 'active' => str_starts_with($currentPath, '/admin/dev-mode'),
             ],
             [
+                'label' => 'System Templates',
+                'href' => '/admin/system-templates',
+                'icon' => '◇',
+                'active' => str_starts_with($currentPath, '/admin/system-templates'),
+            ],
+            [
                 'label' => 'View site',
                 'href' => '/',
                 'icon' => '↗',

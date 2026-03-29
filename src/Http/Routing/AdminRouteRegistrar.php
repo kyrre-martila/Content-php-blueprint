@@ -48,6 +48,10 @@ final class AdminRouteRegistrar
                 $this->templateAdminController,
                 'index',
             ], $middleware));
+            $routeRegistry->get('/admin/system-templates', $this->middlewareStackBuilder->wrap([
+                $this->templateAdminController,
+                'systemIndex',
+            ], $middleware));
             $routeRegistry->get('/admin/templates/edit', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'edit',
