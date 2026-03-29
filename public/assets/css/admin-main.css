@@ -808,18 +808,42 @@
 
 .admin-dashboard {
     display: grid;
-    gap: var(--admin-space-4);
+    gap: var(--admin-space-6);
+}
+
+.admin-dashboard__header {
+    display: grid;
+    gap: var(--admin-space-2);
+}
+
+.admin-dashboard__title {
+    margin: 0;
+    font-size: var(--admin-font-size-2xl);
+    line-height: 1.15;
+}
+
+.admin-dashboard__meta {
+    margin: 0;
+    color: var(--admin-color-text-muted);
+    font-size: var(--admin-font-size-sm);
 }
 
 .admin-section {
     display: grid;
-    gap: var(--admin-space-3);
+    gap: var(--admin-space-4);
+    padding-top: var(--admin-space-6);
+    border-top: 1px solid var(--admin-color-border-soft);
+}
+
+.admin-section:first-of-type {
+    padding-top: var(--admin-space-2);
+    border-top: none;
 }
 
 .admin-section__title {
     margin: 0;
     color: var(--admin-color-text-secondary);
-    font-size: var(--admin-font-size-sm);
+    font-size: var(--admin-font-size-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -827,19 +851,23 @@
 
 .admin-card {
     display: grid;
-    gap: var(--admin-space-4);
+    gap: var(--admin-space-5);
 }
 
 .admin-card__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--admin-space-3);
+    display: grid;
+    gap: var(--admin-space-2);
 }
 
 .admin-card__title {
     margin: 0;
-    font-size: var(--admin-font-size-lg);
+    font-size: var(--admin-font-size-xl);
+}
+
+.admin-card__meta {
+    margin: 0;
+    color: var(--admin-color-text-muted);
+    font-size: var(--admin-font-size-sm);
 }
 
 .admin-hero {
@@ -861,6 +889,17 @@
 
 .admin-actions--stack {
     display: grid;
+    gap: var(--admin-space-3);
+}
+
+.admin-actions--stack .admin-action {
+    width: 100%;
+    min-height: 2.5rem;
+    justify-content: flex-start;
+    padding: var(--admin-space-2) var(--admin-space-4);
+    border-radius: var(--admin-radius-md);
+    font-size: var(--admin-font-size-sm);
+    white-space: normal;
 }
 
 .admin-grid--stats-wide {
@@ -984,10 +1023,6 @@
 
     .admin__content {
         padding: var(--admin-space-6);
-    }
-
-    .admin-hero {
-        grid-template-columns: 1fr auto;
     }
 
     .admin-grid--dashboard-columns {
