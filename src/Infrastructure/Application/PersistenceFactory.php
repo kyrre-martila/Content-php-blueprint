@@ -8,12 +8,14 @@ use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
+use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Infrastructure\Auth\MySqlUserRepository;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Content\MySqlCategoryGroupRepository;
 use App\Infrastructure\Content\MySqlCategoryRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
+use App\Infrastructure\Content\MySqlContentRelationshipRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
 use App\Infrastructure\Database\PdoFactory;
@@ -47,6 +49,7 @@ final class PersistenceFactory
      *   userRepository: UserRepositoryInterface,
      *   contentItemRepository: ContentItemRepositoryInterface,
      *   contentTypeRepository: ContentTypeRepositoryInterface,
+     *   contentRelationshipRepository: ContentRelationshipRepositoryInterface,
      *   categoryGroupRepository: CategoryGroupRepositoryInterface,
      *   categoryRepository: CategoryRepositoryInterface
      * }
@@ -89,6 +92,7 @@ final class PersistenceFactory
             'userRepository' => $repositories['userRepository'],
             'contentItemRepository' => $repositories['contentItemRepository'],
             'contentTypeRepository' => $repositories['contentTypeRepository'],
+            'contentRelationshipRepository' => $repositories['contentRelationshipRepository'],
             'categoryGroupRepository' => $repositories['categoryGroupRepository'],
             'categoryRepository' => $repositories['categoryRepository'],
         ];
@@ -99,6 +103,7 @@ final class PersistenceFactory
      *   userRepository: UserRepositoryInterface,
      *   contentItemRepository: ContentItemRepositoryInterface,
      *   contentTypeRepository: ContentTypeRepositoryInterface,
+     *   contentRelationshipRepository: ContentRelationshipRepositoryInterface,
      *   categoryGroupRepository: CategoryGroupRepositoryInterface,
      *   categoryRepository: CategoryRepositoryInterface
      * }
@@ -109,6 +114,7 @@ final class PersistenceFactory
             'userRepository' => new MySqlUserRepository($connection),
             'contentItemRepository' => new MySqlContentItemRepository($connection),
             'contentTypeRepository' => new MySqlContentTypeRepository($connection),
+            'contentRelationshipRepository' => new MySqlContentRelationshipRepository($connection),
             'categoryGroupRepository' => new MySqlCategoryGroupRepository($connection),
             'categoryRepository' => new MySqlCategoryRepository($connection),
         ];

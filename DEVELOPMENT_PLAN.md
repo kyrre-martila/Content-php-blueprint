@@ -219,6 +219,41 @@ Dev Mode is session-based and role-gated (`superadmin`, `admin`).
 
 ---
 
+
+## Content relationships system (current implementation)
+
+A dedicated `content_item_relationships` table provides explicit content-to-content links that are separate from navigation hierarchy and separate from category tagging.
+
+Boundary rules:
+
+- relationships = free-form directional links between two content items
+- relationships are not hierarchy (`content_items.parent_id`)
+- relationships are not categories (`content_item_categories`)
+
+Current repository capabilities (`ContentRelationshipRepositoryInterface`):
+
+- `findOutgoingRelationships(ContentItem $item)`
+- `findIncomingRelationships(ContentItem $item)`
+- `findByType(ContentItem $item, string $relationType)`
+- `attach(ContentItem $from, ContentItem $to, string $relationType, int $sortOrder = 0)`
+- `detach(ContentItem $from, ContentItem $to, string $relationType)`
+
+Validation and integrity behavior:
+
+- relation type must be non-empty
+- self-referential relationships are currently rejected
+- duplicate identical triples (`from_content_item_id`, `to_content_item_id`, `relation_type`) are prevented
+
+Usage examples modeled for runtime/application layer:
+
+- article -> author
+- article -> related-article
+- event -> venue
+- page -> featured-case
+- team-member -> department-page
+
+---
+
 ## Install flow and install-state logic (current implementation)
 
 Install sequence:
