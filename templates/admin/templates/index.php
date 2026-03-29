@@ -43,7 +43,7 @@ $adminPageDescription = 'Manage index, content, collection, and system template 
                                 <div class="admin-table__cell">
                                     <span><?= $e((string) $entry['name']) ?></span>
                                     <?php if (($entry['isFallbackRole'] ?? false) === true): ?>
-                                        <span class="admin-badge admin-badge--muted">Fallback role</span>
+                                        <span class="admin-badge admin-badge--muted">Fallback template</span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="admin-table__cell"><?= $e((string) $entry['type']) ?></div>
@@ -52,7 +52,7 @@ $adminPageDescription = 'Manage index, content, collection, and system template 
                                     <?php if (($entry['status'] ?? '') === 'exists'): ?>
                                         <span class="admin-badge admin-badge--success">Exists</span>
                                     <?php elseif (($entry['status'] ?? '') === 'fallback'): ?>
-                                        <span class="admin-badge admin-badge--muted">Fallback in use</span>
+                                        <span class="admin-badge admin-badge--muted">Fallback template</span>
                                         <?php if (is_string($entry['fallbackPath'] ?? null)): ?>
                                             <span class="admin-template-manager__meta">→ <?= $e((string) $entry['fallbackPath']) ?></span>
                                         <?php endif; ?>

@@ -149,7 +149,7 @@ final class ControllerFactory
                 $templateRenderer,
                 $contentTypeRepository,
                 $authSession,
-                $this->projectRoot
+                $templateResolver
             );
 
             $contentTypeAdminController = new ContentTypeAdminController(
@@ -157,7 +157,7 @@ final class ControllerFactory
                 $contentTypeRepository,
                 $authSession,
                 $sessionManager,
-                $this->projectRoot
+                $templateResolver
             );
 
             $editorModeController = new EditorModeController(

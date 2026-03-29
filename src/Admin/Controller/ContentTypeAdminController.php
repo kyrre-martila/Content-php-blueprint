@@ -13,6 +13,7 @@ use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\View\TemplateRenderer;
+use App\Infrastructure\View\TemplateResolver;
 use RuntimeException;
 
 final class ContentTypeAdminController
@@ -22,7 +23,7 @@ final class ContentTypeAdminController
         private readonly ContentTypeRepositoryInterface $contentTypes,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
-        private readonly string $projectRoot,
+        private readonly TemplateResolver $templateResolver,
     ) {
     }
 
@@ -240,7 +241,7 @@ final class ContentTypeAdminController
             'slug' => $type->name(),
             'viewType' => $type->viewType()->value,
             'template' => $templatePath,
-            'templateExists' => $this->templateExists($templatePath),
+            'templateExists' => $this->templateResolver->templateExists($templatePath),
             'canDelete' => $this->canDelete($type),
             'editPath' => '/admin/content-types/' . rawurlencode($type->name()) . '/edit',
             'deletePath' => '/admin/content-types/' . rawurlencode($type->name()),
@@ -275,7 +276,7 @@ final class ContentTypeAdminController
             [
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
-                'templateExistsMap' => $this->templateExistsMap(),
+                'templateExistsMap' => $this->templateResolver->templateExistsMap(),
                 ...$context,
             ]
         );
@@ -356,34 +357,6 @@ final class ContentTypeAdminController
         return sprintf('content/%s.php', $slug);
     }
 
-    /**
-     * @return array<string, bool>
-     */
-    private function templateExistsMap(): array
-    {
-        $map = [];
-
-        foreach (['content', 'collections'] as $directory) {
-            $pattern = $this->projectRoot . '/templates/' . $directory . '/*.php';
-            $files = glob($pattern);
-
-            if ($files === false) {
-                continue;
-            }
-
-            foreach ($files as $file) {
-                $path = $directory . '/' . basename($file);
-                $map[$path] = true;
-            }
-        }
-
-        return $map;
-    }
-
-    private function templateExists(string $template): bool
-    {
-        return is_file($this->projectRoot . '/templates/' . ltrim($template, '/'));
-    }
 
     private function canDelete(ContentType $type): bool
     {

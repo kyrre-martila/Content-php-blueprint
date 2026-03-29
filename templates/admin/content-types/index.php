@@ -58,7 +58,14 @@ $adminPageDescription = 'Manage content type definitions and template availabili
                                         <span class="admin-badge admin-badge--muted">single</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><code><?= $e((string) ($row['template'] ?? '')) ?></code></td>
+                                <td>
+                                    <code><?= $e((string) ($row['template'] ?? '')) ?></code>
+                                    <?php if (($row['templateExists'] ?? false) === true): ?>
+                                        <span class="admin-badge admin-badge--success">Exists</span>
+                                    <?php else: ?>
+                                        <span class="admin-badge admin-badge--warning">Missing template</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if (($row['templateExists'] ?? false) === true): ?>
                                         <span class="admin-badge admin-badge--success">template exists</span>
