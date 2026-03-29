@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Security;
 
-use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\Database\Connection;
 
 final class LoginRateLimiter
 {
-    private const SESSION_KEY = '_security.login_attempts';
-
     public function __construct(
-        private readonly SessionManager $session,
+        private readonly Connection $connection,
         private readonly int $maxAttempts,
         private readonly int $windowMinutes
     ) {
@@ -19,99 +17,138 @@ final class LoginRateLimiter
 
     public function isBlocked(string $ipAddress): bool
     {
-        $attempts = $this->attemptsForIp($ipAddress);
+        $ipKey = $this->ipKey($ipAddress);
+        $attemptState = $this->loadAttemptState($ipKey);
 
-        return count($attempts) >= $this->maxAttempts;
+        return $attemptState['attemptCount'] >= $this->maxAttempts;
     }
 
     public function recordAttempt(string $ipAddress): void
     {
-        $allAttempts = $this->allAttempts();
         $ipKey = $this->ipKey($ipAddress);
 
-        $attempts = $this->sanitizeTimestamps($allAttempts[$ipKey] ?? []);
-        $attempts = $this->pruneExpiredAttempts($attempts);
-        $attempts[] = time();
+        $this->connection->transaction(function (Connection $connection) use ($ipKey): void {
+            $row = $connection->fetchOne(
+                'SELECT id, attempt_count, window_start
+                 FROM login_attempts
+                 WHERE ip_address = :ip_address
+                 LIMIT 1
+                 FOR UPDATE',
+                ['ip_address' => $ipKey]
+            );
 
-        $allAttempts[$ipKey] = $attempts;
-        $this->session->set(self::SESSION_KEY, $allAttempts);
+            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+            if ($row === null) {
+                $connection->execute(
+                    'INSERT INTO login_attempts (ip_address, attempt_count, window_start, last_attempt_at)
+                     VALUES (:ip_address, :attempt_count, :window_start, :last_attempt_at)',
+                    [
+                        'ip_address' => $ipKey,
+                        'attempt_count' => 1,
+                        'window_start' => $now->format('Y-m-d H:i:s'),
+                        'last_attempt_at' => $now->format('Y-m-d H:i:s'),
+                    ]
+                );
+
+                return;
+            }
+
+            $windowStart = $this->parseTimestamp($row['window_start'] ?? null);
+            $attemptCount = $this->toPositiveInt($row['attempt_count'] ?? null);
+            $windowExpired = $windowStart === null || $this->isOutsideCurrentWindow($windowStart, $now);
+
+            if ($windowExpired) {
+                $attemptCount = 0;
+                $windowStart = $now;
+            }
+
+            $connection->execute(
+                'UPDATE login_attempts
+                 SET attempt_count = :attempt_count,
+                     window_start = :window_start,
+                     last_attempt_at = :last_attempt_at
+                 WHERE id = :id',
+                [
+                    'id' => $row['id'],
+                    'attempt_count' => $attemptCount + 1,
+                    'window_start' => ($windowStart ?? $now)->format('Y-m-d H:i:s'),
+                    'last_attempt_at' => $now->format('Y-m-d H:i:s'),
+                ]
+            );
+        });
     }
 
     public function reset(string $ipAddress): void
     {
-        $allAttempts = $this->allAttempts();
-        $ipKey = $this->ipKey($ipAddress);
-
-        unset($allAttempts[$ipKey]);
-
-        $this->session->set(self::SESSION_KEY, $allAttempts);
+        $this->connection->execute(
+            'DELETE FROM login_attempts WHERE ip_address = :ip_address',
+            ['ip_address' => $this->ipKey($ipAddress)]
+        );
     }
 
     /**
-     * @return list<int>
+     * @return array{attemptCount: int, windowStart: ?\DateTimeImmutable}
      */
-    private function attemptsForIp(string $ipAddress): array
+    private function loadAttemptState(string $ipAddress): array
     {
-        $allAttempts = $this->allAttempts();
-        $ipKey = $this->ipKey($ipAddress);
+        $row = $this->connection->fetchOne(
+            'SELECT id, attempt_count, window_start
+             FROM login_attempts
+             WHERE ip_address = :ip_address
+             LIMIT 1',
+            ['ip_address' => $ipAddress]
+        );
 
-        $attempts = $this->sanitizeTimestamps($allAttempts[$ipKey] ?? []);
-        $attempts = $this->pruneExpiredAttempts($attempts);
-
-        if ($attempts === []) {
-            unset($allAttempts[$ipKey]);
-        } else {
-            $allAttempts[$ipKey] = $attempts;
+        if ($row === null) {
+            return ['attemptCount' => 0, 'windowStart' => null];
         }
 
-        $this->session->set(self::SESSION_KEY, $allAttempts);
+        $windowStart = $this->parseTimestamp($row['window_start'] ?? null);
+        $attemptCount = $this->toPositiveInt($row['attempt_count'] ?? null);
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
 
-        return $attempts;
-    }
+        if ($windowStart === null || $this->isOutsideCurrentWindow($windowStart, $now)) {
+            $this->connection->execute(
+                'UPDATE login_attempts
+                 SET attempt_count = 0,
+                     window_start = :window_start
+                 WHERE id = :id',
+                [
+                    'id' => $row['id'],
+                    'window_start' => $now->format('Y-m-d H:i:s'),
+                ]
+            );
 
-    /**
-     * @param mixed $timestamps
-     * @return list<int>
-     */
-    private function sanitizeTimestamps(mixed $timestamps): array
-    {
-        if (!is_array($timestamps)) {
-            return [];
+            return ['attemptCount' => 0, 'windowStart' => $now];
         }
 
-        $sanitized = [];
+        return ['attemptCount' => $attemptCount, 'windowStart' => $windowStart];
+    }
 
-        foreach ($timestamps as $timestamp) {
-            if (is_int($timestamp)) {
-                $sanitized[] = $timestamp;
-            }
+    private function parseTimestamp(mixed $value): ?\DateTimeImmutable
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
         }
 
-        return $sanitized;
+        try {
+            return new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
+        } catch (\Exception) {
+            return null;
+        }
     }
 
-    /**
-     * @param list<int> $attempts
-     * @return list<int>
-     */
-    private function pruneExpiredAttempts(array $attempts): array
+    private function isOutsideCurrentWindow(\DateTimeImmutable $windowStart, \DateTimeImmutable $now): bool
     {
-        $cutoff = time() - ($this->windowMinutes * 60);
+        $windowSeconds = max($this->windowMinutes, 1) * 60;
 
-        return array_values(array_filter(
-            $attempts,
-            static fn (int $attempt): bool => $attempt >= $cutoff
-        ));
+        return ($windowStart->getTimestamp() + $windowSeconds) < $now->getTimestamp();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function allAttempts(): array
+    private function toPositiveInt(mixed $value): int
     {
-        $attempts = $this->session->get(self::SESSION_KEY, []);
-
-        return is_array($attempts) ? $attempts : [];
+        return is_int($value) && $value > 0 ? $value : 0;
     }
 
     private function ipKey(string $ipAddress): string

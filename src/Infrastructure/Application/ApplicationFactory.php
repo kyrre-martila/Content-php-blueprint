@@ -12,6 +12,7 @@ use App\Http\Routing\RouteRegistry;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigRepository;
+use App\Infrastructure\Database\Connection;
 use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\Security\LoginRateLimiter;
 
@@ -67,8 +68,13 @@ final class ApplicationFactory
         $rateLimitWindowMinutes = is_int($configuredRateLimitWindowMinutes)
             ? $configuredRateLimitWindowMinutes
             : 10;
+        $connection = $persistence['connection'];
+        if (!$connection instanceof Connection) {
+            throw new \RuntimeException('Database connection required for login rate limiting.');
+        }
+
         $loginRateLimiter = new LoginRateLimiter(
-            $sessionManager,
+            $connection,
             $rateLimitAttempts,
             $rateLimitWindowMinutes
         );
