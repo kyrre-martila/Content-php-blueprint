@@ -59,5 +59,19 @@ interface ContentItemRepositoryInterface
         int $offset = self::DEFAULT_OFFSET
     ): array;
 
+    /**
+     * @return array{
+     *   items: list<ContentItem>,
+     *   total_count: int,
+     *   limit: int,
+     *   offset: int
+     * }
+     */
+    public function findPublishedByType(
+        ContentType $contentType,
+        int $limit = self::DEFAULT_LIMIT,
+        int $offset = self::DEFAULT_OFFSET
+    ): array;
+
     public function remove(ContentItem $contentItem): void;
 }
