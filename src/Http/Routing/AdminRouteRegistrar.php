@@ -6,6 +6,7 @@ namespace App\Http\Routing;
 
 use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\DashboardController;
+use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Admin\Controller\PatternController;
 use App\Http\Middleware\CsrfMiddleware;
@@ -20,6 +21,7 @@ final class AdminRouteRegistrar
         private readonly PatternController $patternController,
         private readonly ?ContentAdminController $contentAdminController,
         private readonly ?TemplateAdminController $templateAdminController,
+        private readonly ?ContentTypeAdminController $contentTypeAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
         private readonly RequireRoleMiddleware $requireRole,
@@ -45,6 +47,21 @@ final class AdminRouteRegistrar
             $routeRegistry->get('/admin/templates', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'index',
+            ], $middleware));
+        }
+
+        if ($this->contentTypeAdminController !== null) {
+            $routeRegistry->get('/admin/content-types', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'index',
+            ], $middleware));
+            $routeRegistry->delete('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'destroy',
+            ], $middleware));
+            $routeRegistry->post('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'destroy',
             ], $middleware));
         }
 

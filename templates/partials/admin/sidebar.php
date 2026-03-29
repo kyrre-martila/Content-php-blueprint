@@ -18,7 +18,13 @@ $primaryNavigation = [
         'label' => 'Content',
         'href' => '/admin/content',
         'icon' => '☰',
-        'active' => str_starts_with($currentPath, '/admin/content'),
+        'active' => $currentPath === '/admin/content' || str_starts_with($currentPath, '/admin/content/'),
+    ],
+    [
+        'label' => 'Content Types',
+        'href' => '/admin/content-types',
+        'icon' => '⊞',
+        'active' => $currentPath === '/admin/content-types' || str_starts_with($currentPath, '/admin/content-types/'),
     ],
     [
         'label' => 'Templates',
