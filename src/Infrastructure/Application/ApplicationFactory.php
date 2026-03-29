@@ -150,6 +150,7 @@ final class ApplicationFactory
             installController: $controllers['installController'],
             contentAdminController: $controllers['contentAdminController'],
             templateAdminController: $controllers['templateAdminController'],
+            contentTypeAdminController: $controllers['contentTypeAdminController'],
             editorModeController: $controllers['editorModeController'],
             contentController: $controllers['contentController'],
             sitemapController: $controllers['sitemapController'],

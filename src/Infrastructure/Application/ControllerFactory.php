@@ -6,6 +6,7 @@ namespace App\Infrastructure\Application;
 
 use App\Admin\Controller\AuthController;
 use App\Admin\Controller\ContentAdminController;
+use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
@@ -61,9 +62,10 @@ final class ControllerFactory
      *   healthController: HealthController,
      *   searchController: SearchController,
      *   authController: AuthController,
-     *   dashboardController: DashboardController,
-     *   patternController: PatternController,
+ *   dashboardController: DashboardController,
+ *   patternController: PatternController,
  *   templateAdminController: ?TemplateAdminController,
+ *   contentTypeAdminController: ?ContentTypeAdminController,
      *   devModeController: DevModeController,
      *   installController: ?InstallController,
      *   contentAdminController: ?ContentAdminController,
@@ -115,6 +117,7 @@ final class ControllerFactory
 
         $contentAdminController = null;
         $templateAdminController = null;
+        $contentTypeAdminController = null;
         $editorModeController = null;
         $contentController = null;
         $sitemapController = null;
@@ -146,6 +149,14 @@ final class ControllerFactory
                 $templateRenderer,
                 $contentTypeRepository,
                 $authSession,
+                $this->projectRoot
+            );
+
+            $contentTypeAdminController = new ContentTypeAdminController(
+                $templateRenderer,
+                $contentTypeRepository,
+                $authSession,
+                $sessionManager,
                 $this->projectRoot
             );
 
@@ -182,6 +193,7 @@ final class ControllerFactory
             'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
             'templateAdminController' => $templateAdminController,
+            'contentTypeAdminController' => $contentTypeAdminController,
             'devModeController' => new DevModeController(
                 $templateRenderer,
                 $authSession,
