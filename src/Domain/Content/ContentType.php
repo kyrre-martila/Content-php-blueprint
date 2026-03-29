@@ -17,6 +17,8 @@ final class ContentType
         private readonly string $defaultTemplate,
         private readonly ?array $fieldDefinitions = null,
         private readonly ContentViewType $viewType = ContentViewType::SINGLE,
+        /** @var list<int> */
+        private readonly array $allowedCategoryGroupIds = [],
     ) {
         $this->assertNameIsValid($name);
         $this->assertLabelIsValid($label);
@@ -64,6 +66,14 @@ final class ContentType
     public function isCollectionView(): bool
     {
         return $this->viewType === ContentViewType::COLLECTION;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function allowedCategoryGroupIds(): array
+    {
+        return $this->allowedCategoryGroupIds;
     }
 
     private function assertNameIsValid(string $name): void

@@ -223,6 +223,22 @@ Validation behavior:
 - self-reference is blocked by default (same item cannot point to itself)
 - duplicate identical links (`from + to + relation_type`) are prevented through a unique index and repository-level guard
 
+## Category Group availability per Content Type
+
+Category Groups are now explicitly enabled per Content Type through the `content_type_category_groups` pivot table.
+
+What this enables:
+
+- each content type can define which category groups are valid for classification
+- editors only see/select category options relevant to the selected content type
+- invalid category assignment is rejected when a category group is not allowed for the content item content type
+
+Example mapping:
+
+- `BlogPost` -> `Blog categories`
+- `Event` -> `Locations`
+- `Product` -> `Product categories`
+
 ## Runtime routing architecture
 
 Routing uses a registrar-based architecture coordinated by `src/Http/Routing/RouteRegistry.php`.

@@ -21,6 +21,7 @@ When code and this document conflict, update this document to match code.
 - Pattern-driven composition using `pattern_blocks` rendered through `PatternRenderer`.
 - Session-based, role-gated Editor Mode and Dev Mode with explicit scope boundaries.
 - Install-state-aware kernel behavior for setup-dependent admin routes.
+- Category Group availability rules per Content Type via a pivot mapping table.
 
 ---
 
@@ -251,6 +252,31 @@ Usage examples modeled for runtime/application layer:
 - event -> venue
 - page -> featured-case
 - team-member -> department-page
+
+---
+
+## Category Group gating by Content Type (current implementation)
+
+Blueprint supports explicit Category Group availability per Content Type using `content_type_category_groups` (`content_type_id`, `category_group_id`).
+
+Current behavior:
+
+- content type repository loads allowed category group IDs with each content type load
+- repository helpers exist to manage mappings:
+  - `getAllowedCategoryGroups(ContentType $type): array`
+  - `attachCategoryGroup(ContentType $type, CategoryGroup $group): void`
+  - `detachCategoryGroup(ContentType $type, CategoryGroup $group): void`
+- category attachment validation enforces that a content item's content type allows the category's group before insert into `content_item_categories`
+
+Editor impact:
+
+- category selectors can be filtered to only groups mapped to the active content type
+- invalid cross-type category assignment is blocked at repository validation level
+
+Example mapping:
+
+- `BlogPost` -> `Blog categories`
+- `Event` -> `Locations`
 
 ---
 

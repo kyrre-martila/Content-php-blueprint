@@ -144,6 +144,23 @@ final class MySqlCategoryRepository implements CategoryRepositoryInterface
             return;
         }
 
+        $allowedGroupRow = $this->connection->fetchOne(
+            'SELECT ctcg.content_type_id
+             FROM content_items ci
+             INNER JOIN content_type_category_groups ctcg ON ctcg.content_type_id = ci.content_type_id
+             WHERE ci.id = :content_item_id
+               AND ctcg.category_group_id = :category_group_id
+             LIMIT 1',
+            [
+                'content_item_id' => $itemId,
+                'category_group_id' => $category->groupId(),
+            ]
+        );
+
+        if ($allowedGroupRow === null) {
+            throw new RuntimeException('Cannot attach category from a group that is not allowed for this content type.');
+        }
+
         $this->connection->execute(
             'INSERT INTO content_item_categories (content_item_id, category_id)
              VALUES (:content_item_id, :category_id)',

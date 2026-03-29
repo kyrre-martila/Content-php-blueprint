@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Content;
 
+use App\Domain\Content\CategoryGroup;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
+use App\Domain\Content\Slug;
 use App\Infrastructure\Database\Connection;
 use DateTimeImmutable;
 use RuntimeException;
@@ -84,7 +86,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             return null;
         }
 
-        return $this->mapRowToContentType($row);
+        return $this->mapRowToContentType($row, $this->loadAllowedCategoryGroupIds($this->rowInt($row, 'id')));
     }
 
     public function findAll(): array
@@ -98,10 +100,83 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
         $contentTypes = [];
 
         foreach ($rows as $row) {
-            $contentTypes[] = $this->mapRowToContentType($row);
+            $contentTypes[] = $this->mapRowToContentType($row, $this->loadAllowedCategoryGroupIds($this->rowInt($row, 'id')));
         }
 
         return $contentTypes;
+    }
+
+    public function getAllowedCategoryGroups(ContentType $type): array
+    {
+        $contentTypeId = $this->findContentTypeIdBySlug($type->name());
+
+        $rows = $this->connection->fetchAll(
+            'SELECT cg.id, cg.name, cg.slug, cg.description, cg.created_at, cg.updated_at
+             FROM category_groups cg
+             INNER JOIN content_type_category_groups ctcg ON ctcg.category_group_id = cg.id
+             WHERE ctcg.content_type_id = :content_type_id
+             ORDER BY cg.name ASC, cg.id ASC',
+            ['content_type_id' => $contentTypeId]
+        );
+
+        return array_map(fn (array $row): CategoryGroup => $this->mapRowToCategoryGroup($row), $rows);
+    }
+
+    public function attachCategoryGroup(ContentType $type, CategoryGroup $group): void
+    {
+        $groupId = $group->id();
+
+        if ($groupId === null) {
+            throw new RuntimeException('Cannot attach a category group without an ID.');
+        }
+
+        $contentTypeId = $this->findContentTypeIdBySlug($type->name());
+
+        $existing = $this->connection->fetchOne(
+            'SELECT content_type_id
+             FROM content_type_category_groups
+             WHERE content_type_id = :content_type_id
+               AND category_group_id = :category_group_id
+             LIMIT 1',
+            [
+                'content_type_id' => $contentTypeId,
+                'category_group_id' => $groupId,
+            ]
+        );
+
+        if ($existing !== null) {
+            return;
+        }
+
+        $this->connection->execute(
+            'INSERT INTO content_type_category_groups (content_type_id, category_group_id)
+             VALUES (:content_type_id, :category_group_id)',
+            [
+                'content_type_id' => $contentTypeId,
+                'category_group_id' => $groupId,
+            ]
+        );
+    }
+
+    public function detachCategoryGroup(ContentType $type, CategoryGroup $group): void
+    {
+        $groupId = $group->id();
+
+        if ($groupId === null) {
+            return;
+        }
+
+        $contentTypeId = $this->findContentTypeIdBySlug($type->name());
+
+        $this->connection->execute(
+            'DELETE FROM content_type_category_groups
+             WHERE content_type_id = :content_type_id
+               AND category_group_id = :category_group_id',
+            [
+                'content_type_id' => $contentTypeId,
+                'category_group_id' => $groupId,
+            ]
+        );
     }
 
     public function remove(ContentType $contentType): void
@@ -119,7 +194,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
     /**
      * @param array<string, mixed> $row
      */
-    private function mapRowToContentType(array $row): ContentType
+    private function mapRowToContentType(array $row, array $allowedCategoryGroupIds = []): ContentType
     {
         $machineName = $this->rowString($row, 'slug');
         $label = $this->rowString($row, 'name');
@@ -134,7 +209,56 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             $label,
             $defaultTemplate,
             null,
-            ContentViewType::fromString($viewType)
+            ContentViewType::fromString($viewType),
+            $allowedCategoryGroupIds
+        );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function loadAllowedCategoryGroupIds(int $contentTypeId): array
+    {
+        $rows = $this->connection->fetchAll(
+            'SELECT category_group_id
+             FROM content_type_category_groups
+             WHERE content_type_id = :content_type_id
+             ORDER BY category_group_id ASC',
+            ['content_type_id' => $contentTypeId]
+        );
+
+        return array_map(
+            fn (array $row): int => $this->rowInt($row, 'category_group_id'),
+            $rows
+        );
+    }
+
+    private function findContentTypeIdBySlug(string $slug): int
+    {
+        $row = $this->connection->fetchOne(
+            'SELECT id FROM content_types WHERE slug = :slug LIMIT 1',
+            ['slug' => $slug]
+        );
+
+        if ($row === null) {
+            throw new RuntimeException(sprintf('Content type "%s" was not found.', $slug));
+        }
+
+        return $this->rowInt($row, 'id');
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function mapRowToCategoryGroup(array $row): CategoryGroup
+    {
+        return new CategoryGroup(
+            id: isset($row['id']) ? (int) $row['id'] : null,
+            name: (string) ($row['name'] ?? ''),
+            slug: Slug::fromString((string) ($row['slug'] ?? '')),
+            description: isset($row['description']) ? (string) $row['description'] : null,
+            createdAt: new DateTimeImmutable((string) ($row['created_at'] ?? 'now')),
+            updatedAt: new DateTimeImmutable((string) ($row['updated_at'] ?? 'now'))
         );
     }
 
