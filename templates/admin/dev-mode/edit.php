@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-$layout = 'layouts/default.php';
+$layout = 'layouts/admin.php';
+$adminPageTitle = 'Edit file';
+$adminPageDescription = 'Modify an allowed file inside Dev Mode.';
 ?>
-<section>
+<section class="admin__stack">
     <h1>Dev Mode File Editor</h1>
     <p><strong>Warning:</strong> Changes saved here affect live rendering immediately.</p>
 
@@ -19,7 +21,7 @@ $layout = 'layouts/default.php';
     <p><strong>Path:</strong> <code><?= $e($relativePath) ?></code></p>
     <p>Maximum editable file size: <?= $e((string) $maxSize) ?> bytes.</p>
 
-    <form method="post" action="/admin/dev-mode/edit">
+    <form class="admin-form" method="post" action="/admin/dev-mode/edit">
         <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
         <input type="hidden" name="path" value="<?= $e($relativePath) ?>">
 

@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-$layout = 'layouts/default.php';
+$layout = 'layouts/admin.php';
+$adminPageTitle = 'Dev mode';
+$adminPageDescription = 'Controlled template and asset editing access.';
 
 $devModeEnabled = ($devModeActive ?? false) === true;
 ?>
-<section>
+<section class="admin__stack">
     <h1>Dev Mode</h1>
     <p><strong>Warning:</strong> Dev Mode edits the live presentation layer. Use only for trusted, auditable changes.</p>
     <p>Scope is intentionally limited to templates, patterns, and frontend asset files.</p>
@@ -22,12 +24,12 @@ $devModeEnabled = ($devModeActive ?? false) === true;
     <p>Status: <strong><?= $devModeEnabled ? 'Active' : 'Inactive' ?></strong></p>
 
     <?php if ($devModeEnabled): ?>
-        <form method="post" action="/admin/dev-mode/disable">
+        <form class="admin-flow" method="post" action="/admin/dev-mode/disable">
             <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
             <button type="submit">Disable Dev Mode</button>
         </form>
     <?php else: ?>
-        <form method="post" action="/admin/dev-mode/enable">
+        <form class="admin-flow" method="post" action="/admin/dev-mode/enable">
             <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
             <button type="submit">Enable Dev Mode</button>
         </form>

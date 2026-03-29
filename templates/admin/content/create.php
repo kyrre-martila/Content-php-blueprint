@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-$layout = 'layouts/default.php';
+$layout = 'layouts/admin.php';
+$adminPageTitle = 'Create content';
+$adminPageDescription = 'Create a new structured content item.';
 $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks'] : [];
 ?>
-<section>
-    <header>
+<section class="admin__stack">
+    <header class="admin-page__header">
         <h1>Create Content Item</h1>
         <p><a href="/admin/content">Back to content list</a></p>
     </header>
@@ -15,7 +17,7 @@ $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks
         <p role="alert" style="color:#b42318;"><?= $e($errors['general']) ?></p>
     <?php endif; ?>
 
-    <form method="post" action="/admin/content/create" novalidate>
+    <form class="admin-form" method="post" action="/admin/content/create" novalidate>
         <input type="hidden" name="_csrf_token" value="<?= $e((string) $request->attribute('csrf_token')) ?>">
         <label for="title">Title</label>
         <input id="title" type="text" name="title" value="<?= $e((string) ($old['title'] ?? '')) ?>" required>
