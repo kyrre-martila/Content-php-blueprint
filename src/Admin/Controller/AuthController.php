@@ -31,8 +31,8 @@ final class AuthController
             return Response::redirect('/admin');
         }
 
-        $html = $this->templateRenderer->render(
-            dirname(__DIR__, 3) . '/templates/admin/login.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'admin/login.php',
             [
                 'request' => $request,
                 'error' => $this->session->pullFlash('auth_error'),
@@ -47,8 +47,8 @@ final class AuthController
         $ipAddress = $this->clientIpResolver->resolve($request);
 
         if ($this->loginRateLimiter->isBlocked($ipAddress)) {
-            $html = $this->templateRenderer->render(
-                dirname(__DIR__, 3) . '/templates/errors/429.php',
+            $html = $this->templateRenderer->renderTemplate(
+                'errors/429.php',
                 ['request' => $request]
             );
 

@@ -19,7 +19,7 @@ final class SearchController
         // TODO: Implement search via ContentRepository full-text search.
         // TODO: Add MySQL MATCH AGAINST support.
         // TODO: Add SQLite fallback LIKE search.
-        $html = $this->templateRenderer->render(__DIR__ . '/../../../templates/errors/501.php', [
+        $html = $this->templateRenderer->renderTemplate('errors/501.php', [
             'request' => $request,
             'message' => 'Search functionality not implemented yet.',
         ]);

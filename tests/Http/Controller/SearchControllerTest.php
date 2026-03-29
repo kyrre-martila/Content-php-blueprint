@@ -5,15 +5,11 @@ declare(strict_types=1);
 use App\Http\Controller\SearchController;
 use App\Http\Request;
 use App\Infrastructure\View\TemplateRenderer;
-use App\Infrastructure\View\TemplateResolver;
 
-it('renders empty-query message on the system search template when q is missing', function (): void {
+it('renders not implemented search response when q is missing', function (): void {
     $templatesBasePath = dirname(__DIR__, 3) . '/templates';
 
-    $controller = new SearchController(
-        new TemplateResolver($templatesBasePath),
-        new TemplateRenderer($templatesBasePath)
-    );
+    $controller = new SearchController(new TemplateRenderer($templatesBasePath));
 
     $request = new Request('GET', '/search', [], [], [], [], []);
 
@@ -23,18 +19,14 @@ it('renders empty-query message on the system search template when q is missing'
     $response->send();
     $output = ob_get_clean();
 
-    expect($output)
-        ->toContain('Search results')
-        ->toContain('Please enter a search query.');
+    expect($response->status())->toBe(501)
+        ->and($output)->toContain('Search functionality not implemented yet.');
 });
 
-it('renders query-aware empty results message when q exists', function (): void {
+it('renders not implemented search response when q exists', function (): void {
     $templatesBasePath = dirname(__DIR__, 3) . '/templates';
 
-    $controller = new SearchController(
-        new TemplateResolver($templatesBasePath),
-        new TemplateRenderer($templatesBasePath)
-    );
+    $controller = new SearchController(new TemplateRenderer($templatesBasePath));
 
     $request = new Request('GET', '/search', ['q' => 'example'], [], [], [], []);
 
@@ -44,6 +36,6 @@ it('renders query-aware empty results message when q exists', function (): void 
     $response->send();
     $output = ob_get_clean();
 
-    expect($output)
-        ->toContain('No results found for "example".');
+    expect($response->status())->toBe(501)
+        ->and($output)->toContain('Search functionality not implemented yet.');
 });

@@ -279,8 +279,8 @@ SQL,
     ): Response {
         $environmentChecks = $checks ?? (new EnvironmentCheck($this->projectRoot))->run();
 
-        $html = $this->templateRenderer->render(
-            $this->projectRoot . '/templates/install.php',
+        $html = $this->templateRenderer->renderTemplate(
+            'install.php',
             [
                 'request' => $request,
                 'checks' => $environmentChecks,
