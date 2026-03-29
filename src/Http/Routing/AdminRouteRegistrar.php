@@ -55,6 +55,22 @@ final class AdminRouteRegistrar
                 $this->contentTypeAdminController,
                 'index',
             ], $middleware));
+            $routeRegistry->get('/admin/content-types/create', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'create',
+            ], $middleware));
+            $routeRegistry->post('/admin/content-types/create', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'store',
+            ], $middleware));
+            $routeRegistry->get('/admin/content-types/{id}/edit', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'edit',
+            ], $middleware));
+            $routeRegistry->post('/admin/content-types/{id}/edit', $this->middlewareStackBuilder->wrap([
+                $this->contentTypeAdminController,
+                'update',
+            ], $middleware));
             $routeRegistry->delete('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'destroy',
