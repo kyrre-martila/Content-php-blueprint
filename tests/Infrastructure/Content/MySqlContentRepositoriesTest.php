@@ -32,6 +32,8 @@ function buildConnectionForRepositoryTests(): Connection
         'CREATE TABLE content_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             content_type_id INTEGER NOT NULL,
+            parent_id INTEGER NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0,
             title TEXT NOT NULL,
             meta_title TEXT NULL,
             meta_description TEXT NULL,
@@ -45,7 +47,8 @@ function buildConnectionForRepositoryTests(): Connection
             pattern_blocks TEXT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            FOREIGN KEY(content_type_id) REFERENCES content_types(id)
+            FOREIGN KEY(content_type_id) REFERENCES content_types(id),
+            FOREIGN KEY(parent_id) REFERENCES content_items(id)
         )'
     );
 
@@ -88,14 +91,16 @@ it('persists updates and queries content items by id slug and type', function ()
     );
 
     $savedItem = $itemRepository->save(
-        $initialItem->withSeoMetadata(
-            'Hello Meta',
-            'Meta description for hello world',
-            '/images/hello.jpg',
-            'https://example.com/hello-world',
-            true,
-            new DateTimeImmutable('2026-03-20 10:00:00')
-        )
+        $initialItem
+            ->withSeoMetadata(
+                'Hello Meta',
+                'Meta description for hello world',
+                '/images/hello.jpg',
+                'https://example.com/hello-world',
+                true,
+                new DateTimeImmutable('2026-03-20 10:00:00')
+            )
+            ->withHierarchy(null, 10, new DateTimeImmutable('2026-03-20 10:00:00'))
     );
 
     expect($savedItem->id())->toBeInt()
@@ -116,6 +121,10 @@ it('persists updates and queries content items by id slug and type', function ()
         ->and($updatedSaved->ogImage())->toBe('/images/hello.jpg')
         ->and($updatedSaved->canonicalUrl())->toBe('https://example.com/hello-world')
         ->and($updatedSaved->noindex())->toBeTrue()
+        ->and($updatedSaved->parentId())->toBeNull()
+        ->and($updatedSaved->sortOrder())->toBe(10)
+        ->and($updatedSaved->isRoot())->toBeTrue()
+        ->and($updatedSaved->hasParent())->toBeFalse()
         ->and($itemRepository->findBySlug(Slug::fromString('hello-world')))->toBeNull();
 });
 
@@ -155,4 +164,70 @@ it('loads all content items grouped by content type slug in one repository call'
         ->and($grouped['items']['page'][0]->slug()->value())->toBe('about')
         ->and($grouped['items']['article'])->toHaveCount(1)
         ->and($grouped['items']['article'][0]->slug()->value())->toBe('news');
+});
+
+it('finds root items and children using hierarchy fields', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+
+    $pageType = new ContentType('page', 'Page', 'content/default.php');
+    $typeRepository->save($pageType);
+
+    $rootA = $itemRepository->save(
+        ContentItem::draft(
+            id: null,
+            type: $pageType,
+            title: 'Root A',
+            slug: Slug::fromString('root-a'),
+            createdAt: new DateTimeImmutable('2026-03-20 10:00:00'),
+            updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
+        )->withHierarchy(null, 2, new DateTimeImmutable('2026-03-20 10:00:00'))
+    );
+
+    $rootB = $itemRepository->save(
+        ContentItem::draft(
+            id: null,
+            type: $pageType,
+            title: 'Root B',
+            slug: Slug::fromString('root-b'),
+            createdAt: new DateTimeImmutable('2026-03-20 10:00:00'),
+            updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
+        )->withHierarchy(null, 1, new DateTimeImmutable('2026-03-20 10:00:00'))
+    );
+
+    $itemRepository->save(
+        ContentItem::draft(
+            id: null,
+            type: $pageType,
+            title: 'Child B1',
+            slug: Slug::fromString('child-b1'),
+            createdAt: new DateTimeImmutable('2026-03-20 10:00:00'),
+            updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
+        )->withHierarchy($rootB->id(), 2, new DateTimeImmutable('2026-03-20 10:00:00'))
+    );
+
+    $itemRepository->save(
+        ContentItem::draft(
+            id: null,
+            type: $pageType,
+            title: 'Child B0',
+            slug: Slug::fromString('child-b0'),
+            createdAt: new DateTimeImmutable('2026-03-20 10:00:00'),
+            updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
+        )->withHierarchy($rootB->id(), 1, new DateTimeImmutable('2026-03-20 10:00:00'))
+    );
+
+    expect($rootA->id())->not->toBeNull()
+        ->and($rootB->id())->not->toBeNull();
+
+    $rootItems = $itemRepository->findRootItems();
+    $children = $itemRepository->findChildrenOf($rootB->id() ?? 0);
+
+    expect(array_map(static fn (ContentItem $item): string => $item->slug()->value(), $rootItems))
+        ->toBe(['root-b', 'root-a'])
+        ->and(array_map(static fn (ContentItem $item): string => $item->slug()->value(), $children))
+        ->toBe(['child-b0', 'child-b1'])
+        ->and($children[0]->hasParent())->toBeTrue()
+        ->and($children[0]->parentId())->toBe($rootB->id());
 });

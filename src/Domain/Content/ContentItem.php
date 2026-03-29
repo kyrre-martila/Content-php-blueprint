@@ -25,10 +25,16 @@ final class ContentItem
         private readonly ?string $metaDescription = null,
         private readonly ?string $ogImage = null,
         private readonly ?string $canonicalUrl = null,
-        private readonly bool $noindex = false
+        private readonly bool $noindex = false,
+        private readonly ?int $parentId = null,
+        private readonly int $sortOrder = 0
     ) {
         if (trim($this->title) === '') {
             throw new InvalidArgumentException('Content item title cannot be empty.');
+        }
+
+        if ($this->parentId !== null && $this->parentId < 1) {
+            throw new InvalidArgumentException('Content item parent ID must be a positive integer when provided.');
         }
     }
 
@@ -119,6 +125,26 @@ final class ContentItem
         return $this->noindex;
     }
 
+    public function parentId(): ?int
+    {
+        return $this->parentId;
+    }
+
+    public function sortOrder(): int
+    {
+        return $this->sortOrder;
+    }
+
+    public function isRoot(): bool
+    {
+        return $this->parentId === null;
+    }
+
+    public function hasParent(): bool
+    {
+        return $this->parentId !== null;
+    }
+
     public function isPublished(): bool
     {
         return $this->status->isPublished();
@@ -139,7 +165,9 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex
+            $this->noindex,
+            $this->parentId,
+            $this->sortOrder
         );
     }
 
@@ -163,7 +191,9 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex
+            $this->noindex,
+            $this->parentId,
+            $this->sortOrder
         );
     }
 
@@ -182,7 +212,9 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex
+            $this->noindex,
+            $this->parentId,
+            $this->sortOrder
         );
     }
 
@@ -204,7 +236,9 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex
+            $this->noindex,
+            $this->parentId,
+            $this->sortOrder
         );
     }
 
@@ -229,7 +263,30 @@ final class ContentItem
             $metaDescription,
             $ogImage,
             $canonicalUrl,
-            $noindex
+            $noindex,
+            $this->parentId,
+            $this->sortOrder
+        );
+    }
+
+    public function withHierarchy(?int $parentId, int $sortOrder, DateTimeImmutable $updatedAt): self
+    {
+        return new self(
+            $this->id,
+            $this->type,
+            $this->title,
+            $this->slug,
+            $this->status,
+            $this->createdAt,
+            $updatedAt,
+            $this->patternBlocks,
+            $this->metaTitle,
+            $this->metaDescription,
+            $this->ogImage,
+            $this->canonicalUrl,
+            $this->noindex,
+            $parentId,
+            $sortOrder
         );
     }
 }

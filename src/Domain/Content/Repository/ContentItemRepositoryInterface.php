@@ -20,6 +20,16 @@ interface ContentItemRepositoryInterface
     public function findBySlug(Slug $slug): ?ContentItem;
 
     /**
+     * @return list<ContentItem>
+     */
+    public function findChildrenOf(int $parentId): array;
+
+    /**
+     * @return list<ContentItem>
+     */
+    public function findRootItems(): array;
+
+    /**
      * @return array{
      *   items: list<ContentItem>,
      *   total_count: int,

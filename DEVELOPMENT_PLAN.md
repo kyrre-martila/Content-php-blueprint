@@ -330,10 +330,18 @@ This keeps portable content from absorbing blueprint-specific rendering/runtime 
   - fallback schema remains available for compatibility
 - `content_items` including:
   - semantic fields (`title`, `slug`, `status`)
+  - explicit hierarchy fields (`parent_id`, `sort_order`) for optional tree-like content
   - `pattern_blocks` as structured semantic content data (not layout instructions)
-  - relationships object with `content_type` and future-safe room for `parent_slug` / `related_items`
+  - relationships object with `content_type` and future-safe room for `related_items`
   - optional SEO metadata (`meta_title`, `meta_description`, `canonical_url`) when present
   - creation/update timestamps
+
+Hierarchy rules:
+
+- Hierarchy uses dedicated `parent_id` references and `sort_order` for sibling ordering.
+- Hierarchy is optional capability support (e.g., pages/docs/navigation-oriented content), not a mandatory behavior across all content types.
+- Hierarchy is separate from categories/taxonomy concerns.
+- Hierarchy is separate from the generic relationships payload.
 
 ### Boundary clarification
 

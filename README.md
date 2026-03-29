@@ -336,10 +336,13 @@ Current OCF payloads include:
   - falls back to a safe default portable schema otherwise
 - content items with:
   - core semantic fields (title/slug/status)
+  - explicit hierarchy fields (`parent_id`, `sort_order`) for tree-like structures when needed
   - structured `pattern_blocks` semantic data (no layout/rendering instructions)
-  - semantic relationships (`content_type`, with room for future `parent_slug` and `related_items`)
+  - semantic relationships (`content_type`, with room for future `related_items`)
   - SEO metadata when available (`meta_title`, `meta_description`, `canonical_url`)
   - item metadata timestamps
+
+Hierarchy support is a **capability**, not a requirement for all content types. Use `parent_id` and `sort_order` for navigation/page/doc trees where ordering and nesting matter. Keep hierarchy concerns separate from categories/taxonomy and separate from generic relationships.
 
 OCF export intentionally excludes presentation/runtime concerns such as templates, layout files, renderer entrypoints, CSS classes, and pattern rendering instructions. Those concerns belong to blueprint-specific composition snapshots and runtime rendering, not the portable OCF boundary.
 
