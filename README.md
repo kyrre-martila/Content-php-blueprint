@@ -342,7 +342,7 @@ Current OCF payloads include:
   - SEO metadata when available (`meta_title`, `meta_description`, `canonical_url`)
   - item metadata timestamps
 
-Hierarchy support is a **capability**, not a requirement for all content types. Use `parent_id` and `sort_order` for navigation/page/doc trees where ordering and nesting matter. Keep hierarchy concerns separate from categories/taxonomy and separate from generic relationships.
+Hierarchy support is a **capability**, not a requirement for all content types. Use `parent_id` and `sort_order` for navigation/page/doc trees where ordering and nesting matter. Keep hierarchy concerns separate from category grouping and separate from generic relationships.
 
 OCF export intentionally excludes presentation/runtime concerns such as templates, layout files, renderer entrypoints, CSS classes, and pattern rendering instructions. Those concerns belong to blueprint-specific composition snapshots and runtime rendering, not the portable OCF boundary.
 
@@ -447,3 +447,35 @@ vendor/bin/pest
 composer analyse
 vendor/bin/phpstan analyse -c phpstan.neon.dist
 ```
+
+
+## Category Groups and Categories
+
+Blueprint includes a classification system built around **Category Groups** and **Categories**.
+
+- A **Category Group** contains Categories (for example: Blog categories, Product categories, Locations, Departments).
+- A **Category** classifies content items (for example: News, Events, Kirkenes, Senior team).
+- Categories are not the same as content relationships/hierarchy between content items.
+- Categories support optional hierarchy through `parent_id`, so nested categories are supported.
+
+Data model summary:
+
+- `category_groups`: stores the high-level grouping container.
+- `categories`: stores individual categories and optional parent/child nesting.
+- `content_item_categories`: pivot table linking content items to categories.
+
+Domain and persistence summary:
+
+- Domain models: `CategoryGroup`, `Category`.
+- Repository contracts: `CategoryGroupRepositoryInterface`, `CategoryRepositoryInterface`.
+- Infrastructure implementations: `MySqlCategoryGroupRepository`, `MySqlCategoryRepository`.
+
+Repository helper methods include:
+
+- `findAllGroups()`
+- `findCategoriesByGroup(CategoryGroup $group)`
+- `findRootCategoriesByGroup(CategoryGroup $group)`
+- `findChildrenOf(Category $category)`
+- `findCategoriesForContentItem(ContentItem $item)`
+- `attachCategoryToContentItem(ContentItem $item, Category $category)`
+- `detachCategoryFromContentItem(ContentItem $item, Category $category)`

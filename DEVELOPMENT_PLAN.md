@@ -340,7 +340,7 @@ Hierarchy rules:
 
 - Hierarchy uses dedicated `parent_id` references and `sort_order` for sibling ordering.
 - Hierarchy is optional capability support (e.g., pages/docs/navigation-oriented content), not a mandatory behavior across all content types.
-- Hierarchy is separate from categories/taxonomy concerns.
+- Hierarchy is separate from Category Group and Category concerns.
 - Hierarchy is separate from the generic relationships payload.
 
 ### Boundary clarification
@@ -470,3 +470,35 @@ These layers must remain separate and be reasoned about together.
   - repository docs/rules.
 
 This separation is the foundation for safe AI automation and predictable architecture evolution.
+
+
+## Category Groups and Categories
+
+Blueprint includes a classification system built around **Category Groups** and **Categories**.
+
+- A **Category Group** contains Categories (for example: Blog categories, Product categories, Locations, Departments).
+- A **Category** classifies content items (for example: News, Events, Kirkenes, Senior team).
+- Categories are not the same as content relationships/hierarchy between content items.
+- Categories support optional hierarchy through `parent_id`, so nested categories are supported.
+
+Data model summary:
+
+- `category_groups`: stores the high-level grouping container.
+- `categories`: stores individual categories and optional parent/child nesting.
+- `content_item_categories`: pivot table linking content items to categories.
+
+Domain and persistence summary:
+
+- Domain models: `CategoryGroup`, `Category`.
+- Repository contracts: `CategoryGroupRepositoryInterface`, `CategoryRepositoryInterface`.
+- Infrastructure implementations: `MySqlCategoryGroupRepository`, `MySqlCategoryRepository`.
+
+Repository helper methods include:
+
+- `findAllGroups()`
+- `findCategoriesByGroup(CategoryGroup $group)`
+- `findRootCategoriesByGroup(CategoryGroup $group)`
+- `findChildrenOf(Category $category)`
+- `findCategoriesForContentItem(ContentItem $item)`
+- `attachCategoryToContentItem(ContentItem $item, Category $category)`
+- `detachCategoryFromContentItem(ContentItem $item, Category $category)`
