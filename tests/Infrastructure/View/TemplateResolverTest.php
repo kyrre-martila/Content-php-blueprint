@@ -2,76 +2,81 @@
 
 declare(strict_types=1);
 
-use App\Domain\Content\ContentItem;
-use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentType;
-use App\Domain\Content\Slug;
 use App\Infrastructure\View\TemplateResolver;
 
-it('resolves explicit content item template override before content type default', function (): void {
+it('resolves content template by content type first', function (): void {
     $templatesPath = createTemplateDirectory([
         'index.php' => '<?php',
-        'content/default.php' => '<?php',
-        'content/type.php' => '<?php',
-        'content/override.php' => '<?php',
+        'content/page.php' => '<?php',
     ]);
 
     $resolver = new TemplateResolver($templatesPath);
-    $contentItem = makeTemplateContentItem('content/type.php', 'content/override.php');
 
-    expect($resolver->resolveContentTemplate($contentItem))->toBe($templatesPath . '/content/override.php');
+    expect($resolver->resolveContentTemplate(makeContentType('page')))
+        ->toBe($templatesPath . '/content/page.php');
 });
 
-it('resolves content type default template when override is absent', function (): void {
-    $templatesPath = createTemplateDirectory([
-        'index.php' => '<?php',
-        'content/default.php' => '<?php',
-        'content/type.php' => '<?php',
-    ]);
-
-    $resolver = new TemplateResolver($templatesPath);
-    $contentItem = makeTemplateContentItem('content/type.php');
-
-    expect($resolver->resolveContentTemplate($contentItem))->toBe($templatesPath . '/content/type.php');
-});
-
-it('falls back to content default template when content type template is missing', function (): void {
-    $templatesPath = createTemplateDirectory([
-        'index.php' => '<?php',
-        'content/default.php' => '<?php',
-    ]);
-
-    $resolver = new TemplateResolver($templatesPath);
-    $contentItem = makeTemplateContentItem('content/missing.php');
-
-    expect($resolver->resolveContentTemplate($contentItem))->toBe($templatesPath . '/content/default.php');
-});
-
-it('falls back to index template when content default template is missing', function (): void {
+it('falls back to index template when content type template is missing', function (): void {
     $templatesPath = createTemplateDirectory([
         'index.php' => '<?php',
     ]);
 
     $resolver = new TemplateResolver($templatesPath);
-    $contentItem = makeTemplateContentItem('content/missing.php');
 
-    expect($resolver->resolveContentTemplate($contentItem))->toBe($templatesPath . '/index.php');
+    expect($resolver->resolveContentTemplate(makeContentType('article')))
+        ->toBe($templatesPath . '/index.php');
 });
 
-function makeTemplateContentItem(string $defaultTemplate, ?string $templateOverride = null): ContentItem
+it('resolves collection template by content type first', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+        'collections/page.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveCollectionTemplate(makeContentType('page')))
+        ->toBe($templatesPath . '/collections/page.php');
+});
+
+it('falls back to system 404 when collection template is missing', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveCollectionTemplate(makeContentType('article')))
+        ->toBe($templatesPath . '/system/404.php');
+});
+
+it('resolves system template by route first', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+        'system/search.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveSystemTemplate('search'))
+        ->toBe($templatesPath . '/system/search.php');
+});
+
+it('falls back to system 404 when system route template is missing', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveSystemTemplate('missing'))
+        ->toBe($templatesPath . '/system/404.php');
+});
+
+function makeContentType(string $name): ContentType
 {
-    $now = new \DateTimeImmutable('2026-03-27 00:00:00');
-
-    return new ContentItem(
-        id: 1,
-        type: new ContentType('page', 'Page', $defaultTemplate),
-        title: 'Template Test',
-        slug: Slug::fromString('template-test'),
-        status: ContentStatus::Published,
-        createdAt: $now,
-        updatedAt: $now,
-        templateOverride: $templateOverride
-    );
+    return new ContentType($name, ucfirst($name), 'index.php');
 }
 
 /**

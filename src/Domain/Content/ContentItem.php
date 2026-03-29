@@ -25,8 +25,7 @@ final class ContentItem
         private readonly ?string $metaDescription = null,
         private readonly ?string $ogImage = null,
         private readonly ?string $canonicalUrl = null,
-        private readonly bool $noindex = false,
-        private readonly ?string $templateOverride = null
+        private readonly bool $noindex = false
     ) {
         if (trim($this->title) === '') {
             throw new InvalidArgumentException('Content item title cannot be empty.');
@@ -120,11 +119,6 @@ final class ContentItem
         return $this->noindex;
     }
 
-    public function templateOverride(): ?string
-    {
-        return $this->templateOverride;
-    }
-
     public function isPublished(): bool
     {
         return $this->status->isPublished();
@@ -145,8 +139,7 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex,
-            $this->templateOverride
+            $this->noindex
         );
     }
 
@@ -170,8 +163,7 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex,
-            $this->templateOverride
+            $this->noindex
         );
     }
 
@@ -190,8 +182,7 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex,
-            $this->templateOverride
+            $this->noindex
         );
     }
 
@@ -213,8 +204,7 @@ final class ContentItem
             $this->metaDescription,
             $this->ogImage,
             $this->canonicalUrl,
-            $this->noindex,
-            $this->templateOverride
+            $this->noindex
         );
     }
 
@@ -239,8 +229,7 @@ final class ContentItem
             $metaDescription,
             $ogImage,
             $canonicalUrl,
-            $noindex,
-            $this->templateOverride
+            $noindex
         );
     }
 }
