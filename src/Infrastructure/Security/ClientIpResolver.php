@@ -9,14 +9,18 @@ use App\Http\Request;
 final class ClientIpResolver
 {
     /** @var array<string, true> */
-    private readonly array $trustedProxies;
+    private readonly array $trustedProxyIps;
+
+    /** @var array<int, array{network: string, prefix: int}> */
+    private readonly array $trustedProxyCidrs;
 
     /**
      * @param array<int, string> $trustedProxies
      */
     public function __construct(array $trustedProxies = [])
     {
-        $normalized = [];
+        $trustedIps = [];
+        $trustedCidrs = [];
 
         foreach ($trustedProxies as $proxyIp) {
             if (!is_string($proxyIp)) {
@@ -25,14 +29,24 @@ final class ClientIpResolver
 
             $candidate = trim($proxyIp);
 
-            if ($candidate === '' || filter_var($candidate, FILTER_VALIDATE_IP) === false) {
+            if ($candidate === '') {
                 continue;
             }
 
-            $normalized[$candidate] = true;
+            if (filter_var($candidate, FILTER_VALIDATE_IP) !== false) {
+                $trustedIps[$candidate] = true;
+                continue;
+            }
+
+            $parsedCidr = $this->parseCidr($candidate);
+
+            if ($parsedCidr !== null) {
+                $trustedCidrs[] = $parsedCidr;
+            }
         }
 
-        $this->trustedProxies = $normalized;
+        $this->trustedProxyIps = $trustedIps;
+        $this->trustedProxyCidrs = $trustedCidrs;
     }
 
     public function resolve(Request $request): string
@@ -64,7 +78,71 @@ final class ClientIpResolver
 
     private function isTrustedProxy(string $remoteAddress): bool
     {
-        return isset($this->trustedProxies[$remoteAddress]);
+        if (isset($this->trustedProxyIps[$remoteAddress])) {
+            return true;
+        }
+
+        foreach ($this->trustedProxyCidrs as $cidr) {
+            if ($this->isIpInCidr($remoteAddress, $cidr['network'], $cidr['prefix'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function parseCidr(string $candidate): ?array
+    {
+        if (!str_contains($candidate, '/')) {
+            return null;
+        }
+
+        [$network, $prefix] = array_pad(explode('/', $candidate, 2), 2, '');
+        $network = trim($network);
+        $prefix = trim($prefix);
+
+        if (filter_var($network, FILTER_VALIDATE_IP) === false || !preg_match('/^\d+$/', $prefix)) {
+            return null;
+        }
+
+        $maxPrefix = str_contains($network, ':') ? 128 : 32;
+        $prefixValue = (int) $prefix;
+
+        if ($prefixValue < 0 || $prefixValue > $maxPrefix) {
+            return null;
+        }
+
+        return [
+            'network' => $network,
+            'prefix' => $prefixValue,
+        ];
+    }
+
+    private function isIpInCidr(string $ipAddress, string $network, int $prefix): bool
+    {
+        $ipBinary = inet_pton($ipAddress);
+        $networkBinary = inet_pton($network);
+
+        if ($ipBinary === false || $networkBinary === false || strlen($ipBinary) !== strlen($networkBinary)) {
+            return false;
+        }
+
+        $fullBytes = intdiv($prefix, 8);
+        $remainingBits = $prefix % 8;
+
+        if ($fullBytes > 0 && substr($ipBinary, 0, $fullBytes) !== substr($networkBinary, 0, $fullBytes)) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+        $ipByte = ord($ipBinary[$fullBytes]);
+        $networkByte = ord($networkBinary[$fullBytes]);
+
+        return ($ipByte & $mask) === ($networkByte & $mask);
     }
 
     private function resolveRemoteAddress(mixed $remoteAddress): string

@@ -48,7 +48,21 @@ PHINX_ENV=development
 
 SESSION_NAME=content_blueprint_session
 SESSION_SECURE_COOKIE=false
+
+# Comma-separated trusted reverse proxy IPs/CIDRs
+TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
 ```
+
+### Trusted proxies and client IP resolution
+
+Configure `security.trusted_proxies` through `TRUSTED_PROXIES` in `.env`.
+
+- If `TRUSTED_PROXIES` is empty, the app uses `REMOTE_ADDR` as the client IP.
+- If `TRUSTED_PROXIES` is configured, the app only accepts `X-Forwarded-For` when the immediate `REMOTE_ADDR` is a trusted proxy IP/CIDR.
+
+> ⚠️ Incorrect trusted proxy configuration can cause many users to share the same login rate-limit bucket (usually the proxy IP), resulting in false lockouts.
+
+See `docs/security.md` for deployment guidance (Cloudflare, nginx reverse proxy, load balancers, and Cloudflare Tunnel).
 
 ## Migration commands
 
