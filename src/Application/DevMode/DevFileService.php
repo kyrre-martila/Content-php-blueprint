@@ -64,6 +64,27 @@ final class DevFileService
         $this->writeAtomically($absolutePath, $contents);
     }
 
+    public function safeCreateFile(string $path, string $contents): void
+    {
+        $absolutePath = $this->resolveEditableFilePath($path);
+
+        if (is_file($absolutePath)) {
+            throw new RuntimeException('Requested file already exists.');
+        }
+
+        $directory = dirname($absolutePath);
+
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException('Failed to create target directory.');
+        }
+
+        if (!is_writable($directory)) {
+            throw new RuntimeException('Target directory is not writable.');
+        }
+
+        $this->writeAtomically($absolutePath, $contents);
+    }
+
     public function isAllowedPath(string $path): bool
     {
         try {

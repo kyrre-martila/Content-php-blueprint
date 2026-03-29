@@ -48,6 +48,14 @@ final class AdminRouteRegistrar
                 $this->templateAdminController,
                 'index',
             ], $middleware));
+            $routeRegistry->get('/admin/templates/edit', $this->middlewareStackBuilder->wrap([
+                $this->templateAdminController,
+                'edit',
+            ], $middleware));
+            $routeRegistry->post('/admin/templates/edit', $this->middlewareStackBuilder->wrap([
+                $this->templateAdminController,
+                'update',
+            ], $middleware));
         }
 
         if ($this->contentTypeAdminController !== null) {
