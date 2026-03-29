@@ -39,6 +39,11 @@ it('returns application/xml output from published content items', function (): v
             return [];
         }
 
+        public function findAllWithTypes(): array
+        {
+            return [];
+        }
+
         public function findPublished(): array
         {
             return [$this->published];

@@ -118,3 +118,40 @@ it('persists updates and queries content items by id slug and type', function ()
         ->and($updatedSaved->noindex())->toBeTrue()
         ->and($itemRepository->findBySlug(Slug::fromString('hello-world')))->toBeNull();
 });
+
+it('loads all content items grouped by content type slug in one repository call', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+
+    $pageType = new ContentType('page', 'Page', 'content/default.php');
+    $articleType = new ContentType('article', 'Article', 'content/default.php');
+    $typeRepository->save($pageType);
+    $typeRepository->save($articleType);
+
+    $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $pageType,
+        title: 'About',
+        slug: Slug::fromString('about'),
+        createdAt: new DateTimeImmutable('2026-03-20 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-20 10:00:00')
+    ));
+
+    $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $articleType,
+        title: 'News',
+        slug: Slug::fromString('news'),
+        createdAt: new DateTimeImmutable('2026-03-21 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-21 10:00:00')
+    ));
+
+    $grouped = $itemRepository->findAllWithTypes();
+
+    expect($grouped)->toHaveKeys(['article', 'page'])
+        ->and($grouped['page'])->toHaveCount(1)
+        ->and($grouped['page'][0]->slug()->value())->toBe('about')
+        ->and($grouped['article'])->toHaveCount(1)
+        ->and($grouped['article'][0]->slug()->value())->toBe('news');
+});
