@@ -39,6 +39,7 @@ use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Editor\EditHistoryLogger;
 use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\Pattern\PatternRegistry;
+use App\Infrastructure\Security\ClientIpResolver;
 use App\Infrastructure\Security\LoginRateLimiter;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
@@ -80,6 +81,7 @@ final class ControllerFactory
         AuthSession $authSession,
         SessionManager $sessionManager,
         LoginRateLimiter $loginRateLimiter,
+        ClientIpResolver $clientIpResolver,
         EditorMode $editorMode,
         DevMode $devMode,
         CompositionExporter $compositionExporter,
@@ -164,7 +166,8 @@ final class ControllerFactory
                 $loginUser,
                 $authSession,
                 $sessionManager,
-                $loginRateLimiter
+                $loginRateLimiter,
+                $clientIpResolver
             ),
             'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),

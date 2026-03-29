@@ -14,6 +14,7 @@ use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Database\Connection;
 use App\Domain\Logging\LoggerInterface;
+use App\Infrastructure\Security\ClientIpResolver;
 use App\Infrastructure\Security\LoginRateLimiter;
 
 final class ApplicationFactory
@@ -79,6 +80,10 @@ final class ApplicationFactory
             $rateLimitWindowMinutes
         );
 
+        $configuredTrustedProxies = $this->config->get('security.trusted_proxies', []);
+        $trustedProxies = is_array($configuredTrustedProxies) ? $configuredTrustedProxies : [];
+        $clientIpResolver = new ClientIpResolver($trustedProxies);
+
         $editors = (new EditorFactory($this->projectRoot))->build(
             $authSession,
             $sessionManager,
@@ -107,6 +112,7 @@ final class ApplicationFactory
             $authSession,
             $sessionManager,
             $loginRateLimiter,
+            $clientIpResolver,
             $editors['editorMode'],
             $editors['devMode'],
             $exporters['compositionExporter'],

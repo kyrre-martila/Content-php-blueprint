@@ -9,6 +9,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\Security\ClientIpResolver;
 use App\Infrastructure\Security\LoginRateLimiter;
 use App\Infrastructure\View\TemplateRenderer;
 
@@ -19,7 +20,8 @@ final class AuthController
         private readonly LoginUser $loginUser,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
-        private readonly LoginRateLimiter $loginRateLimiter
+        private readonly LoginRateLimiter $loginRateLimiter,
+        private readonly ClientIpResolver $clientIpResolver
     ) {
     }
 
@@ -42,7 +44,7 @@ final class AuthController
 
     public function login(Request $request): Response
     {
-        $ipAddress = $this->resolveIpAddress($request);
+        $ipAddress = $this->clientIpResolver->resolve($request);
 
         if ($this->loginRateLimiter->isBlocked($ipAddress)) {
             $html = $this->templateRenderer->render(
@@ -76,25 +78,4 @@ final class AuthController
         return Response::redirect('/admin/login');
     }
 
-    private function resolveIpAddress(Request $request): string
-    {
-        $server = $request->serverParams();
-
-        $forwarded = $server['HTTP_X_FORWARDED_FOR'] ?? null;
-
-        if (is_string($forwarded) && trim($forwarded) !== '') {
-            $parts = explode(',', $forwarded);
-            $firstIp = trim($parts[0] ?? '');
-
-            if ($firstIp !== '') {
-                return $firstIp;
-            }
-        }
-
-        $remoteAddress = $server['REMOTE_ADDR'] ?? null;
-
-        return is_string($remoteAddress) && trim($remoteAddress) !== ''
-            ? $remoteAddress
-            : 'unknown';
-    }
 }
