@@ -35,7 +35,12 @@ $adminPageDescription = 'Manage index, content, collection, and system template 
 
                     <?php if ($entries === []): ?>
                         <div class="admin-table__row admin-table__row--empty">
-                            <div class="admin-table__cell">No templates found for this group.</div>
+                            <div class="admin-table__cell">
+                                <div class="admin-table-empty">
+                                    <p class="admin-table-empty__text">No templates were found in this group. Create a content type first to generate and manage template targets.</p>
+                                    <a class="admin-btn admin-btn--primary" href="/admin/content-types/create">Create Content Type</a>
+                                </div>
+                            </div>
                         </div>
                     <?php else: ?>
                         <?php foreach ($entries as $entry): ?>
@@ -61,9 +66,11 @@ $adminPageDescription = 'Manage index, content, collection, and system template 
                                     <?php endif; ?>
                                 </div>
                                 <div class="admin-table__cell">
-                                    <a class="admin-action admin-action--secondary" href="<?= $e((string) $entry['editPath']) ?>">
-                                        Edit
-                                    </a>
+                                    <div class="admin-actions admin-actions--table">
+                                        <a class="admin-action admin-action--secondary" href="<?= $e((string) $entry['editPath']) ?>">
+                                            Edit
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

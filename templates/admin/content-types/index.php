@@ -44,7 +44,12 @@ $adminPageDescription = 'Manage content type definitions and template availabili
                 <tbody>
                     <?php if (!isset($rows) || !is_array($rows) || $rows === []): ?>
                         <tr>
-                            <td colspan="6">No content types found.</td>
+                            <td colspan="6">
+                                <div class="admin-table-empty">
+                                    <p class="admin-table-empty__text">No content types found yet. Create one to start structuring and rendering content consistently.</p>
+                                    <a class="admin-btn admin-btn--primary" href="/admin/content-types/create">Create Content Type</a>
+                                </div>
+                            </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($rows as $row): ?>
@@ -74,7 +79,7 @@ $adminPageDescription = 'Manage content type definitions and template availabili
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <div class="admin-actions">
+                                    <div class="admin-actions admin-actions--table">
                                         <a class="admin-action admin-action--secondary" href="<?= $e((string) ($row['editPath'] ?? '#')) ?>">Edit</a>
                                         <?php if (($row['canDelete'] ?? false) === true): ?>
                                             <form action="<?= $e((string) ($row['deletePath'] ?? '')) ?>" method="post">
