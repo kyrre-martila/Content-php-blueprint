@@ -198,6 +198,31 @@ This is intentionally a foundation layer only. The updater workflow is planned t
 
 Not implemented yet: release download, file replacement, GitHub API integration, rollback, or automatic updates.
 
+
+## Content relationships (free-form links)
+
+Blueprint supports a dedicated relationships system for explicit content-to-content links via `content_item_relationships`.
+
+Important boundaries:
+
+- relationships are for free-form directional connections between content items
+- relationships are **not** hierarchy (`parent_id` / tree structure)
+- relationships are **not** categories (`content_item_categories`)
+
+Current intended usage examples:
+
+- article -> author
+- article -> related-article
+- event -> venue
+- page -> featured-case
+- team-member -> department-page
+
+Validation behavior:
+
+- `relation_type` must be a non-empty string
+- self-reference is blocked by default (same item cannot point to itself)
+- duplicate identical links (`from + to + relation_type`) are prevented through a unique index and repository-level guard
+
 ## Runtime routing architecture
 
 Routing uses a registrar-based architecture coordinated by `src/Http/Routing/RouteRegistry.php`.

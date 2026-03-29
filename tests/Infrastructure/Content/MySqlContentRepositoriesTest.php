@@ -11,6 +11,7 @@ use App\Domain\Content\CategoryGroup;
 use App\Infrastructure\Content\MySqlCategoryGroupRepository;
 use App\Infrastructure\Content\MySqlCategoryRepository;
 use App\Infrastructure\Content\MySqlContentItemRepository;
+use App\Infrastructure\Content\MySqlContentRelationshipRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
 
@@ -92,6 +93,21 @@ function buildConnectionForRepositoryTests(): Connection
             PRIMARY KEY(content_item_id, category_id),
             FOREIGN KEY(content_item_id) REFERENCES content_items(id),
             FOREIGN KEY(category_id) REFERENCES categories(id)
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE content_item_relationships (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_content_item_id INTEGER NOT NULL,
+            to_content_item_id INTEGER NOT NULL,
+            relation_type TEXT NOT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(from_content_item_id, to_content_item_id, relation_type),
+            FOREIGN KEY(from_content_item_id) REFERENCES content_items(id),
+            FOREIGN KEY(to_content_item_id) REFERENCES content_items(id)
         )'
     );
 
@@ -375,4 +391,87 @@ it('attaches and detaches categories on content items', function (): void {
     $categoryRepository->detachCategoryFromContentItem($item, $category);
 
     expect($categoryRepository->findCategoriesForContentItem($item))->toHaveCount(0);
+});
+
+it('attaches finds and detaches content relationships independently of hierarchy and categories', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+    $relationshipRepository = new MySqlContentRelationshipRepository($connection);
+
+    $articleType = new ContentType('article', 'Article', 'content/default.php');
+    $typeRepository->save($articleType);
+
+    $article = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $articleType,
+        title: 'Launch Update',
+        slug: Slug::fromString('launch-update'),
+        createdAt: new DateTimeImmutable('2026-03-24 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-24 10:00:00')
+    ));
+
+    $author = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $articleType,
+        title: 'Jane Doe',
+        slug: Slug::fromString('jane-doe'),
+        createdAt: new DateTimeImmutable('2026-03-24 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-24 10:00:00')
+    ));
+
+    $relatedArticle = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $articleType,
+        title: 'Roadmap Follow-up',
+        slug: Slug::fromString('roadmap-follow-up'),
+        createdAt: new DateTimeImmutable('2026-03-24 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-24 10:00:00')
+    ));
+
+    $relationshipRepository->attach($article, $author, 'author', 10);
+    $relationshipRepository->attach($article, $relatedArticle, 'related-article', 20);
+    $relationshipRepository->attach($article, $relatedArticle, 'related-article', 20);
+
+    $outgoing = $relationshipRepository->findOutgoingRelationships($article);
+    $incoming = $relationshipRepository->findIncomingRelationships($author);
+    $typed = $relationshipRepository->findByType($article, 'related-article');
+
+    expect($outgoing)->toHaveCount(2)
+        ->and($incoming)->toHaveCount(1)
+        ->and($incoming[0]->fromContentItemId())->toBe($article->id())
+        ->and($incoming[0]->toContentItemId())->toBe($author->id())
+        ->and($typed)->toHaveCount(1)
+        ->and($typed[0]->toContentItemId())->toBe($relatedArticle->id())
+        ->and($typed[0]->relationType())->toBe('related-article')
+        ->and($typed[0]->sortOrder())->toBe(20);
+
+    $relationshipRepository->detach($article, $relatedArticle, 'related-article');
+
+    expect($relationshipRepository->findByType($article, 'related-article'))->toHaveCount(0);
+});
+
+it('rejects invalid content relationships', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+    $relationshipRepository = new MySqlContentRelationshipRepository($connection);
+
+    $type = new ContentType('page', 'Page', 'content/default.php');
+    $typeRepository->save($type);
+
+    $item = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $type,
+        title: 'About',
+        slug: Slug::fromString('about-page'),
+        createdAt: new DateTimeImmutable('2026-03-25 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-25 10:00:00')
+    ));
+
+    expect(fn (): array => $relationshipRepository->findByType($item, '   '))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(fn () => $relationshipRepository->attach($item, $item, 'featured-case'))
+        ->toThrow(InvalidArgumentException::class);
 });
