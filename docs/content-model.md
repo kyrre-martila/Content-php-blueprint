@@ -10,6 +10,7 @@ This document describes the **currently implemented** content model and clearly 
   - `slug` (machine name)
   - `name` (label)
   - `description` (currently used as default template path storage)
+  - `view_type` (`single` or `collection`)
 - `content_items`
   - `content_type_id`
   - `title`
@@ -20,7 +21,7 @@ This document describes the **currently implemented** content model and clearly 
 
 ### Domain objects
 
-- `ContentType` (`name`, `label`, `defaultTemplate`)
+- `ContentType` (`name`, `label`, `defaultTemplate`, `viewType`)
 - `ContentItem` (type, title, slug, status, timestamps, pattern blocks)
 - `Slug` value object for URL-safe slug validation
 - `ContentStatus` enum-like domain type
@@ -42,11 +43,10 @@ Only scalar field values are persisted in normalized string form.
 
 ### Template resolution behavior (current)
 
-Content pages resolve template candidates in this order:
+Content pages resolve by `ContentType.viewType`:
 
-1. `templates/pages/{normalized-slug}.php`
-2. `templates/pages/content.php`
-3. `templates/default.php`
+1. `single` → `templates/content/{content_type}.php`, then `templates/index.php` fallback.
+2. `collection` → `templates/collections/{content_type}.php`, then `templates/system/404.php` fallback.
 
 ## Current editing boundaries
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Slug;
 use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
@@ -21,6 +22,7 @@ function buildConnectionForRepositoryTests(): Connection
             name TEXT NOT NULL,
             slug TEXT NOT NULL UNIQUE,
             description TEXT NULL,
+            view_type TEXT NOT NULL DEFAULT "single",
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )'
@@ -54,7 +56,7 @@ it('persists and reads content types', function (): void {
     $connection = buildConnectionForRepositoryTests();
     $repository = new MySqlContentTypeRepository($connection);
 
-    $articleType = new ContentType('article', 'Article', 'templates/pages/article.php');
+    $articleType = new ContentType('article', 'Article', 'templates/pages/article.php', null, ContentViewType::COLLECTION);
 
     $repository->save($articleType);
 
@@ -64,6 +66,7 @@ it('persists and reads content types', function (): void {
         ->and($found?->name())->toBe('article')
         ->and($found?->label())->toBe('Article')
         ->and($found?->defaultTemplate())->toBe('templates/pages/article.php')
+        ->and($found?->viewType())->toBe(ContentViewType::COLLECTION)
         ->and($repository->findAll())->toHaveCount(1);
 });
 

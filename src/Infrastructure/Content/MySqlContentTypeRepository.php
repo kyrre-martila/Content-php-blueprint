@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Content;
 
 use App\Domain\Content\ContentType;
+use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Infrastructure\Database\Connection;
 use DateTimeImmutable;
@@ -29,12 +30,13 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
             $this->connection->execute(
-                'INSERT INTO content_types (name, slug, description, created_at, updated_at)
-                 VALUES (:name, :slug, :description, :created_at, :updated_at)',
+                'INSERT INTO content_types (name, slug, description, view_type, created_at, updated_at)
+                 VALUES (:name, :slug, :description, :view_type, :created_at, :updated_at)',
                 [
                     'name' => $contentType->label(),
                     'slug' => $contentType->name(),
                     'description' => $contentType->defaultTemplate(),
+                    'view_type' => $contentType->viewType()->value,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]
@@ -49,12 +51,14 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             'UPDATE content_types
              SET name = :name,
                  description = :description,
+                 view_type = :view_type,
                  updated_at = :updated_at
              WHERE id = :id',
             [
                 'id' => $id,
                 'name' => $contentType->label(),
                 'description' => $contentType->defaultTemplate(),
+                'view_type' => $contentType->viewType()->value,
                 'updated_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
             ]
         );
@@ -69,7 +73,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
     public function findByName(string $name): ?ContentType
     {
         $row = $this->connection->fetchOne(
-            'SELECT id, name, slug, description
+            'SELECT id, name, slug, description, view_type
              FROM content_types
              WHERE slug = :slug
              LIMIT 1',
@@ -86,7 +90,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
     public function findAll(): array
     {
         $rows = $this->connection->fetchAll(
-            'SELECT id, name, slug, description
+            'SELECT id, name, slug, description, view_type
              FROM content_types
              ORDER BY name ASC'
         );
@@ -123,7 +127,15 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
         $template = $row['description'] ?? null;
         $defaultTemplate = is_string($template) && trim($template) !== '' ? $template : self::FALLBACK_TEMPLATE;
 
-        return new ContentType($machineName, $label, $defaultTemplate);
+        $viewType = $this->rowString($row, 'view_type');
+
+        return new ContentType(
+            $machineName,
+            $label,
+            $defaultTemplate,
+            null,
+            ContentViewType::fromString($viewType)
+        );
     }
 
     /**

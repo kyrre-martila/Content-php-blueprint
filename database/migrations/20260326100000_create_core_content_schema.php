@@ -77,6 +77,7 @@ final class CreateCoreContentSchema extends AbstractMigration
             ->addColumn('name', 'string', ['limit' => 120])
             ->addColumn('slug', 'string', ['limit' => 120])
             ->addColumn('description', 'string', ['limit' => 255, 'null' => true])
+            ->addColumn('view_type', 'string', ['limit' => 20, 'default' => 'single'])
             ->addColumn('created_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP'])
             ->addColumn('updated_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP', 'update' => 'CURRENT_TIMESTAMP'])
             ->addIndex(['slug'], ['unique' => true])

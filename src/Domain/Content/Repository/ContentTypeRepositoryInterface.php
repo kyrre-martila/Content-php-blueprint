@@ -8,6 +8,9 @@ use App\Domain\Content\ContentType;
 
 interface ContentTypeRepositoryInterface
 {
+    /**
+     * Persists name, label, template, and view type configuration for a content type.
+     */
     public function save(ContentType $contentType): ContentType;
 
     public function findByName(string $name): ?ContentType;
