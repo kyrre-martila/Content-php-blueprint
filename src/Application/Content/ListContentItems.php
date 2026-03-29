@@ -6,14 +6,11 @@ namespace App\Application\Content;
 
 use App\Application\Content\Dto\ContentItemSummary;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
-use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 
 final class ListContentItems
 {
-    public function __construct(
-        private readonly ContentItemRepositoryInterface $contentItems,
-        private readonly ContentTypeRepositoryInterface $contentTypes
-    ) {
+    public function __construct(private readonly ContentItemRepositoryInterface $contentItems)
+    {
     }
 
     /**
@@ -23,8 +20,8 @@ final class ListContentItems
     {
         $summaries = [];
 
-        foreach ($this->contentTypes->findAll() as $contentType) {
-            foreach ($this->contentItems->findByType($contentType) as $item) {
+        foreach ($this->contentItems->findAllWithTypes() as $items) {
+            foreach ($items as $item) {
                 $id = $item->id();
 
                 if ($id === null) {

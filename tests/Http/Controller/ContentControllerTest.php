@@ -182,6 +182,11 @@ function repositoryWithSingleItem(ContentItem $contentItem): ContentItemReposito
             return [];
         }
 
+        public function findAllWithTypes(): array
+        {
+            return [];
+        }
+
         public function findPublished(): array
         {
             return $this->contentItem->isPublished() ? [$this->contentItem] : [];

@@ -122,7 +122,7 @@ final class ControllerFactory
             && $contentTypeRepository !== null
             && $editorContentService !== null
         ) {
-            $listContentItems = new ListContentItems($contentItemRepository, $contentTypeRepository);
+            $listContentItems = new ListContentItems($contentItemRepository);
             $contentItemValidator = new ContentItemValidator();
             $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator);
             $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator);

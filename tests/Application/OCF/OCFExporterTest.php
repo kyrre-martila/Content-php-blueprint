@@ -97,6 +97,11 @@ it('builds a content-only OCF payload without presentation concerns', function (
                 ));
             }
 
+            public function findAllWithTypes(): array
+            {
+                return [];
+            }
+
             public function findPublished(): array
             {
                 return array_values(array_filter(
@@ -203,6 +208,11 @@ it('writes content-export.json and creates storage/exports/ocf automatically', f
             public function findByType(ContentType $contentType): array
             {
                 return [$this->item];
+            }
+
+            public function findAllWithTypes(): array
+            {
+                return [];
             }
 
             public function findPublished(): array

@@ -22,6 +22,11 @@ interface ContentItemRepositoryInterface
     public function findByType(ContentType $contentType): array;
 
     /**
+     * @return array<string, list<ContentItem>>
+     */
+    public function findAllWithTypes(): array;
+
+    /**
      * @return list<ContentItem>
      */
     public function findPublished(): array;

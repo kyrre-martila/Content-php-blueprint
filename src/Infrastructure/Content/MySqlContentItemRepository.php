@@ -76,6 +76,28 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         return $contentItems;
     }
 
+    public function findAllWithTypes(): array
+    {
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' ORDER BY ct.slug ASC, ci.created_at DESC, ci.id DESC'
+        );
+
+        /** @var array<string, list<ContentItem>> $groupedContentItems */
+        $groupedContentItems = [];
+
+        foreach ($rows as $row) {
+            $typeSlug = $this->rowString($row, 'type_slug');
+
+            if (!array_key_exists($typeSlug, $groupedContentItems)) {
+                $groupedContentItems[$typeSlug] = [];
+            }
+
+            $groupedContentItems[$typeSlug][] = $this->mapRowToContentItem($row);
+        }
+
+        return $groupedContentItems;
+    }
+
     public function findPublished(): array
     {
         $rows = $this->connection->fetchAll(
