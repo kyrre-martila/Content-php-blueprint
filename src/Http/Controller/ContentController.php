@@ -52,7 +52,7 @@ final class ContentController
         $templatePath = $contentItem->type()->isCollectionView()
             ? $this->templateResolver->resolveCollectionTemplate($contentItem->type())
             : $this->templateResolver->resolveContentTemplate($contentItem->type());
-        $html = $this->templateRenderer->render($templatePath, [
+        $viewData = [
             'contentItem' => $contentItem,
             'request' => $request,
             'slug' => $slug->value(),
@@ -62,7 +62,29 @@ final class ContentController
             ],
             'editorModeActive' => $this->editorMode->isActive(),
             'editorCanUse' => $this->editorMode->canUse(),
-        ]);
+        ];
+
+        if ($contentItem->type()->isCollectionView()) {
+            $page = $this->positiveIntQueryParam($request, 'page', 1);
+            $perPage = $this->positiveIntQueryParam($request, 'perPage', ContentItemRepositoryInterface::DEFAULT_LIMIT);
+            $offset = ($page - 1) * $perPage;
+
+            $result = $this->contentItems->findPublishedByType($contentItem->type(), $perPage, $offset);
+
+            $viewData['collectionItems'] = $result['items'];
+            $viewData['totalCount'] = $result['total_count'];
+            $viewData['currentPage'] = $page;
+            $viewData['perPage'] = $perPage;
+            $viewData['pagination'] = [
+                'totalCount' => $result['total_count'],
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'offset' => $result['offset'],
+                'totalPages' => $perPage > 0 ? (int) ceil($result['total_count'] / $perPage) : 0,
+            ];
+        }
+
+        $html = $this->templateRenderer->render($templatePath, $viewData);
 
         return Response::html($html);
     }
@@ -184,6 +206,26 @@ final class ContentController
         return $canonicalScheme === $currentScheme
             && $canonicalHost === $currentHost
             && $canonicalPath === $requestPath;
+    }
+
+    private function positiveIntQueryParam(Request $request, string $key, int $fallback): int
+    {
+        $queryParams = $request->queryParams();
+        $value = $queryParams[$key] ?? null;
+
+        if (is_int($value) && $value > 0) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $parsed = filter_var($value, FILTER_VALIDATE_INT);
+
+            if (is_int($parsed) && $parsed > 0) {
+                return $parsed;
+            }
+        }
+
+        return $fallback;
     }
 
     private function renderNotFound(Request $request): Response
