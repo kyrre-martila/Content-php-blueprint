@@ -18,6 +18,16 @@ This document describes the **currently implemented** content model and clearly 
   - `status` (`draft` or `published`)
   - `pattern_blocks` JSON
   - timestamps
+- `content_type_relationship_rules`
+  - `from_content_type_id`
+  - `to_content_type_id`
+  - `relation_type` (stable identifier; lowercase `a-z`, max 60 chars)
+- `content_item_relationships`
+  - `from_content_item_id`
+  - `to_content_item_id`
+  - `relation_type` (must match an allowed rule identifier)
+  - `sort_order`
+  - timestamps
 
 ### Domain objects
 
@@ -25,6 +35,17 @@ This document describes the **currently implemented** content model and clearly 
 - `ContentItem` (type, title, slug, status, timestamps, pattern blocks)
 - `Slug` value object for URL-safe slug validation
 - `ContentStatus` enum-like domain type
+- `ContentRelationship` and `EnrichedContentRelationship` for typed links between items
+
+### Relationship rule identifiers
+
+Relationship `relation_type` values are treated as stable machine identifiers (for example: `author` or `related`), not free-form labels.
+
+Validation constraints:
+
+- required (non-empty after trim)
+- maximum length: 60 characters
+- pattern: `^[a-z]*$` (lowercase letters only)
 
 ### Pattern block storage format (current)
 

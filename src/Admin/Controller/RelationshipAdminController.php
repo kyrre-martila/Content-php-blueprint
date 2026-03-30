@@ -16,6 +16,9 @@ use InvalidArgumentException;
 
 final class RelationshipAdminController
 {
+    private const RELATION_TYPE_MAX_LENGTH = 60;
+    private const RELATION_TYPE_PATTERN = '/^[a-z]*$/';
+
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
@@ -115,6 +118,13 @@ final class RelationshipAdminController
             return Response::redirect('/admin/relationships');
         }
 
+        $relationTypeValidationError = $this->validateRelationType($relationType);
+        if ($relationTypeValidationError !== null) {
+            $this->session->flash('relationship_error', $relationTypeValidationError);
+
+            return Response::redirect('/admin/relationships');
+        }
+
         $fromType = $this->contentTypes->findByName($fromTypeName);
         $toType = $this->contentTypes->findByName($toTypeName);
 
@@ -132,8 +142,8 @@ final class RelationshipAdminController
 
         try {
             $this->relationships->allowRelationship($fromType, $toType, $relationType);
-        } catch (InvalidArgumentException) {
-            $this->session->flash('relationship_error', 'Relation type cannot be empty.');
+        } catch (InvalidArgumentException $exception) {
+            $this->session->flash('relationship_error', $exception->getMessage());
 
             return Response::redirect('/admin/relationships');
         }
@@ -209,5 +219,19 @@ final class RelationshipAdminController
         $csrfToken = $request->attribute('csrf_token');
 
         return is_string($token) && is_string($csrfToken) && hash_equals($csrfToken, $token);
+    }
+
+    private function validateRelationType(string $relationType): ?string
+    {
+        if (mb_strlen($relationType) > self::RELATION_TYPE_MAX_LENGTH) {
+            return sprintf('Relation type must be %d characters or fewer.', self::RELATION_TYPE_MAX_LENGTH);
+        }
+
+        if (preg_match(self::RELATION_TYPE_PATTERN, $relationType) !== 1) {
+            // Relation types are stable identifiers used by rules, not free-form admin labels.
+            return 'Relation type must contain lowercase letters only (a-z).';
+        }
+
+        return null;
     }
 }

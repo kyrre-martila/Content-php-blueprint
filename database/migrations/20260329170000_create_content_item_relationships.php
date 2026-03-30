@@ -11,7 +11,7 @@ final class CreateContentItemRelationships extends AbstractMigration
         $this->table('content_item_relationships', ['engine' => 'InnoDB'])
             ->addColumn('from_content_item_id', 'integer', ['signed' => false])
             ->addColumn('to_content_item_id', 'integer', ['signed' => false])
-            ->addColumn('relation_type', 'string', ['limit' => 120])
+            ->addColumn('relation_type', 'string', ['limit' => 60])
             ->addColumn('sort_order', 'integer', ['default' => 0])
             ->addColumn('created_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP'])
             ->addColumn('updated_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP', 'update' => 'CURRENT_TIMESTAMP'])
