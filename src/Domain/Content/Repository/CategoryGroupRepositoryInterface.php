@@ -18,4 +18,8 @@ interface CategoryGroupRepositoryInterface
      * @return list<CategoryGroup>
      */
     public function findAllGroups(): array;
+
+    public function remove(CategoryGroup $group): void;
+
+    public function isInUse(CategoryGroup $group): bool;
 }

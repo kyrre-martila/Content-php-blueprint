@@ -248,6 +248,44 @@ Example mapping:
 - `Event` -> `Locations`
 - `Product` -> `Product categories`
 
+## Admin category management UI
+
+Admin now includes a dedicated **Categories** section using a vertical split layout modeled after the template manager pattern:
+
+- left column: Category Groups list + group management forms
+- right column: nested Categories for the selected group + category management forms
+
+Routes are role-protected (`RequireRoleMiddleware`) and all write operations require CSRF tokens.
+
+### Category Groups in admin
+
+- create category group (`name`, `slug`, `description`)
+- edit category group (`name`, `slug`, `description`)
+- delete category group only when not in use
+
+“In use” currently includes:
+
+- at least one category exists in that group
+- at least one content type is mapped to that group in `content_type_category_groups`
+
+### Categories in admin
+
+- create category (`name`, `slug`, `description`, optional `parent`, `sort_order`)
+- edit category (`name`, `slug`, `description`, optional `parent`, `sort_order`)
+- delete category with safeguards
+
+Deletion safeguards:
+
+- cannot delete categories assigned to content items (`content_item_categories`)
+- cannot delete categories that still have child categories
+
+### Content Type editor integration
+
+Content Type create/edit forms include a multi-select for **Allowed Category Groups**.
+
+This controls which category groups are valid for content items of that type.
+Assignments are persisted through the `content_type_category_groups` mapping table.
+
 ## Runtime routing architecture
 
 Routing uses a registrar-based architecture coordinated by `src/Http/Routing/RouteRegistry.php`.

@@ -191,6 +191,63 @@ final class MySqlCategoryRepository implements CategoryRepositoryInterface
         );
     }
 
+    public function remove(Category $category): void
+    {
+        $categoryId = $category->id();
+
+        if ($categoryId === null) {
+            throw new RuntimeException('Cannot remove category without ID.');
+        }
+
+        $affectedRows = $this->connection->execute(
+            'DELETE FROM categories
+             WHERE id = :id',
+            ['id' => $categoryId]
+        );
+
+        if ($affectedRows < 1) {
+            throw new RuntimeException(sprintf('Category "%s" was not found for removal.', $category->slug()->value()));
+        }
+    }
+
+    public function isAssignedToContentItems(Category $category): bool
+    {
+        $categoryId = $category->id();
+
+        if ($categoryId === null) {
+            return false;
+        }
+
+        $row = $this->connection->fetchOne(
+            'SELECT content_item_id
+             FROM content_item_categories
+             WHERE category_id = :category_id
+             LIMIT 1',
+            ['category_id' => $categoryId]
+        );
+
+        return $row !== null;
+    }
+
+    public function hasChildren(Category $category): bool
+    {
+        $categoryId = $category->id();
+
+        if ($categoryId === null) {
+            return false;
+        }
+
+        $row = $this->connection->fetchOne(
+            'SELECT id
+             FROM categories
+             WHERE parent_id = :parent_id
+             LIMIT 1',
+            ['parent_id' => $categoryId]
+        );
+
+        return $row !== null;
+    }
+
     private function create(Category $category): Category
     {
         $id = $this->connection->insertAndGetId(

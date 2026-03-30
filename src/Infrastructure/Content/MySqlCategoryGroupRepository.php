@@ -63,6 +63,56 @@ final class MySqlCategoryGroupRepository implements CategoryGroupRepositoryInter
         return array_map(fn (array $row): CategoryGroup => $this->mapRowToCategoryGroup($row), $rows);
     }
 
+    public function remove(CategoryGroup $group): void
+    {
+        $groupId = $group->id();
+
+        if ($groupId === null) {
+            throw new RuntimeException('Cannot remove category group without ID.');
+        }
+
+        $affectedRows = $this->connection->execute(
+            'DELETE FROM category_groups
+             WHERE id = :id',
+            ['id' => $groupId]
+        );
+
+        if ($affectedRows < 1) {
+            throw new RuntimeException(sprintf('Category group "%s" was not found for removal.', $group->slug()->value()));
+        }
+    }
+
+    public function isInUse(CategoryGroup $group): bool
+    {
+        $groupId = $group->id();
+
+        if ($groupId === null) {
+            return false;
+        }
+
+        $categoryRow = $this->connection->fetchOne(
+            'SELECT id
+             FROM categories
+             WHERE group_id = :group_id
+             LIMIT 1',
+            ['group_id' => $groupId]
+        );
+
+        if ($categoryRow !== null) {
+            return true;
+        }
+
+        $contentTypeRow = $this->connection->fetchOne(
+            'SELECT content_type_id
+             FROM content_type_category_groups
+             WHERE category_group_id = :group_id
+             LIMIT 1',
+            ['group_id' => $groupId]
+        );
+
+        return $contentTypeRow !== null;
+    }
+
     private function create(CategoryGroup $group): CategoryGroup
     {
         $id = $this->connection->insertAndGetId(

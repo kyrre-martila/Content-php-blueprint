@@ -60,6 +60,15 @@ This ordering is the active runtime route-priority model.
 - `GET /admin` dashboard
 - `GET /admin/patterns` pattern registry endpoint
 - `GET /admin/templates` template manager overview
+- `GET /admin/categories` category manager overview (group + nested category split layout)
+- category group writes:
+  - `POST /admin/categories/groups/create`
+  - `POST /admin/categories/groups/{id}/edit`
+  - `POST|DELETE /admin/categories/groups/{id}`
+- category writes:
+  - `POST /admin/categories/create`
+  - `POST /admin/categories/{id}/edit`
+  - `POST|DELETE /admin/categories/{id}`
 - content management (`/admin/content`, create/edit/store/update)
 
 ### Dev Mode routes
@@ -277,6 +286,28 @@ Editor impact:
 
 - category selectors can be filtered to only groups mapped to the active content type
 - invalid cross-type category assignment is blocked at repository validation level
+
+## Category admin management (current implementation)
+
+Admin provides a dedicated Categories management surface with a vertical split layout:
+
+- left: category group listing and group CRUD
+- right: selected group category tree and category CRUD
+
+Current behavior:
+
+- nested categories are displayed as an indented tree
+- category groups cannot be deleted when they are in use by:
+  - existing categories
+  - content type group mappings (`content_type_category_groups`)
+- categories cannot be deleted when:
+  - assigned to content items (`content_item_categories`)
+  - child categories still exist
+
+Security boundaries:
+
+- all category admin routes are behind `RequireRoleMiddleware` via `AdminRouteRegistrar`
+- all write operations are CSRF protected
 
 Example mapping:
 

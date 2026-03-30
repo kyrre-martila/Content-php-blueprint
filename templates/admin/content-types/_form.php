@@ -6,7 +6,12 @@ $old = is_array($old ?? null) ? $old : [];
 $errors = is_array($errors ?? null) ? $errors : [];
 $slug = (string) ($old['slug'] ?? '');
 $selectedViewType = (string) ($old['view_type'] ?? 'single');
+$selectedGroupIds = array_map(
+    static fn (mixed $value): int => is_scalar($value) && is_numeric((string) $value) ? (int) $value : 0,
+    is_array($old['allowed_category_group_ids'] ?? null) ? $old['allowed_category_group_ids'] : []
+);
 $templateExistsMap = is_array($templateExistsMap ?? null) ? $templateExistsMap : [];
+$categoryGroups = is_array($categoryGroups ?? null) ? $categoryGroups : [];
 
 $initialTemplatePath = $selectedViewType === 'collection'
     ? sprintf('templates/collections/%s.php', $slug)
@@ -81,6 +86,20 @@ $initialTemplateStatus = ($templateExistsMap[str_replace('templates/', '', $init
                     <span class="admin-badge admin-badge--warning">Missing template</span>
                 <?php endif; ?>
             </p>
+        </div>
+
+        <div class="admin-form__group">
+            <label class="admin-form__label" for="allowed_category_group_ids">Allowed Category Groups</label>
+            <select class="admin-form__input" id="allowed_category_group_ids" name="allowed_category_group_ids[]" multiple size="6">
+                <?php foreach ($categoryGroups as $group): ?>
+                    <?php $groupId = $group->id(); ?>
+                    <?php if (!is_int($groupId)): continue; endif; ?>
+                    <option value="<?= $e((string) $groupId) ?>" <?= in_array($groupId, $selectedGroupIds, true) ? 'selected' : '' ?>>
+                        <?= $e($group->name()) ?> (<?= $e($group->slug()->value()) ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <p class="admin-form__help">Hold Ctrl (Windows) or Command (Mac) to select multiple groups.</p>
         </div>
 
         <div class="admin-form__actions">

@@ -6,6 +6,7 @@ namespace App\Http\Routing;
 
 use App\Admin\Controller\AuthController;
 use App\Admin\Controller\ContentAdminController;
+use App\Admin\Controller\CategoryAdminController;
 use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
@@ -50,6 +51,7 @@ final class RouteRegistry
         ?ContentAdminController $contentAdminController = null,
         ?TemplateAdminController $templateAdminController = null,
         ?ContentTypeAdminController $contentTypeAdminController = null,
+        ?CategoryAdminController $categoryAdminController = null,
         ?EditorModeController $editorModeController = null,
         ?ContentController $contentController = null,
         ?SitemapController $sitemapController = null,
@@ -82,6 +84,7 @@ final class RouteRegistry
             contentAdminController: $contentAdminController,
             templateAdminController: $templateAdminController,
             contentTypeAdminController: $contentTypeAdminController,
+            categoryAdminController: $categoryAdminController,
             csrf: $csrf,
             requireAuth: $requireAuth,
             requireRole: $requireAdminRole,
