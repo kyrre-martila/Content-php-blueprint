@@ -224,6 +224,7 @@ Dev Mode is session-based and role-gated (`superadmin`, `admin`).
 ## Content relationships system (current implementation)
 
 A dedicated `content_item_relationships` table provides explicit content-to-content links that are separate from navigation hierarchy and separate from category tagging.
+Allowed combinations are constrained by `content_type_relationship_rules` (`from_content_type_id`, `to_content_type_id`, `relation_type`).
 
 Boundary rules:
 
@@ -238,19 +239,23 @@ Current repository capabilities (`ContentRelationshipRepositoryInterface`):
 - `findByType(ContentItem $item, string $relationType)`
 - `attach(ContentItem $from, ContentItem $to, string $relationType, int $sortOrder = 0)`
 - `detach(ContentItem $from, ContentItem $to, string $relationType)`
+- `allowRelationship(ContentType $from, ContentType $to, string $relationType)`
+- `isRelationshipAllowed(ContentType $from, ContentType $to, string $relationType): bool`
+- `removeRelationshipRule(ContentType $from, ContentType $to, string $relationType)`
 
 Validation and integrity behavior:
 
 - relation type must be non-empty
 - self-referential relationships are currently rejected
 - duplicate identical triples (`from_content_item_id`, `to_content_item_id`, `relation_type`) are prevented
+- relationship writes are rejected unless a matching content-type rule exists
 
 Usage examples modeled for runtime/application layer:
 
-- article -> author
+- article -> author (allowed by rule)
 - article -> related-article
-- event -> venue
-- page -> featured-case
+- event -> venue (allowed by rule)
+- page -> page (allowed by rule)
 - team-member -> department-page
 
 ---

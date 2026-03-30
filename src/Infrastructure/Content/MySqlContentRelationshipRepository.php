@@ -6,6 +6,7 @@ namespace App\Infrastructure\Content;
 
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentRelationship;
+use App\Domain\Content\ContentType;
 use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Infrastructure\Database\Connection;
 use DateTimeImmutable;
@@ -78,6 +79,7 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
         }
 
         $normalizedType = $this->normalizeRelationType($relationType);
+        $this->assertRelationshipAllowedForItems($fromId, $toId, $normalizedType);
 
         $existing = $this->connection->fetchOne(
             'SELECT id FROM content_item_relationships
@@ -129,6 +131,85 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
         );
     }
 
+    public function allowRelationship(ContentType $from, ContentType $to, string $relationType): void
+    {
+        $fromTypeId = $this->requireContentTypeId($from);
+        $toTypeId = $this->requireContentTypeId($to);
+        $normalizedType = $this->normalizeRelationType($relationType);
+
+        $existingRule = $this->connection->fetchOne(
+            'SELECT 1
+             FROM content_type_relationship_rules
+             WHERE from_content_type_id = :from_content_type_id
+               AND to_content_type_id = :to_content_type_id
+               AND relation_type = :relation_type
+             LIMIT 1',
+            [
+                'from_content_type_id' => $fromTypeId,
+                'to_content_type_id' => $toTypeId,
+                'relation_type' => $normalizedType,
+            ]
+        );
+
+        if ($existingRule !== null) {
+            return;
+        }
+
+        $this->connection->execute(
+            'INSERT INTO content_type_relationship_rules
+                (from_content_type_id, to_content_type_id, relation_type)
+             VALUES
+                (:from_content_type_id, :to_content_type_id, :relation_type)',
+            [
+                'from_content_type_id' => $fromTypeId,
+                'to_content_type_id' => $toTypeId,
+                'relation_type' => $normalizedType,
+            ]
+        );
+    }
+
+    public function isRelationshipAllowed(ContentType $from, ContentType $to, string $relationType): bool
+    {
+        $fromTypeId = $this->requireContentTypeId($from);
+        $toTypeId = $this->requireContentTypeId($to);
+        $normalizedType = $this->normalizeRelationType($relationType);
+
+        $rule = $this->connection->fetchOne(
+            'SELECT 1
+             FROM content_type_relationship_rules
+             WHERE from_content_type_id = :from_content_type_id
+               AND to_content_type_id = :to_content_type_id
+               AND relation_type = :relation_type
+             LIMIT 1',
+            [
+                'from_content_type_id' => $fromTypeId,
+                'to_content_type_id' => $toTypeId,
+                'relation_type' => $normalizedType,
+            ]
+        );
+
+        return $rule !== null;
+    }
+
+    public function removeRelationshipRule(ContentType $from, ContentType $to, string $relationType): void
+    {
+        $fromTypeId = $this->requireContentTypeId($from);
+        $toTypeId = $this->requireContentTypeId($to);
+        $normalizedType = $this->normalizeRelationType($relationType);
+
+        $this->connection->execute(
+            'DELETE FROM content_type_relationship_rules
+             WHERE from_content_type_id = :from_content_type_id
+               AND to_content_type_id = :to_content_type_id
+               AND relation_type = :relation_type',
+            [
+                'from_content_type_id' => $fromTypeId,
+                'to_content_type_id' => $toTypeId,
+                'relation_type' => $normalizedType,
+            ]
+        );
+    }
+
     /**
      * @param array<string, mixed> $row
      */
@@ -165,6 +246,66 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
         }
 
         return $normalizedType;
+    }
+
+    private function assertRelationshipAllowedForItems(int $fromItemId, int $toItemId, string $relationType): void
+    {
+        $fromTypeId = $this->findContentTypeIdByItemId($fromItemId);
+        $toTypeId = $this->findContentTypeIdByItemId($toItemId);
+
+        $rule = $this->connection->fetchOne(
+            'SELECT 1
+             FROM content_type_relationship_rules
+             WHERE from_content_type_id = :from_content_type_id
+               AND to_content_type_id = :to_content_type_id
+               AND relation_type = :relation_type
+             LIMIT 1',
+            [
+                'from_content_type_id' => $fromTypeId,
+                'to_content_type_id' => $toTypeId,
+                'relation_type' => $relationType,
+            ]
+        );
+
+        if ($rule === null) {
+            throw new InvalidArgumentException(sprintf(
+                'Relationship "%s" is not allowed from content type ID %d to content type ID %d.',
+                $relationType,
+                $fromTypeId,
+                $toTypeId
+            ));
+        }
+    }
+
+    private function requireContentTypeId(ContentType $contentType): int
+    {
+        $id = $this->connection->fetchOne(
+            'SELECT id FROM content_types WHERE slug = :slug LIMIT 1',
+            ['slug' => $contentType->name()]
+        );
+
+        if (!is_int($id) && !is_string($id)) {
+            throw new RuntimeException(sprintf('Content type "%s" does not exist in persistence.', $contentType->name()));
+        }
+
+        return (int) $id;
+    }
+
+    private function findContentTypeIdByItemId(int $itemId): int
+    {
+        $contentTypeId = $this->connection->fetchOne(
+            'SELECT content_type_id
+             FROM content_items
+             WHERE id = :id
+             LIMIT 1',
+            ['id' => $itemId]
+        );
+
+        if (!is_int($contentTypeId) && !is_string($contentTypeId)) {
+            throw new RuntimeException(sprintf('Content item %d does not exist in persistence.', $itemId));
+        }
+
+        return (int) $contentTypeId;
     }
 
     /**
