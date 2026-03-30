@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Routing;
 
 use App\Admin\Controller\ContentAdminController;
+use App\Admin\Controller\CategoryAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\TemplateAdminController;
@@ -22,6 +23,7 @@ final class AdminRouteRegistrar
         private readonly ?ContentAdminController $contentAdminController,
         private readonly ?TemplateAdminController $templateAdminController,
         private readonly ?ContentTypeAdminController $contentTypeAdminController,
+        private readonly ?CategoryAdminController $categoryAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
         private readonly RequireRoleMiddleware $requireRole,
@@ -90,6 +92,45 @@ final class AdminRouteRegistrar
             $routeRegistry->post('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'destroy',
+            ], $middleware));
+        }
+
+        if ($this->categoryAdminController !== null) {
+            $routeRegistry->get('/admin/categories', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'index',
+            ], $middleware));
+            $routeRegistry->post('/admin/categories/groups/create', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'storeGroup',
+            ], $middleware));
+            $routeRegistry->post('/admin/categories/groups/{id}/edit', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'updateGroup',
+            ], $middleware));
+            $routeRegistry->post('/admin/categories/groups/{id}', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'destroyGroup',
+            ], $middleware));
+            $routeRegistry->delete('/admin/categories/groups/{id}', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'destroyGroup',
+            ], $middleware));
+            $routeRegistry->post('/admin/categories/create', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'storeCategory',
+            ], $middleware));
+            $routeRegistry->post('/admin/categories/{id}/edit', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'updateCategory',
+            ], $middleware));
+            $routeRegistry->post('/admin/categories/{id}', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'destroyCategory',
+            ], $middleware));
+            $routeRegistry->delete('/admin/categories/{id}', $this->middlewareStackBuilder->wrap([
+                $this->categoryAdminController,
+                'destroyCategory',
             ], $middleware));
         }
 

@@ -6,6 +6,7 @@ namespace App\Infrastructure\Application;
 
 use App\Admin\Controller\AuthController;
 use App\Admin\Controller\ContentAdminController;
+use App\Admin\Controller\CategoryAdminController;
 use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
@@ -25,6 +26,8 @@ use App\Application\SEO\SitemapGenerator;
 use App\Application\Validation\ContentItemValidator;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
+use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
+use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
@@ -66,6 +69,7 @@ final class ControllerFactory
  *   patternController: PatternController,
  *   templateAdminController: ?TemplateAdminController,
  *   contentTypeAdminController: ?ContentTypeAdminController,
+ *   categoryAdminController: ?CategoryAdminController,
      *   devModeController: DevModeController,
      *   installController: ?InstallController,
      *   contentAdminController: ?ContentAdminController,
@@ -79,6 +83,8 @@ final class ControllerFactory
         UserRepositoryInterface $userRepository,
         ?ContentItemRepositoryInterface $contentItemRepository,
         ?ContentTypeRepositoryInterface $contentTypeRepository,
+        ?CategoryGroupRepositoryInterface $categoryGroupRepository,
+        ?CategoryRepositoryInterface $categoryRepository,
         TemplateResolver $templateResolver,
         TemplateRenderer $templateRenderer,
         PatternRegistry $patternRegistry,
@@ -118,6 +124,7 @@ final class ControllerFactory
         $contentAdminController = null;
         $templateAdminController = null;
         $contentTypeAdminController = null;
+        $categoryAdminController = null;
         $editorModeController = null;
         $contentController = null;
         $sitemapController = null;
@@ -159,10 +166,21 @@ final class ControllerFactory
             $contentTypeAdminController = new ContentTypeAdminController(
                 $templateRenderer,
                 $contentTypeRepository,
+                $categoryGroupRepository ?? throw new \RuntimeException('Category group repository is required for content type admin.'),
                 $authSession,
                 $sessionManager,
                 $templateResolver
             );
+
+            if ($categoryGroupRepository !== null && $categoryRepository !== null) {
+                $categoryAdminController = new CategoryAdminController(
+                    $templateRenderer,
+                    $categoryGroupRepository,
+                    $categoryRepository,
+                    $authSession,
+                    $sessionManager
+                );
+            }
 
             $editorModeController = new EditorModeController(
                 $editorMode,
@@ -198,6 +216,7 @@ final class ControllerFactory
             'patternController' => new PatternController($patternRegistry),
             'templateAdminController' => $templateAdminController,
             'contentTypeAdminController' => $contentTypeAdminController,
+            'categoryAdminController' => $categoryAdminController,
             'devModeController' => new DevModeController(
                 $templateRenderer,
                 $authSession,

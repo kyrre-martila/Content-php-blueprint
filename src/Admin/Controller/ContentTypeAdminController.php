@@ -7,6 +7,7 @@ namespace App\Admin\Controller;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Exception\InvalidContentTypeException;
+use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Request;
 use App\Http\Response;
@@ -18,17 +19,13 @@ use RuntimeException;
 
 final class ContentTypeAdminController
 {
-    /**
-     * Core/system content types must not be removable from the admin UI because
-     * routes, templates, and CMS behavior can depend on their existence.
-     *
-     * @var list<string>
-     */
+    /** @var list<string> */
     private const PROTECTED_CONTENT_TYPES = ['page'];
 
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
+        private readonly CategoryGroupRepositoryInterface $categoryGroups,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly TemplateResolver $templateResolver,
@@ -38,77 +35,56 @@ final class ContentTypeAdminController
     public function index(Request $request): Response
     {
         $types = $this->contentTypes->findAll();
+        $rows = array_map(fn (ContentType $type): array => $this->buildRow($type), $types);
 
-        $rows = array_map(
-            fn (ContentType $type): array => $this->buildRow($type),
-            $types
-        );
-
-        $html = $this->templateRenderer->renderTemplate(
-            'admin/content-types/index.php',
-            [
-                'request' => $request,
-                'authUser' => $this->authSession->user(),
-                'rows' => $rows,
-                'success' => $this->session->pullFlash('content_type_success'),
-                'error' => $this->session->pullFlash('content_type_error'),
-            ]
-        );
+        $html = $this->templateRenderer->renderTemplate('admin/content-types/index.php', [
+            'request' => $request,
+            'authUser' => $this->authSession->user(),
+            'rows' => $rows,
+            'success' => $this->session->pullFlash('content_type_success'),
+            'error' => $this->session->pullFlash('content_type_error'),
+        ]);
 
         return Response::html($html);
     }
 
     public function create(Request $request): Response
     {
-        return $this->renderForm(
-            $request,
-            'admin/content-types/create.php',
-            [
-                'errors' => [],
-                'old' => [
-                    'name' => '',
-                    'slug' => '',
-                    'view_type' => ContentViewType::SINGLE->value,
-                ],
-            ]
-        );
+        return $this->renderForm($request, 'admin/content-types/create.php', [
+            'errors' => [],
+            'old' => [
+                'name' => '',
+                'slug' => '',
+                'view_type' => ContentViewType::SINGLE->value,
+                'allowed_category_group_ids' => [],
+            ],
+        ]);
     }
 
     public function store(Request $request): Response
     {
-        $post = $request->postParams();
-        $input = $this->extractInput($post);
-
+        $input = $this->extractInput($request->postParams());
         $errors = $this->validateInput($input, true);
 
         if ($errors !== []) {
-            return $this->renderForm(
-                $request,
-                'admin/content-types/create.php',
-                [
-                    'errors' => $errors,
-                    'old' => $input,
-                ],
-                422
-            );
+            return $this->renderForm($request, 'admin/content-types/create.php', [
+                'errors' => $errors,
+                'old' => $input,
+            ], 422);
         }
 
         $contentType = $this->buildContentType($input);
 
         if ($contentType === null) {
-            return $this->renderForm(
-                $request,
-                'admin/content-types/create.php',
-                [
-                    'errors' => ['general' => 'Unable to save content type. Please verify the entered values.'],
-                    'old' => $input,
-                ],
-                422
-            );
+            return $this->renderForm($request, 'admin/content-types/create.php', [
+                'errors' => ['general' => 'Unable to save content type. Please verify the entered values.'],
+                'old' => $input,
+            ], 422);
         }
 
-        $this->contentTypes->save($contentType);
-        $this->session->flash('content_type_success', sprintf('Content type "%s" created.', $contentType->label()));
+        $savedType = $this->contentTypes->save($contentType);
+        $this->syncAllowedCategoryGroups($savedType, $input['allowed_category_group_ids']);
+        $this->session->flash('content_type_success', sprintf('Content type "%s" created.', $savedType->label()));
 
         return Response::redirect('/admin/content-types');
     }
@@ -127,19 +103,16 @@ final class ContentTypeAdminController
             return Response::html('<h1>Not Found</h1>', 404);
         }
 
-        return $this->renderForm(
-            $request,
-            'admin/content-types/edit.php',
-            [
-                'contentType' => $contentType,
-                'errors' => [],
-                'old' => [
-                    'name' => $contentType->label(),
-                    'slug' => $contentType->name(),
-                    'view_type' => $contentType->viewType()->value,
-                ],
-            ]
-        );
+        return $this->renderForm($request, 'admin/content-types/edit.php', [
+            'contentType' => $contentType,
+            'errors' => [],
+            'old' => [
+                'name' => $contentType->label(),
+                'slug' => $contentType->name(),
+                'view_type' => $contentType->viewType()->value,
+                'allowed_category_group_ids' => $contentType->allowedCategoryGroupIds(),
+            ],
+        ]);
     }
 
     public function update(Request $request): Response
@@ -156,48 +129,36 @@ final class ContentTypeAdminController
             return Response::html('<h1>Not Found</h1>', 404);
         }
 
-        $post = $request->postParams();
-        $input = $this->extractInput($post);
+        $input = $this->extractInput($request->postParams());
         $errors = $this->validateInput($input, false, $existing);
 
         if ($errors !== []) {
-            return $this->renderForm(
-                $request,
-                'admin/content-types/edit.php',
-                [
-                    'contentType' => $existing,
-                    'errors' => $errors,
-                    'old' => $input,
-                ],
-                422
-            );
+            return $this->renderForm($request, 'admin/content-types/edit.php', [
+                'contentType' => $existing,
+                'errors' => $errors,
+                'old' => $input,
+            ], 422);
         }
 
         $contentType = $this->buildContentType($input);
 
         if ($contentType === null) {
-            return $this->renderForm(
-                $request,
-                'admin/content-types/edit.php',
-                [
-                    'contentType' => $existing,
-                    'errors' => ['general' => 'Unable to update content type. Please verify the entered values.'],
-                    'old' => $input,
-                ],
-                422
-            );
+            return $this->renderForm($request, 'admin/content-types/edit.php', [
+                'contentType' => $existing,
+                'errors' => ['general' => 'Unable to update content type. Please verify the entered values.'],
+                'old' => $input,
+            ], 422);
         }
 
-        $this->contentTypes->save($contentType);
-        $this->session->flash('content_type_success', sprintf('Content type "%s" updated.', $contentType->label()));
+        $savedType = $this->contentTypes->save($contentType);
+        $this->syncAllowedCategoryGroups($savedType, $input['allowed_category_group_ids']);
+        $this->session->flash('content_type_success', sprintf('Content type "%s" updated.', $savedType->label()));
 
         return Response::redirect('/admin/content-types');
     }
 
     public function destroy(Request $request): Response
     {
-        // Access control enforced via middleware layer.
-
         if (!$this->isDeleteMethod($request) || !$this->hasValidCsrfToken($request)) {
             return Response::json(['success' => false], 400);
         }
@@ -233,9 +194,7 @@ final class ContentTypeAdminController
         return Response::redirect('/admin/content-types');
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     private function buildRow(ContentType $type): array
     {
         $templatePath = $type->isCollectionView()
@@ -256,7 +215,7 @@ final class ContentTypeAdminController
 
     /**
      * @param array<string, mixed> $post
-     * @return array{name: string, slug: string, view_type: string}
+     * @return array{name: string, slug: string, view_type: string, allowed_category_group_ids: list<int>}
      */
     private function extractInput(array $post): array
     {
@@ -264,34 +223,40 @@ final class ContentTypeAdminController
         $slug = is_string($post['slug'] ?? null) ? trim($post['slug']) : '';
         $viewType = is_string($post['view_type'] ?? null) ? trim($post['view_type']) : '';
 
+        $allowedIds = [];
+        $rawAllowedIds = $post['allowed_category_group_ids'] ?? [];
+
+        if (is_array($rawAllowedIds)) {
+            foreach ($rawAllowedIds as $rawAllowedId) {
+                if (is_string($rawAllowedId) && ctype_digit($rawAllowedId)) {
+                    $allowedIds[] = (int) $rawAllowedId;
+                }
+            }
+        }
+
         return [
             'name' => $name,
             'slug' => $slug,
             'view_type' => $viewType,
+            'allowed_category_group_ids' => array_values(array_unique($allowedIds)),
         ];
     }
 
-    /**
-     * @param array{name: string, slug: string, view_type: string} $input
-     * @param array<string, string> $errors
-     */
     private function renderForm(Request $request, string $template, array $context, int $status = 200): Response
     {
-        $html = $this->templateRenderer->renderTemplate(
-            $template,
-            [
-                'request' => $request,
-                'authUser' => $this->authSession->user(),
-                'templateExistsMap' => $this->templateResolver->templateExistsMap(),
-                ...$context,
-            ]
-        );
+        $html = $this->templateRenderer->renderTemplate($template, [
+            'request' => $request,
+            'authUser' => $this->authSession->user(),
+            'templateExistsMap' => $this->templateResolver->templateExistsMap(),
+            'categoryGroups' => $this->categoryGroups->findAllGroups(),
+            ...$context,
+        ]);
 
         return Response::html($html, $status);
     }
 
     /**
-     * @param array{name: string, slug: string, view_type: string} $input
+     * @param array{name: string, slug: string, view_type: string, allowed_category_group_ids: list<int>} $input
      * @return array<string, string>
      */
     private function validateInput(array $input, bool $isCreate, ?ContentType $existing = null): array
@@ -324,7 +289,7 @@ final class ContentTypeAdminController
     }
 
     /**
-     * @param array{name: string, slug: string, view_type: string} $input
+     * @param array{name: string, slug: string, view_type: string, allowed_category_group_ids: list<int>} $input
      */
     private function buildContentType(array $input): ?ContentType
     {
@@ -337,9 +302,44 @@ final class ContentTypeAdminController
                 $this->templatePreviewPath($input['slug'], $viewType),
                 null,
                 $viewType,
+                $input['allowed_category_group_ids']
             );
         } catch (InvalidContentTypeException | RuntimeException) {
             return null;
+        }
+    }
+
+    /** @param list<int> $allowedCategoryGroupIds */
+    private function syncAllowedCategoryGroups(ContentType $contentType, array $allowedCategoryGroupIds): void
+    {
+        $currentAllowedGroups = $this->contentTypes->getAllowedCategoryGroups($contentType);
+        $currentIds = [];
+
+        foreach ($currentAllowedGroups as $group) {
+            $groupId = $group->id();
+            if ($groupId !== null) {
+                $currentIds[] = $groupId;
+            }
+        }
+
+        foreach ($allowedCategoryGroupIds as $allowedCategoryGroupId) {
+            if (in_array($allowedCategoryGroupId, $currentIds, true)) {
+                continue;
+            }
+
+            $group = $this->categoryGroups->findById($allowedCategoryGroupId);
+            if ($group !== null) {
+                $this->contentTypes->attachCategoryGroup($contentType, $group);
+            }
+        }
+
+        foreach ($currentAllowedGroups as $currentAllowedGroup) {
+            $groupId = $currentAllowedGroup->id();
+            if ($groupId === null || in_array($groupId, $allowedCategoryGroupIds, true)) {
+                continue;
+            }
+
+            $this->contentTypes->detachCategoryGroup($contentType, $currentAllowedGroup);
         }
     }
 
@@ -356,13 +356,10 @@ final class ContentTypeAdminController
 
     private function templatePreviewPath(string $slug, ContentViewType $viewType): string
     {
-        if ($viewType === ContentViewType::COLLECTION) {
-            return sprintf('collections/%s.php', $slug);
-        }
-
-        return sprintf('content/%s.php', $slug);
+        return $viewType === ContentViewType::COLLECTION
+            ? sprintf('collections/%s.php', $slug)
+            : sprintf('content/%s.php', $slug);
     }
-
 
     private function canDelete(ContentType $type): bool
     {
@@ -371,8 +368,6 @@ final class ContentTypeAdminController
 
     private function isProtectedContentType(ContentType $type): bool
     {
-        // Future extension: replace/augment this list with a DB-backed
-        // `is_protected` flag or a configuration mapping.
         return in_array($type->name(), self::PROTECTED_CONTENT_TYPES, true);
     }
 

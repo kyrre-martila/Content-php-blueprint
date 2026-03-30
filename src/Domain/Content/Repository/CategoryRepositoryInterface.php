@@ -37,4 +37,10 @@ interface CategoryRepositoryInterface
     public function attachCategoryToContentItem(ContentItem $item, Category $category): void;
 
     public function detachCategoryFromContentItem(ContentItem $item, Category $category): void;
+
+    public function remove(Category $category): void;
+
+    public function isAssignedToContentItems(Category $category): bool;
+
+    public function hasChildren(Category $category): bool;
 }
