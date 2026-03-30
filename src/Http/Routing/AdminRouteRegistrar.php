@@ -10,6 +10,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\RelationshipAdminController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
@@ -24,6 +25,7 @@ final class AdminRouteRegistrar
         private readonly ?TemplateAdminController $templateAdminController,
         private readonly ?ContentTypeAdminController $contentTypeAdminController,
         private readonly ?CategoryAdminController $categoryAdminController,
+        private readonly ?RelationshipAdminController $relationshipAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
         private readonly RequireRoleMiddleware $requireRole,
@@ -131,6 +133,25 @@ final class AdminRouteRegistrar
             $routeRegistry->delete('/admin/categories/{id}', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'destroyCategory',
+            ], $middleware));
+        }
+
+        if ($this->relationshipAdminController !== null) {
+            $routeRegistry->get('/admin/relationships', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'index',
+            ], $middleware));
+            $routeRegistry->post('/admin/relationships/rules/create', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'storeRule',
+            ], $middleware));
+            $routeRegistry->post('/admin/relationships/rules/{fromType}/{toType}/{relationType}', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'destroyRule',
+            ], $middleware));
+            $routeRegistry->delete('/admin/relationships/rules/{fromType}/{toType}/{relationType}', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'destroyRule',
             ], $middleware));
         }
 

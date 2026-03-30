@@ -8,6 +8,7 @@ use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Exception\InvalidContentTypeException;
 use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
+use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Request;
 use App\Http\Response;
@@ -26,6 +27,7 @@ final class ContentTypeAdminController
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
         private readonly CategoryGroupRepositoryInterface $categoryGroups,
+        private readonly ContentRelationshipRepositoryInterface $relationships,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly TemplateResolver $templateResolver,
@@ -244,11 +246,28 @@ final class ContentTypeAdminController
 
     private function renderForm(Request $request, string $template, array $context, int $status = 200): Response
     {
+        $selectedType = ($context['contentType'] ?? null);
+        $outgoingRelationshipRules = [];
+        $incomingRelationshipRules = [];
+        if ($selectedType instanceof ContentType) {
+            foreach ($this->relationships->findRelationshipRulesForContentType($selectedType) as $rule) {
+                if (($rule['from_type'] ?? '') === $selectedType->name()) {
+                    $outgoingRelationshipRules[] = $rule;
+                }
+
+                if (($rule['to_type'] ?? '') === $selectedType->name()) {
+                    $incomingRelationshipRules[] = $rule;
+                }
+            }
+        }
+
         $html = $this->templateRenderer->renderTemplate($template, [
             'request' => $request,
             'authUser' => $this->authSession->user(),
             'templateExistsMap' => $this->templateResolver->templateExistsMap(),
             'categoryGroups' => $this->categoryGroups->findAllGroups(),
+            'outgoingRelationshipRules' => $outgoingRelationshipRules,
+            'incomingRelationshipRules' => $incomingRelationshipRules,
             ...$context,
         ]);
 

@@ -12,6 +12,8 @@ $selectedGroupIds = array_map(
 );
 $templateExistsMap = is_array($templateExistsMap ?? null) ? $templateExistsMap : [];
 $categoryGroups = is_array($categoryGroups ?? null) ? $categoryGroups : [];
+$outgoingRelationshipRules = is_array($outgoingRelationshipRules ?? null) ? $outgoingRelationshipRules : [];
+$incomingRelationshipRules = is_array($incomingRelationshipRules ?? null) ? $incomingRelationshipRules : [];
 
 $initialTemplatePath = $selectedViewType === 'collection'
     ? sprintf('templates/collections/%s.php', $slug)
@@ -101,6 +103,40 @@ $initialTemplateStatus = ($templateExistsMap[str_replace('templates/', '', $init
             </select>
             <p class="admin-form__help">Hold Ctrl (Windows) or Command (Mac) to select multiple groups.</p>
         </div>
+
+        <?php if ($outgoingRelationshipRules !== [] || $incomingRelationshipRules !== []): ?>
+            <div class="admin-form__group">
+                <span class="admin-form__label">Relationship Rules Summary</span>
+                <?php if ($outgoingRelationshipRules !== []): ?>
+                    <p class="admin-form__help"><strong>Outgoing</strong></p>
+                    <ul class="admin-list-block">
+                        <?php foreach ($outgoingRelationshipRules as $rule): ?>
+                            <li class="admin-list-item">
+                                <code><?= $e((string) ($rule['from_type'] ?? '')) ?></code>
+                                &nbsp;→&nbsp;
+                                <code><?= $e((string) ($rule['to_type'] ?? '')) ?></code>
+                                &nbsp;=&nbsp;
+                                <code><?= $e((string) ($rule['relation_type'] ?? '')) ?></code>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+                <?php if ($incomingRelationshipRules !== []): ?>
+                    <p class="admin-form__help"><strong>Incoming</strong></p>
+                    <ul class="admin-list-block">
+                        <?php foreach ($incomingRelationshipRules as $rule): ?>
+                            <li class="admin-list-item">
+                                <code><?= $e((string) ($rule['from_type'] ?? '')) ?></code>
+                                &nbsp;→&nbsp;
+                                <code><?= $e((string) ($rule['to_type'] ?? '')) ?></code>
+                                &nbsp;=&nbsp;
+                                <code><?= $e((string) ($rule['relation_type'] ?? '')) ?></code>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
 
         <div class="admin-form__actions">
             <a class="admin-action admin-action--secondary" href="/admin/content-types">Cancel</a>

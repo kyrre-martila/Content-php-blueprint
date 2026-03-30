@@ -12,6 +12,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Application\Auth\LoginUser;
 use App\Application\Composition\CompositionExporter;
@@ -26,6 +27,7 @@ use App\Application\SEO\SitemapGenerator;
 use App\Application\Validation\ContentItemValidator;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
+use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
@@ -68,8 +70,9 @@ final class ControllerFactory
  *   dashboardController: DashboardController,
  *   patternController: PatternController,
  *   templateAdminController: ?TemplateAdminController,
- *   contentTypeAdminController: ?ContentTypeAdminController,
- *   categoryAdminController: ?CategoryAdminController,
+     *   contentTypeAdminController: ?ContentTypeAdminController,
+     *   categoryAdminController: ?CategoryAdminController,
+     *   relationshipAdminController: ?RelationshipAdminController,
      *   devModeController: DevModeController,
      *   installController: ?InstallController,
      *   contentAdminController: ?ContentAdminController,
@@ -83,6 +86,7 @@ final class ControllerFactory
         UserRepositoryInterface $userRepository,
         ?ContentItemRepositoryInterface $contentItemRepository,
         ?ContentTypeRepositoryInterface $contentTypeRepository,
+        ?ContentRelationshipRepositoryInterface $contentRelationshipRepository,
         ?CategoryGroupRepositoryInterface $categoryGroupRepository,
         ?CategoryRepositoryInterface $categoryRepository,
         TemplateResolver $templateResolver,
@@ -167,6 +171,7 @@ final class ControllerFactory
                 $templateRenderer,
                 $contentTypeRepository,
                 $categoryGroupRepository ?? throw new \RuntimeException('Category group repository is required for content type admin.'),
+                $contentRelationshipRepository ?? throw new \RuntimeException('Relationship repository is required for content type admin.'),
                 $authSession,
                 $sessionManager,
                 $templateResolver
@@ -217,6 +222,19 @@ final class ControllerFactory
             'templateAdminController' => $templateAdminController,
             'contentTypeAdminController' => $contentTypeAdminController,
             'categoryAdminController' => $categoryAdminController,
+            'relationshipAdminController' => $repositoriesAvailable
+                && $contentItemRepository !== null
+                && $contentTypeRepository !== null
+                && $contentRelationshipRepository !== null
+                ? new RelationshipAdminController(
+                    $templateRenderer,
+                    $contentTypeRepository,
+                    $contentItemRepository,
+                    $contentRelationshipRepository,
+                    $authSession,
+                    $sessionManager
+                )
+                : null,
             'devModeController' => new DevModeController(
                 $templateRenderer,
                 $authSession,

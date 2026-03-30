@@ -11,6 +11,24 @@ use App\Domain\Content\ContentType;
 interface ContentRelationshipRepositoryInterface
 {
     /**
+     * @return list<array{
+     *   from_type: string,
+     *   to_type: string,
+     *   relation_type: string
+     * }>
+     */
+    public function findRelationshipRules(): array;
+
+    /**
+     * @return list<array{
+     *   from_type: string,
+     *   to_type: string,
+     *   relation_type: string
+     * }>
+     */
+    public function findRelationshipRulesForContentType(ContentType $type): array;
+
+    /**
      * @return list<ContentRelationship>
      */
     public function findOutgoingRelationships(ContentItem $item): array;

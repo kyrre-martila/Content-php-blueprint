@@ -19,6 +19,50 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
     {
     }
 
+    public function findRelationshipRules(): array
+    {
+        $rows = $this->connection->fetchAll(
+            'SELECT from_ct.slug AS from_type, to_ct.slug AS to_type, r.relation_type
+             FROM content_type_relationship_rules r
+             INNER JOIN content_types from_ct ON from_ct.id = r.from_content_type_id
+             INNER JOIN content_types to_ct ON to_ct.id = r.to_content_type_id
+             ORDER BY from_ct.slug ASC, to_ct.slug ASC, r.relation_type ASC'
+        );
+
+        return array_map(
+            static fn (array $row): array => [
+                'from_type' => (string) ($row['from_type'] ?? ''),
+                'to_type' => (string) ($row['to_type'] ?? ''),
+                'relation_type' => (string) ($row['relation_type'] ?? ''),
+            ],
+            $rows
+        );
+    }
+
+    public function findRelationshipRulesForContentType(ContentType $type): array
+    {
+        $contentTypeId = $this->requireContentTypeId($type);
+        $rows = $this->connection->fetchAll(
+            'SELECT from_ct.slug AS from_type, to_ct.slug AS to_type, r.relation_type
+             FROM content_type_relationship_rules r
+             INNER JOIN content_types from_ct ON from_ct.id = r.from_content_type_id
+             INNER JOIN content_types to_ct ON to_ct.id = r.to_content_type_id
+             WHERE r.from_content_type_id = :content_type_id
+                OR r.to_content_type_id = :content_type_id
+             ORDER BY from_ct.slug ASC, to_ct.slug ASC, r.relation_type ASC',
+            ['content_type_id' => $contentTypeId]
+        );
+
+        return array_map(
+            static fn (array $row): array => [
+                'from_type' => (string) ($row['from_type'] ?? ''),
+                'to_type' => (string) ($row['to_type'] ?? ''),
+                'relation_type' => (string) ($row['relation_type'] ?? ''),
+            ],
+            $rows
+        );
+    }
+
     public function findOutgoingRelationships(ContentItem $item): array
     {
         $itemId = $this->requireItemId($item, 'source');
