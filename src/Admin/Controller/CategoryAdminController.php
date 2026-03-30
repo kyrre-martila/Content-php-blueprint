@@ -211,13 +211,15 @@ final class CategoryAdminController
             return Response::redirect('/admin/categories?group=' . $groupId);
         }
 
-        if ($this->isDuplicateSlugInGroup($group, $slug)) {
+        $groupCategories = $this->categories->findCategoriesByGroup($group);
+
+        if ($this->isDuplicateSlugInGroup($groupCategories, $slug)) {
             $this->session->flash('category_error', 'A category with this slug already exists in the selected group.');
 
             return Response::redirect('/admin/categories?group=' . $groupId);
         }
 
-        if ($parentId !== null && !$this->isParentInGroup($group, $parentId)) {
+        if ($parentId !== null && !$this->isParentInGroup($groupCategories, $parentId)) {
             $this->session->flash('category_error', 'Selected parent category is invalid for this group.');
 
             return Response::redirect('/admin/categories?group=' . $groupId);
@@ -279,14 +281,16 @@ final class CategoryAdminController
             return Response::redirect('/admin/categories?group=' . $group->id() . '&edit_category=' . $categoryId);
         }
 
-        if ($this->isDuplicateSlugInGroup($group, $slug, $categoryId)) {
+        $groupCategories = $this->categories->findCategoriesByGroup($group);
+
+        if ($this->isDuplicateSlugInGroup($groupCategories, $slug, $categoryId)) {
             $this->session->flash('category_error', 'A category with this slug already exists in the selected group.');
 
             return Response::redirect('/admin/categories?group=' . $group->id() . '&edit_category=' . $categoryId);
         }
 
         if ($parentId !== null) {
-            if ($parentId === $categoryId || !$this->isParentInGroup($group, $parentId) || $this->isDescendantOf($group, $parentId, $categoryId)) {
+            if ($parentId === $categoryId || !$this->isParentInGroup($groupCategories, $parentId) || $this->isDescendantOf($groupCategories, $parentId, $categoryId)) {
                 $this->session->flash('category_error', 'Selected parent category is invalid.');
 
                 return Response::redirect('/admin/categories?group=' . $group->id() . '&edit_category=' . $categoryId);
@@ -444,9 +448,12 @@ final class CategoryAdminController
             : null;
     }
 
-    private function isDuplicateSlugInGroup(CategoryGroup $group, string $slug, ?int $exceptCategoryId = null): bool
+    /**
+     * @param list<Category> $groupCategories
+     */
+    private function isDuplicateSlugInGroup(array $groupCategories, string $slug, ?int $exceptCategoryId = null): bool
     {
-        foreach ($this->categories->findCategoriesByGroup($group) as $existingCategory) {
+        foreach ($groupCategories as $existingCategory) {
             if ($existingCategory->slug()->value() !== $slug) {
                 continue;
             }
@@ -461,9 +468,12 @@ final class CategoryAdminController
         return false;
     }
 
-    private function isParentInGroup(CategoryGroup $group, int $parentId): bool
+    /**
+     * @param list<Category> $groupCategories
+     */
+    private function isParentInGroup(array $groupCategories, int $parentId): bool
     {
-        foreach ($this->categories->findCategoriesByGroup($group) as $existingCategory) {
+        foreach ($groupCategories as $existingCategory) {
             if ($existingCategory->id() === $parentId) {
                 return true;
             }
@@ -472,11 +482,14 @@ final class CategoryAdminController
         return false;
     }
 
-    private function isDescendantOf(CategoryGroup $group, int $candidateParentId, int $categoryId): bool
+    /**
+     * @param list<Category> $groupCategories
+     */
+    private function isDescendantOf(array $groupCategories, int $candidateParentId, int $categoryId): bool
     {
         $childrenByParent = [];
 
-        foreach ($this->categories->findCategoriesByGroup($group) as $groupCategory) {
+        foreach ($groupCategories as $groupCategory) {
             $childrenByParent[$groupCategory->parentId() ?? 0][] = $groupCategory->id();
         }
 
