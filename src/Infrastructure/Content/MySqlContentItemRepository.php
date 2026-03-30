@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Content;
 
 use App\Domain\Content\ContentItem;
+use App\Domain\Content\Category;
 use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
@@ -234,6 +235,67 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $this->baseSelectSql() . ' WHERE ct.slug = :slug AND ci.status = :status ORDER BY ci.updated_at DESC, ci.id DESC LIMIT :limit OFFSET :offset',
             [
                 'slug' => $contentType->name(),
+                'status' => ContentStatus::Published->value,
+                'limit' => $safeLimit,
+                'offset' => $safeOffset,
+            ]
+        );
+
+        $contentItems = [];
+
+        foreach ($rows as $row) {
+            $contentItems[] = $this->mapRowToContentItem($row);
+        }
+
+        return [
+            'items' => $contentItems,
+            'total_count' => $totalCount,
+            'limit' => $safeLimit,
+            'offset' => $safeOffset,
+        ];
+    }
+
+    public function findPublishedByCategory(
+        Category $category,
+        int $limit = ContentItemRepositoryInterface::DEFAULT_LIMIT,
+        int $offset = ContentItemRepositoryInterface::DEFAULT_OFFSET
+    ): array
+    {
+        ['limit' => $safeLimit, 'offset' => $safeOffset] = $this->normalizePagination($limit, $offset);
+
+        $categoryId = $category->id();
+
+        if ($categoryId === null) {
+            return [
+                'items' => [],
+                'total_count' => 0,
+                'limit' => $safeLimit,
+                'offset' => $safeOffset,
+            ];
+        }
+
+        $countRow = $this->connection->fetchOne(
+            'SELECT COUNT(*) AS total_count
+             FROM content_items ci
+             INNER JOIN content_item_categories cic ON cic.content_item_id = ci.id
+             WHERE cic.category_id = :category_id
+               AND ci.status = :status',
+            [
+                'category_id' => $categoryId,
+                'status' => ContentStatus::Published->value,
+            ]
+        );
+
+        $totalCount = $countRow === null ? 0 : $this->rowInt($countRow, 'total_count');
+
+        $rows = $this->connection->fetchAll(
+            $this->baseSelectSql() . ' INNER JOIN content_item_categories cic ON cic.content_item_id = ci.id
+             WHERE cic.category_id = :category_id
+               AND ci.status = :status
+             ORDER BY ci.updated_at DESC, ci.id DESC
+             LIMIT :limit OFFSET :offset',
+            [
+                'category_id' => $categoryId,
                 'status' => ContentStatus::Published->value,
                 'limit' => $safeLimit,
                 'offset' => $safeOffset,

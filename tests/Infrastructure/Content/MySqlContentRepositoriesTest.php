@@ -400,6 +400,7 @@ it('persists and queries category groups and hierarchical categories', function 
 
     expect($groupRepository->findAllGroups())->toHaveCount(1)
         ->and($groupRepository->findBySlug('locations')?->name())->toBe('Locations')
+        ->and($categoryRepository->findBySlugInGroup($group, 'kirkenes')?->name())->toBe('Kirkenes')
         ->and($categoryRepository->findCategoriesByGroup($group))->toHaveCount(2)
         ->and($categoryRepository->findRootCategoriesByGroup($group))->toHaveCount(1)
         ->and($categoryRepository->findRootCategoriesByGroup($group)[0]->name())->toBe('Kirkenes')
@@ -453,9 +454,18 @@ it('attaches and detaches categories on content items', function (): void {
     $categoryRepository->attachCategoryToContentItem($item, $category);
 
     $attached = $categoryRepository->findCategoriesForContentItem($item);
+    $publishedForCategory = $itemRepository->findPublishedByCategory($category);
 
     expect($attached)->toHaveCount(1)
-        ->and($attached[0]->name())->toBe('News');
+        ->and($attached[0]->name())->toBe('News')
+        ->and($publishedForCategory['items'])->toHaveCount(0);
+
+    $published = $item->publish(new DateTimeImmutable('2026-03-23 10:01:00'));
+    $itemRepository->save($published);
+    $publishedForCategory = $itemRepository->findPublishedByCategory($category);
+
+    expect($publishedForCategory['items'])->toHaveCount(1)
+        ->and($publishedForCategory['items'][0]->slug()->value())->toBe('news-post');
 
     $categoryRepository->detachCategoryFromContentItem($item, $category);
 

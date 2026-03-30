@@ -36,6 +36,9 @@ Resolver order:
 3. `templates/system/404.php`
 
 Important: category collection support is route-level only. There are no item-level category template overrides.
+Category collection routes are `GET /categories/{groupSlug}/{categorySlug}`.
+If either slug does not resolve, runtime renders the system 404 template.
+If the category resolves but contains no published items, runtime still renders the category collection template with empty `$collectionItems`.
 
 ### 4) System templates
 
@@ -79,3 +82,19 @@ Pagination query parameters:
 - `perPage` (default: `20`)
 
 Only positive integer values are accepted; invalid values fall back to defaults.
+
+### Category collection templates
+
+Category collection templates receive:
+
+- `$request` (`App\Http\Request`)
+- `$categoryGroup` (`App\Domain\Content\CategoryGroup`)
+- `$category` (`App\Domain\Content\Category`)
+- `$collectionItems` (`list<App\Domain\Content\ContentItem>`) — may be empty.
+- `$pagination` (`array`) with the same shape as collection template pagination metadata.
+- `$breadcrumbs` (`list<array{label: string, url: string}>`) ready for breadcrumb rendering:
+  1. `/categories`
+  2. `/categories/{groupSlug}`
+  3. `/categories/{groupSlug}/{categorySlug}`
+- `$editorModeActive` (`bool`)
+- `$editorCanUse` (`bool`)

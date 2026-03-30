@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Content\Repository;
 
 use App\Domain\Content\ContentItem;
+use App\Domain\Content\Category;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\Slug;
 
@@ -79,6 +80,20 @@ interface ContentItemRepositoryInterface
      */
     public function findPublishedByType(
         ContentType $contentType,
+        int $limit = self::DEFAULT_LIMIT,
+        int $offset = self::DEFAULT_OFFSET
+    ): array;
+
+    /**
+     * @return array{
+     *   items: list<ContentItem>,
+     *   total_count: int,
+     *   limit: int,
+     *   offset: int
+     * }
+     */
+    public function findPublishedByCategory(
+        Category $category,
         int $limit = self::DEFAULT_LIMIT,
         int $offset = self::DEFAULT_OFFSET
     ): array;

@@ -295,7 +295,7 @@ Routing uses a registrar-based architecture coordinated by `src/Http/Routing/Rou
 - `AdminRouteRegistrar`: authenticated admin dashboard, pattern, and content-management routes.
 - `DevModeRouteRegistrar`: authenticated + CSRF-protected dev-mode routes and aliases.
 - `EditorModeRouteRegistrar`: authenticated editor-mode routes and aliases.
-- `PublicContentRouteRegistrar`: catch-all content route (`/{slug}`), always registered last.
+- `PublicContentRouteRegistrar`: category collection route (`/categories/{groupSlug}/{categorySlug}`) and catch-all content route (`/{slug}`), with catch-all always registered last.
 
 This keeps route ordering deterministic while allowing each route layer to scale independently.
 
@@ -310,6 +310,7 @@ Current public/system routes:
 
 Current content route:
 
+- `GET /categories/{groupSlug}/{categorySlug}` for category collection pages
 - `GET /{slug}` for published content items
 
 ## Canonical URL enforcement
@@ -343,6 +344,23 @@ Template mapping in runtime:
 Important boundary:
 
 - no item-level template overrides are used for category collections.
+- category collection routes 404 only when category group or category does not exist; empty categories still render with `collectionItems = []` and pagination metadata.
+
+Category collection runtime context includes:
+
+- `categoryGroup`
+- `category`
+- `collectionItems`
+- `pagination`
+- `breadcrumbs` (ready for template breadcrumb rendering):
+  - `['label' => 'Categories', 'url' => '/categories']`
+  - `['label' => <group name>, 'url' => '/categories/{groupSlug}']`
+  - `['label' => <category name>, 'url' => '/categories/{groupSlug}/{categorySlug}']`
+
+Category collection pagination uses the same query parameters as collection content routes:
+
+- `page` (default `1`)
+- `perPage` (default `20`)
 
 Template System v1 does **not** use WordPress-style fallback chains and does **not** resolve `templates/pages/{slug}.php`, `templates/page.php`, or `templates/default.php` for route selection.
 

@@ -194,6 +194,8 @@ final class ControllerFactory
             );
 
             $contentController = new ContentController(
+                $categoryGroupRepository ?? throw new \RuntimeException('Category group repository is required for content controller.'),
+                $categoryRepository ?? throw new \RuntimeException('Category repository is required for content controller.'),
                 $contentItemRepository,
                 $templateResolver,
                 $templateRenderer,

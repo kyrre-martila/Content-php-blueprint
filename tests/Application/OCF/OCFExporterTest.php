@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Application\OCF\OCFExporter;
 use App\Domain\Content\ContentItem;
+use App\Domain\Content\Category;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
@@ -112,6 +113,26 @@ it('builds a content-only OCF payload without presentation concerns', function (
                 ));
 
                 return ['items' => $items, 'total_count' => count($items), 'limit' => $limit, 'offset' => $offset];
+            }
+
+            public function findPublishedByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+            {
+                return $this->findByType($contentType, $limit, $offset);
+            }
+
+            public function findPublishedByCategory(Category $category, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+            {
+                return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
+            }
+
+            public function findChildrenOf(int $parentId): array
+            {
+                return [];
+            }
+
+            public function findRootItems(): array
+            {
+                return [];
             }
 
             public function remove(ContentItem $contentItem): void
@@ -224,6 +245,26 @@ it('writes content-export.json and creates storage/exports/ocf automatically', f
                 $items = $this->item->isPublished() ? [$this->item] : [];
 
                 return ['items' => $items, 'total_count' => count($items), 'limit' => $limit, 'offset' => $offset];
+            }
+
+            public function findPublishedByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+            {
+                return ['items' => [$this->item], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset];
+            }
+
+            public function findPublishedByCategory(Category $category, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+            {
+                return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
+            }
+
+            public function findChildrenOf(int $parentId): array
+            {
+                return [];
+            }
+
+            public function findRootItems(): array
+            {
+                return [];
             }
 
             public function remove(ContentItem $contentItem): void

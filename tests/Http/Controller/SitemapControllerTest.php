@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Application\SEO\SitemapGenerator;
 use App\Domain\Content\ContentItem;
+use App\Domain\Content\Category;
 use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
@@ -47,6 +48,26 @@ it('returns application/xml output from published content items', function (): v
         public function findPublished(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
         {
             return ['items' => [$this->published], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset];
+        }
+
+        public function findPublishedByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+        {
+            return ['items' => [$this->published], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset];
+        }
+
+        public function findPublishedByCategory(Category $category, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+        {
+            return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
+        }
+
+        public function findChildrenOf(int $parentId): array
+        {
+            return [];
+        }
+
+        public function findRootItems(): array
+        {
+            return [];
         }
 
         public function remove(ContentItem $contentItem): void
