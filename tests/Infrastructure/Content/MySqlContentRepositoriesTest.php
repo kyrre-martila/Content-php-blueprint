@@ -121,6 +121,17 @@ function buildConnectionForRepositoryTests(): Connection
         )'
     );
 
+    $pdo->exec(
+        'CREATE TABLE content_type_relationship_rules (
+            from_content_type_id INTEGER NOT NULL,
+            to_content_type_id INTEGER NOT NULL,
+            relation_type TEXT NOT NULL,
+            UNIQUE(from_content_type_id, to_content_type_id, relation_type),
+            FOREIGN KEY(from_content_type_id) REFERENCES content_types(id),
+            FOREIGN KEY(to_content_type_id) REFERENCES content_types(id)
+        )'
+    );
+
     return new Connection($pdo);
 }
 
@@ -502,7 +513,9 @@ it('attaches finds and detaches content relationships independently of hierarchy
     $relationshipRepository = new MySqlContentRelationshipRepository($connection);
 
     $articleType = new ContentType('article', 'Article', 'content/default.php');
+    $authorType = new ContentType('author', 'Author', 'content/default.php');
     $typeRepository->save($articleType);
+    $typeRepository->save($authorType);
 
     $article = $itemRepository->save(ContentItem::draft(
         id: null,
@@ -515,7 +528,7 @@ it('attaches finds and detaches content relationships independently of hierarchy
 
     $author = $itemRepository->save(ContentItem::draft(
         id: null,
-        type: $articleType,
+        type: $authorType,
         title: 'Jane Doe',
         slug: Slug::fromString('jane-doe'),
         createdAt: new DateTimeImmutable('2026-03-24 10:00:00'),
@@ -530,6 +543,9 @@ it('attaches finds and detaches content relationships independently of hierarchy
         createdAt: new DateTimeImmutable('2026-03-24 10:00:00'),
         updatedAt: new DateTimeImmutable('2026-03-24 10:00:00')
     ));
+
+    $relationshipRepository->allowRelationship($articleType, $authorType, 'author');
+    $relationshipRepository->allowRelationship($articleType, $articleType, 'related-article');
 
     $relationshipRepository->attach($article, $author, 'author', 10);
     $relationshipRepository->attach($article, $relatedArticle, 'related-article', 20);
@@ -560,7 +576,9 @@ it('rejects invalid content relationships', function (): void {
     $relationshipRepository = new MySqlContentRelationshipRepository($connection);
 
     $type = new ContentType('page', 'Page', 'content/default.php');
+    $authorType = new ContentType('author', 'Author', 'content/default.php');
     $typeRepository->save($type);
+    $typeRepository->save($authorType);
 
     $item = $itemRepository->save(ContentItem::draft(
         id: null,
@@ -576,4 +594,64 @@ it('rejects invalid content relationships', function (): void {
 
     expect(fn () => $relationshipRepository->attach($item, $item, 'featured-case'))
         ->toThrow(InvalidArgumentException::class);
+
+    $author = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $authorType,
+        title: 'Ada Lovelace',
+        slug: Slug::fromString('ada-lovelace'),
+        createdAt: new DateTimeImmutable('2026-03-25 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-25 10:00:00')
+    ));
+
+    expect(fn () => $relationshipRepository->attach($item, $author, 'author'))
+        ->toThrow(InvalidArgumentException::class, 'is not allowed');
+});
+
+it('manages relationship rules by content type and enforces them at attach time', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+    $relationshipRepository = new MySqlContentRelationshipRepository($connection);
+
+    $articleType = new ContentType('article', 'Article', 'content/default.php');
+    $authorType = new ContentType('author', 'Author', 'content/default.php');
+    $eventType = new ContentType('event', 'Event', 'content/default.php');
+    $typeRepository->save($articleType);
+    $typeRepository->save($authorType);
+    $typeRepository->save($eventType);
+
+    expect($relationshipRepository->isRelationshipAllowed($articleType, $authorType, 'author'))->toBeFalse();
+
+    $relationshipRepository->allowRelationship($articleType, $authorType, 'author');
+    $relationshipRepository->allowRelationship($articleType, $authorType, 'author');
+
+    expect($relationshipRepository->isRelationshipAllowed($articleType, $authorType, 'author'))->toBeTrue()
+        ->and($relationshipRepository->isRelationshipAllowed($articleType, $eventType, 'author'))->toBeFalse();
+
+    $article = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $articleType,
+        title: 'Blueprint Launch',
+        slug: Slug::fromString('blueprint-launch'),
+        createdAt: new DateTimeImmutable('2026-03-25 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-25 10:00:00')
+    ));
+    $author = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $authorType,
+        title: 'Author A',
+        slug: Slug::fromString('author-a'),
+        createdAt: new DateTimeImmutable('2026-03-25 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-25 10:00:00')
+    ));
+
+    $relationshipRepository->attach($article, $author, 'author');
+    expect($relationshipRepository->findByType($article, 'author'))->toHaveCount(1);
+
+    $relationshipRepository->removeRelationshipRule($articleType, $authorType, 'author');
+
+    expect($relationshipRepository->isRelationshipAllowed($articleType, $authorType, 'author'))->toBeFalse()
+        ->and(fn () => $relationshipRepository->attach($article, $author, 'author'))
+        ->toThrow(InvalidArgumentException::class, 'is not allowed');
 });

@@ -202,6 +202,7 @@ Not implemented yet: release download, file replacement, GitHub API integration,
 ## Content relationships (free-form links)
 
 Blueprint supports a dedicated relationships system for explicit content-to-content links via `content_item_relationships`.
+Allowed combinations are controlled by `content_type_relationship_rules`.
 
 Important boundaries:
 
@@ -222,6 +223,14 @@ Validation behavior:
 - `relation_type` must be a non-empty string
 - self-reference is blocked by default (same item cannot point to itself)
 - duplicate identical links (`from + to + relation_type`) are prevented through a unique index and repository-level guard
+- a relationship can only be saved when a matching content-type rule exists in `content_type_relationship_rules`
+
+Rule examples:
+
+- `Article -> Author` allowed
+- `Article -> Event` not allowed (unless explicitly added as a rule)
+- `Event -> Venue` allowed
+- `Page -> Page` allowed
 
 ## Category Group availability per Content Type
 
