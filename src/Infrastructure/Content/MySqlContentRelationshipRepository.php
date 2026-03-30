@@ -323,21 +323,22 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
 
     private function requireContentTypeId(ContentType $contentType): int
     {
-        $id = $this->connection->fetchOne(
+        $row = $this->connection->fetchOne(
             'SELECT id FROM content_types WHERE slug = :slug LIMIT 1',
             ['slug' => $contentType->name()]
         );
 
-        if (!is_int($id) && !is_string($id)) {
+        // fetchOne() returns an associative row (or null), not a scalar column value.
+        if ($row === null) {
             throw new RuntimeException(sprintf('Content type "%s" does not exist in persistence.', $contentType->name()));
         }
 
-        return (int) $id;
+        return (int) $row['id'];
     }
 
     private function findContentTypeIdByItemId(int $itemId): int
     {
-        $contentTypeId = $this->connection->fetchOne(
+        $row = $this->connection->fetchOne(
             'SELECT content_type_id
              FROM content_items
              WHERE id = :id
@@ -345,11 +346,12 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
             ['id' => $itemId]
         );
 
-        if (!is_int($contentTypeId) && !is_string($contentTypeId)) {
+        // fetchOne() returns an associative row (or null), not a scalar column value.
+        if ($row === null) {
             throw new RuntimeException(sprintf('Content item %d does not exist in persistence.', $itemId));
         }
 
-        return (int) $contentTypeId;
+        return (int) $row['content_type_id'];
     }
 
     /**
