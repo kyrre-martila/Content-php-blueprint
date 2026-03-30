@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $layout = 'layouts/admin.php';
 $adminPageTitle = 'Template Manager';
-$adminPageDescription = 'Manage index, content, collection, and system template files.';
+$adminPageDescription = 'Manage index, content, collection, category collection, and system template files.';
 
 /** @var array<string, list<array<string, mixed>>> $templateGroups */
 ?>
@@ -12,7 +12,7 @@ $adminPageDescription = 'Manage index, content, collection, and system template 
     <header class="admin-page__header">
         <div>
             <h2 class="admin-page__title">Template Manager</h2>
-            <p class="admin-page__subtitle">Grouped template map for blueprint index, content, collection, and system rendering.</p>
+            <p class="admin-page__subtitle">Grouped template map for blueprint index, content, collection, category collection, and system rendering.</p>
         </div>
     </header>
 

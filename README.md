@@ -326,9 +326,23 @@ Canonical routing is enforced automatically for content item routes as part of B
 
 Template mapping in runtime:
 
-- content pages render through `templates/index.php`
-- not-found responses render through `templates/system/404.php`
-- search renders through `templates/system/search.php`
+- content template resolution:
+  1. `templates/content/{content-type}.php`
+  2. `templates/index.php` (index fallback)
+- collection template resolution:
+  1. `templates/collections/{content-type}.php`
+  2. `templates/system/404.php`
+- category collection template resolution (for routes such as `/categories/blog/news`):
+  1. `templates/categories/{category-group-slug}.php`
+  2. `templates/collections/{content-type}.php` (when applicable)
+  3. `templates/system/404.php`
+- system template resolution:
+  1. `templates/system/{route}.php`
+  2. `templates/system/404.php`
+
+Important boundary:
+
+- no item-level template overrides are used for category collections.
 
 Template System v1 does **not** use WordPress-style fallback chains and does **not** resolve `templates/pages/{slug}.php`, `templates/page.php`, or `templates/default.php` for route selection.
 

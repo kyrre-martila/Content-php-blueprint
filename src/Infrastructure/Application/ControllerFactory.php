@@ -159,6 +159,7 @@ final class ControllerFactory
             $templateAdminController = new TemplateAdminController(
                 $templateRenderer,
                 $contentTypeRepository,
+                $categoryGroupRepository ?? throw new \RuntimeException('Category group repository is required for template admin.'),
                 $authSession,
                 $sessionManager,
                 $templateResolver,

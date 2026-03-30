@@ -108,6 +108,7 @@ Template runtime is intentionally minimal and deterministic.
 
 - `resolveContentTemplate(ContentType $type)` → `templates/content/{content_type}.php`, fallback `templates/index.php`
 - `resolveCollectionTemplate(ContentType $type)` → `templates/collections/{content_type}.php`, fallback `templates/system/404.php`
+- `resolveCategoryCollectionTemplate(CategoryGroup $group, ?ContentType $type = null)` → `templates/categories/{category_group_slug}.php`, then `templates/collections/{content_type}.php` when applicable, fallback `templates/system/404.php`
 - `resolveSystemTemplate(string $route)` → `templates/system/{route}.php`, fallback `templates/system/404.php`
 - `resolveNotFound()` → `resolveSystemTemplate('404')`
 
@@ -126,6 +127,7 @@ The following are **not** part of active runtime template selection:
 - content-type template hierarchy as runtime selection logic
 - slug-template hierarchy as runtime selection logic
 - editor-selected template switching
+- item-level category template overrides
 
 Composition is pattern-driven; template dispatch is not hierarchy-driven.
 

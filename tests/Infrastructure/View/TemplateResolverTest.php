@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Content\ContentType;
+use App\Domain\Content\CategoryGroup;
 use App\Infrastructure\View\TemplateResolver;
 
 it('resolves content template by content type first', function (): void {
@@ -51,6 +52,42 @@ it('falls back to system 404 when collection template is missing', function (): 
         ->toBe($templatesPath . '/system/404.php');
 });
 
+it('resolves category collection template by category group first', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+        'categories/blog.php' => '<?php',
+        'collections/article.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog'), makeContentType('article')))
+        ->toBe($templatesPath . '/categories/blog.php');
+});
+
+it('falls back to collection template when category group template is missing', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+        'collections/article.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog'), makeContentType('article')))
+        ->toBe($templatesPath . '/collections/article.php');
+});
+
+it('falls back to system 404 when category and collection templates are missing', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'system/404.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath);
+
+    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog'), makeContentType('article')))
+        ->toBe($templatesPath . '/system/404.php');
+});
+
 it('resolves system template by route first', function (): void {
     $templatesPath = createTemplateDirectory([
         'system/404.php' => '<?php',
@@ -77,6 +114,18 @@ it('falls back to system 404 when system route template is missing', function ()
 function makeContentType(string $name): ContentType
 {
     return new ContentType($name, ucfirst($name), 'index.php');
+}
+
+function makeCategoryGroup(string $slug): CategoryGroup
+{
+    return new CategoryGroup(
+        id: 1,
+        name: ucfirst($slug),
+        slug: \App\Domain\Content\Slug::fromString($slug),
+        description: null,
+        createdAt: new DateTimeImmutable(),
+        updatedAt: new DateTimeImmutable(),
+    );
 }
 
 /**
@@ -117,6 +166,7 @@ it('builds template existence map for configured directories', function (): void
     $templatesPath = createTemplateDirectory([
         'content/page.php' => '<?php',
         'collections/article.php' => '<?php',
+        'categories/blog.php' => '<?php',
     ]);
 
     $resolver = new TemplateResolver($templatesPath);
@@ -125,5 +175,6 @@ it('builds template existence map for configured directories', function (): void
         ->toMatchArray([
             'content/page.php' => true,
             'collections/article.php' => true,
+            'categories/blog.php' => true,
         ]);
 });

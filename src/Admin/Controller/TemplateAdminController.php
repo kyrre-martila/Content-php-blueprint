@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Admin\Controller;
 
 use App\Application\DevMode\DevFileService;
+use App\Domain\Content\CategoryGroup;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Domain\Logging\LoggerInterface;
 use App\Http\Request;
@@ -23,6 +25,7 @@ final class TemplateAdminController
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
+        private readonly CategoryGroupRepositoryInterface $categoryGroups,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly TemplateResolver $templateResolver,
@@ -35,6 +38,7 @@ final class TemplateAdminController
     public function index(Request $request): Response
     {
         $contentTypes = $this->contentTypes->findAll();
+        $categoryGroups = $this->categoryGroups->findAllGroups();
 
         $html = $this->templateRenderer->renderTemplate(
             'admin/templates/index.php',
@@ -45,11 +49,32 @@ final class TemplateAdminController
                     'Index' => $this->buildIndexTemplates(),
                     'Content' => $this->buildContentTemplates($contentTypes),
                     'Collections' => $this->buildCollectionTemplates($contentTypes),
+                    'Category Collections' => $this->buildCategoryCollectionTemplates($categoryGroups),
                 ],
             ]
         );
 
         return Response::html($html);
+    }
+
+    /**
+     * @param list<CategoryGroup> $groups
+     * @return list<array<string, mixed>>
+     */
+    private function buildCategoryCollectionTemplates(array $groups): array
+    {
+        $entries = [];
+
+        foreach ($groups as $group) {
+            $entries[] = $this->createTemplateEntry(
+                $group->name(),
+                'Category Collection',
+                sprintf('templates/categories/%s.php', $group->slug()->value()),
+                'templates/system/404.php'
+            );
+        }
+
+        return $entries;
     }
 
     public function systemIndex(Request $request): Response
