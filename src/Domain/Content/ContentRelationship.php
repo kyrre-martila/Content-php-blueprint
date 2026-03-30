@@ -9,6 +9,9 @@ use InvalidArgumentException;
 
 final class ContentRelationship
 {
+    private const RELATION_TYPE_MAX_LENGTH = 60;
+    private const RELATION_TYPE_PATTERN = '/^[a-z]*$/';
+
     public function __construct(
         private readonly ?int $id,
         private readonly int $fromContentItemId,
@@ -28,6 +31,17 @@ final class ContentRelationship
 
         if (trim($this->relationType) === '') {
             throw new InvalidArgumentException('Relationship type cannot be empty.');
+        }
+
+        if (mb_strlen($this->relationType) > self::RELATION_TYPE_MAX_LENGTH) {
+            throw new InvalidArgumentException(sprintf(
+                'Relationship type must be %d characters or fewer.',
+                self::RELATION_TYPE_MAX_LENGTH
+            ));
+        }
+
+        if (preg_match(self::RELATION_TYPE_PATTERN, $this->relationType) !== 1) {
+            throw new InvalidArgumentException('Relationship type must contain lowercase letters only (a-z).');
         }
 
         if ($this->fromContentItemId === $this->toContentItemId) {

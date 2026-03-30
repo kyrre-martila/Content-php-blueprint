@@ -16,6 +16,9 @@ use RuntimeException;
 
 final class MySqlContentRelationshipRepository implements ContentRelationshipRepositoryInterface
 {
+    private const RELATION_TYPE_MAX_LENGTH = 60;
+    private const RELATION_TYPE_PATTERN = '/^[a-z]*$/';
+
     public function __construct(private readonly Connection $connection)
     {
     }
@@ -331,6 +334,18 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
             throw new InvalidArgumentException('Relationship type cannot be empty.');
         }
 
+        if (mb_strlen($normalizedType) > self::RELATION_TYPE_MAX_LENGTH) {
+            throw new InvalidArgumentException(sprintf(
+                'Relationship type must be %d characters or fewer.',
+                self::RELATION_TYPE_MAX_LENGTH
+            ));
+        }
+
+        if (preg_match(self::RELATION_TYPE_PATTERN, $normalizedType) !== 1) {
+            throw new InvalidArgumentException('Relationship type must contain lowercase letters only (a-z).');
+        }
+
+        // Relation types are stable identifiers for rule matching, not free-form labels.
         return $normalizedType;
     }
 

@@ -62,7 +62,7 @@ $selectedItemId = is_int($selectedItemId ?? null) ? $selectedItemId : null;
             <div class="admin-form__group">
                 <label class="admin-form__label" for="rule_relation_type">Relation Type</label>
                 <input class="admin-form__input" id="rule_relation_type" name="relation_type" type="text" required placeholder="author">
-                <p class="admin-form__help">Examples: author, related-article, venue.</p>
+                <p class="admin-form__help">Use lowercase letters only (a-z), up to 60 characters. Examples: author, related, venue.</p>
             </div>
 
             <div class="admin-form__actions">

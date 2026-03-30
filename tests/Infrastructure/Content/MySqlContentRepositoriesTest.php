@@ -555,15 +555,15 @@ it('attaches finds and detaches content relationships independently of hierarchy
     ));
 
     $relationshipRepository->allowRelationship($articleType, $authorType, 'author');
-    $relationshipRepository->allowRelationship($articleType, $articleType, 'related-article');
+    $relationshipRepository->allowRelationship($articleType, $articleType, 'related');
 
     $relationshipRepository->attach($article, $author, 'author', 10);
-    $relationshipRepository->attach($article, $relatedArticle, 'related-article', 20);
-    $relationshipRepository->attach($article, $relatedArticle, 'related-article', 20);
+    $relationshipRepository->attach($article, $relatedArticle, 'related', 20);
+    $relationshipRepository->attach($article, $relatedArticle, 'related', 20);
 
     $outgoing = $relationshipRepository->findOutgoingRelationships($article);
     $incoming = $relationshipRepository->findIncomingRelationships($author);
-    $typed = $relationshipRepository->findByType($article, 'related-article');
+    $typed = $relationshipRepository->findByType($article, 'related');
 
     expect($outgoing)->toHaveCount(2)
         ->and($incoming)->toHaveCount(1)
@@ -575,12 +575,12 @@ it('attaches finds and detaches content relationships independently of hierarchy
         ->and($incoming[0]->toContentTypeSlug())->toBe('author')
         ->and($typed)->toHaveCount(1)
         ->and($typed[0]->toContentItemId())->toBe($relatedArticle->id())
-        ->and($typed[0]->relationType())->toBe('related-article')
+        ->and($typed[0]->relationType())->toBe('related')
         ->and($typed[0]->sortOrder())->toBe(20);
 
-    $relationshipRepository->detach($article, $relatedArticle, 'related-article');
+    $relationshipRepository->detach($article, $relatedArticle, 'related');
 
-    expect($relationshipRepository->findByType($article, 'related-article'))->toHaveCount(0);
+    expect($relationshipRepository->findByType($article, 'related'))->toHaveCount(0);
 });
 
 it('rejects invalid content relationships', function (): void {
@@ -606,8 +606,14 @@ it('rejects invalid content relationships', function (): void {
     expect(fn (): array => $relationshipRepository->findByType($item, '   '))
         ->toThrow(InvalidArgumentException::class);
 
-    expect(fn () => $relationshipRepository->attach($item, $item, 'featured-case'))
+    expect(fn () => $relationshipRepository->attach($item, $item, 'featuredcase'))
         ->toThrow(InvalidArgumentException::class);
+
+    expect(fn (): array => $relationshipRepository->findByType($item, 'related_article'))
+        ->toThrow(InvalidArgumentException::class, 'lowercase letters only');
+
+    expect(fn (): bool => $relationshipRepository->isRelationshipAllowed($type, $authorType, str_repeat('a', 61)))
+        ->toThrow(InvalidArgumentException::class, '60 characters or fewer');
 
     $author = $itemRepository->save(ContentItem::draft(
         id: null,
