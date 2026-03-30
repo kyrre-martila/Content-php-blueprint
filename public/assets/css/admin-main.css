@@ -1177,6 +1177,23 @@ table.admin-table td .admin-actions {
 .admin-category-tree__depth-5 { padding-left: var(--admin-space-10); }
 .admin-category-tree__depth-6 { padding-left: var(--admin-space-12); }
 
+.admin-relationship-manager__rules,
+.admin-relationship-manager__inspector {
+    min-width: 0;
+}
+
+.admin-table--relationships {
+    overflow: hidden;
+}
+
+.admin-table__row--relationship-rules {
+    grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(7rem, 0.6fr);
+}
+
+.admin-table__row--relationship-inspector {
+    grid-template-columns: minmax(10rem, 1.1fr) minmax(10rem, 1.1fr) minmax(8rem, 0.9fr) minmax(6rem, 0.5fr);
+}
+
 @media (max-width: 63.99rem) {
     .admin-table__row--template {
         grid-template-columns: minmax(0, 1fr);
@@ -1187,6 +1204,11 @@ table.admin-table td .admin-actions {
     }
 
     .admin-table__row--categories {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-table__row--relationship-rules,
+    .admin-table__row--relationship-inspector {
         grid-template-columns: minmax(0, 1fr);
     }
 }
