@@ -7,6 +7,7 @@ namespace App\Infrastructure\Content;
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentRelationship;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\EnrichedContentRelationship;
 use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Infrastructure\Database\Connection;
 use DateTimeImmutable;
@@ -68,14 +69,26 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
         $itemId = $this->requireItemId($item, 'source');
 
         $rows = $this->connection->fetchAll(
-            'SELECT id, from_content_item_id, to_content_item_id, relation_type, sort_order, created_at, updated_at
-             FROM content_item_relationships
-             WHERE from_content_item_id = :item_id
-             ORDER BY relation_type ASC, sort_order ASC, id ASC',
+            'SELECT
+                rel.from_content_item_id,
+                rel.to_content_item_id,
+                rel.relation_type,
+                rel.sort_order,
+                from_item.title AS from_content_item_title,
+                to_item.title AS to_content_item_title,
+                from_type.slug AS from_content_type_slug,
+                to_type.slug AS to_content_type_slug
+             FROM content_item_relationships rel
+             INNER JOIN content_items from_item ON from_item.id = rel.from_content_item_id
+             INNER JOIN content_items to_item ON to_item.id = rel.to_content_item_id
+             INNER JOIN content_types from_type ON from_type.id = from_item.content_type_id
+             INNER JOIN content_types to_type ON to_type.id = to_item.content_type_id
+             WHERE rel.from_content_item_id = :item_id
+             ORDER BY rel.relation_type ASC, rel.sort_order ASC, rel.id ASC',
             ['item_id' => $itemId]
         );
 
-        return array_map($this->mapRowToRelationship(...), $rows);
+        return array_map($this->mapRowToEnrichedRelationship(...), $rows);
     }
 
     public function findIncomingRelationships(ContentItem $item): array
@@ -83,14 +96,26 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
         $itemId = $this->requireItemId($item, 'target');
 
         $rows = $this->connection->fetchAll(
-            'SELECT id, from_content_item_id, to_content_item_id, relation_type, sort_order, created_at, updated_at
-             FROM content_item_relationships
-             WHERE to_content_item_id = :item_id
-             ORDER BY relation_type ASC, sort_order ASC, id ASC',
+            'SELECT
+                rel.from_content_item_id,
+                rel.to_content_item_id,
+                rel.relation_type,
+                rel.sort_order,
+                from_item.title AS from_content_item_title,
+                to_item.title AS to_content_item_title,
+                from_type.slug AS from_content_type_slug,
+                to_type.slug AS to_content_type_slug
+             FROM content_item_relationships rel
+             INNER JOIN content_items from_item ON from_item.id = rel.from_content_item_id
+             INNER JOIN content_items to_item ON to_item.id = rel.to_content_item_id
+             INNER JOIN content_types from_type ON from_type.id = from_item.content_type_id
+             INNER JOIN content_types to_type ON to_type.id = to_item.content_type_id
+             WHERE rel.to_content_item_id = :item_id
+             ORDER BY rel.relation_type ASC, rel.sort_order ASC, rel.id ASC',
             ['item_id' => $itemId]
         );
 
-        return array_map($this->mapRowToRelationship(...), $rows);
+        return array_map($this->mapRowToEnrichedRelationship(...), $rows);
     }
 
     public function findByType(ContentItem $item, string $relationType): array
@@ -267,6 +292,23 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
             sortOrder: $this->rowInt($row, 'sort_order'),
             createdAt: new DateTimeImmutable($this->rowString($row, 'created_at')),
             updatedAt: new DateTimeImmutable($this->rowString($row, 'updated_at'))
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function mapRowToEnrichedRelationship(array $row): EnrichedContentRelationship
+    {
+        return new EnrichedContentRelationship(
+            fromContentItemId: $this->rowInt($row, 'from_content_item_id'),
+            toContentItemId: $this->rowInt($row, 'to_content_item_id'),
+            relationType: $this->rowString($row, 'relation_type'),
+            sortOrder: $this->rowInt($row, 'sort_order'),
+            fromContentItemTitle: $this->rowString($row, 'from_content_item_title'),
+            toContentItemTitle: $this->rowString($row, 'to_content_item_title'),
+            fromContentTypeSlug: $this->rowString($row, 'from_content_type_slug'),
+            toContentTypeSlug: $this->rowString($row, 'to_content_type_slug'),
         );
     }
 
