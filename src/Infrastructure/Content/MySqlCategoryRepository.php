@@ -41,6 +41,29 @@ final class MySqlCategoryRepository implements CategoryRepositoryInterface
         return $row === null ? null : $this->mapRowToCategory($row);
     }
 
+    public function findBySlugInGroup(CategoryGroup $group, string $slug): ?Category
+    {
+        $groupId = $group->id();
+
+        if ($groupId === null) {
+            return null;
+        }
+
+        $row = $this->connection->fetchOne(
+            'SELECT id, group_id, parent_id, name, slug, description, sort_order, created_at, updated_at
+             FROM categories
+             WHERE group_id = :group_id
+               AND slug = :slug
+             LIMIT 1',
+            [
+                'group_id' => $groupId,
+                'slug' => trim($slug),
+            ]
+        );
+
+        return $row === null ? null : $this->mapRowToCategory($row);
+    }
+
     public function findCategoriesByGroup(CategoryGroup $group): array
     {
         $groupId = $group->id();

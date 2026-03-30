@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Domain\Content\Category;
+use App\Domain\Content\CategoryGroup;
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
+use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
+use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
 use App\Http\Controller\ContentController;
@@ -20,6 +24,8 @@ it('redirects non-canonical content paths with a 301 and preserves query paramet
     $templatesBasePath = dirname(__DIR__, 3) . '/templates';
     $contentItem = makeContentItem('about');
     $controller = new ContentController(
+        categoryGroupRepositoryForTests(),
+        categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
         new TemplateResolver($templatesBasePath),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
@@ -48,6 +54,8 @@ it('uses canonical_url metadata as the redirect target when defined', function (
     $templatesBasePath = dirname(__DIR__, 3) . '/templates';
     $contentItem = makeContentItem('about', 'https://example.com/about');
     $controller = new ContentController(
+        categoryGroupRepositoryForTests(),
+        categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
         new TemplateResolver($templatesBasePath),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
@@ -76,6 +84,8 @@ it('does not redirect when the request is already canonical', function (): void 
     $templatesBasePath = dirname(__DIR__, 3) . '/templates';
     $contentItem = makeContentItem('about', 'https://example.com/about');
     $controller = new ContentController(
+        categoryGroupRepositoryForTests(),
+        categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
         new TemplateResolver($templatesBasePath),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
@@ -110,6 +120,8 @@ it('renders collection template for content types configured as collection view'
 
     $contentItem = makeContentItem('about', null, ContentViewType::COLLECTION);
     $controller = new ContentController(
+        categoryGroupRepositoryForTests(),
+        categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
         new TemplateResolver($templatesBasePath),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
@@ -134,6 +146,127 @@ it('renders collection template for content types configured as collection view'
         ->and($response->body())->toContain('collection-template');
 });
 
+it('renders category collection pages with category context and breadcrumbs', function (): void {
+    $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-' . uniqid('', true);
+    mkdir($templatesBasePath . '/categories', 0777, true);
+    mkdir($templatesBasePath . '/system', 0777, true);
+    file_put_contents($templatesBasePath . '/categories/blog.php', '<?php echo $categoryGroup->name() . "|" . $category->name() . "|" . count($collectionItems) . "|" . $pagination["totalCount"] . "|" . $breadcrumbs[2]["url"];');
+    file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
+
+    $group = makeCategoryGroup('blog', 'Blog');
+    $category = makeCategory($group, 'news', 'News');
+    $items = [makeContentItem('news-1'), makeContentItem('news-2')];
+
+    $controller = new ContentController(
+        categoryGroupRepositoryForTests([$group]),
+        categoryRepositoryForTests([$category]),
+        repositoryWithCategoryItems($items),
+        new TemplateResolver($templatesBasePath),
+        new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
+        editorModeForTests()
+    );
+
+    $response = $controller->showCategoryCollection(new Request(
+        'GET',
+        '/categories/blog/news',
+        [],
+        [],
+        [],
+        [],
+        ['HTTP_HOST' => 'example.com', 'REQUEST_SCHEME' => 'https'],
+        ['groupSlug' => 'blog', 'categorySlug' => 'news'],
+        '/categories/blog/news'
+    ));
+
+    expect($response->status())->toBe(200)
+        ->and($response->body())->toContain('Blog|News|2|2|/categories/blog/news');
+});
+
+it('renders category collection pages with empty state data and no 404', function (): void {
+    $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-empty-' . uniqid('', true);
+    mkdir($templatesBasePath . '/categories', 0777, true);
+    mkdir($templatesBasePath . '/system', 0777, true);
+    file_put_contents($templatesBasePath . '/categories/blog.php', '<?php echo count($collectionItems) . "|" . $pagination["totalCount"];');
+    file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
+
+    $group = makeCategoryGroup('blog', 'Blog');
+    $category = makeCategory($group, 'empty', 'Empty');
+
+    $controller = new ContentController(
+        categoryGroupRepositoryForTests([$group]),
+        categoryRepositoryForTests([$category]),
+        repositoryWithCategoryItems([]),
+        new TemplateResolver($templatesBasePath),
+        new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
+        editorModeForTests()
+    );
+
+    $response = $controller->showCategoryCollection(new Request(
+        'GET',
+        '/categories/blog/empty',
+        [],
+        [],
+        [],
+        [],
+        ['HTTP_HOST' => 'example.com', 'REQUEST_SCHEME' => 'https'],
+        ['groupSlug' => 'blog', 'categorySlug' => 'empty'],
+        '/categories/blog/empty'
+    ));
+
+    expect($response->status())->toBe(200)
+        ->and($response->body())->toContain('0|0')
+        ->and($response->body())->not->toContain('not-found');
+});
+
+it('returns system 404 when category group or category does not exist', function (): void {
+    $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-404-' . uniqid('', true);
+    mkdir($templatesBasePath . '/categories', 0777, true);
+    mkdir($templatesBasePath . '/system', 0777, true);
+    file_put_contents($templatesBasePath . '/categories/blog.php', '<?php echo "ok";');
+    file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
+
+    $group = makeCategoryGroup('blog', 'Blog');
+    $category = makeCategory($group, 'news', 'News');
+
+    $controller = new ContentController(
+        categoryGroupRepositoryForTests([$group]),
+        categoryRepositoryForTests([$category]),
+        repositoryWithCategoryItems([]),
+        new TemplateResolver($templatesBasePath),
+        new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
+        editorModeForTests()
+    );
+
+    $missingGroup = $controller->showCategoryCollection(new Request(
+        'GET',
+        '/categories/missing/news',
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['groupSlug' => 'missing', 'categorySlug' => 'news'],
+        '/categories/missing/news'
+    ));
+
+    $missingCategory = $controller->showCategoryCollection(new Request(
+        'GET',
+        '/categories/blog/missing',
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['groupSlug' => 'blog', 'categorySlug' => 'missing'],
+        '/categories/blog/missing'
+    ));
+
+    expect($missingGroup->status())->toBe(404)
+        ->and($missingGroup->body())->toContain('not-found')
+        ->and($missingCategory->status())->toBe(404)
+        ->and($missingCategory->body())->toContain('not-found');
+});
+
 function makeContentItem(
     string $slug,
     ?string $canonicalUrl = null,
@@ -152,6 +285,33 @@ function makeContentItem(
         updatedAt: $now,
         patternBlocks: [],
         canonicalUrl: $canonicalUrl
+    );
+}
+
+function makeCategoryGroup(string $slug, string $name): CategoryGroup
+{
+    return new CategoryGroup(
+        id: 1,
+        name: $name,
+        slug: Slug::fromString($slug),
+        description: null,
+        createdAt: new DateTimeImmutable('2026-03-27 00:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-27 00:00:00'),
+    );
+}
+
+function makeCategory(CategoryGroup $group, string $slug, string $name): Category
+{
+    return new Category(
+        id: 1,
+        groupId: $group->id() ?? 1,
+        parentId: null,
+        name: $name,
+        slug: Slug::fromString($slug),
+        description: null,
+        sortOrder: 0,
+        createdAt: new DateTimeImmutable('2026-03-27 00:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-27 00:00:00'),
     );
 }
 
@@ -194,9 +354,118 @@ function repositoryWithSingleItem(ContentItem $contentItem): ContentItemReposito
             return ['items' => $items, 'total_count' => count($items), 'limit' => $limit, 'offset' => $offset];
         }
 
+        public function findPublishedByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+        {
+            return ['items' => [$this->contentItem], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset];
+        }
+
+        public function findPublishedByCategory(Category $category, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array
+        {
+            return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset];
+        }
+
+        public function findChildrenOf(int $parentId): array
+        {
+            return [];
+        }
+
+        public function findRootItems(): array
+        {
+            return [];
+        }
+
         public function remove(ContentItem $contentItem): void
         {
         }
+    };
+}
+
+/**
+ * @param list<ContentItem> $items
+ */
+function repositoryWithCategoryItems(array $items): ContentItemRepositoryInterface
+{
+    return new class ($items) implements ContentItemRepositoryInterface {
+        /** @param list<ContentItem> $items */
+        public function __construct(private readonly array $items)
+        {
+        }
+
+        public function save(ContentItem $contentItem): ContentItem { return $contentItem; }
+        public function findById(int $id): ?ContentItem { return null; }
+        public function findBySlug(Slug $slug): ?ContentItem { return null; }
+        public function findChildrenOf(int $parentId): array { return []; }
+        public function findRootItems(): array { return []; }
+        public function findByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset]; }
+        public function findAllWithTypes(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset]; }
+        public function findPublished(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => $this->items, 'total_count' => count($this->items), 'limit' => $limit, 'offset' => $offset]; }
+        public function findPublishedByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => $this->items, 'total_count' => count($this->items), 'limit' => $limit, 'offset' => $offset]; }
+        public function findPublishedByCategory(Category $category, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => $this->items, 'total_count' => count($this->items), 'limit' => $limit, 'offset' => $offset]; }
+        public function remove(ContentItem $contentItem): void {}
+    };
+}
+
+/**
+ * @param list<CategoryGroup> $groups
+ */
+function categoryGroupRepositoryForTests(array $groups = []): CategoryGroupRepositoryInterface
+{
+    return new class ($groups) implements CategoryGroupRepositoryInterface {
+        /** @param list<CategoryGroup> $groups */
+        public function __construct(private readonly array $groups)
+        {
+        }
+
+        public function save(CategoryGroup $group): CategoryGroup { return $group; }
+        public function findById(int $id): ?CategoryGroup { return null; }
+        public function findBySlug(string $slug): ?CategoryGroup
+        {
+            foreach ($this->groups as $group) {
+                if ($group->slug()->value() === $slug) {
+                    return $group;
+                }
+            }
+
+            return null;
+        }
+        public function findAllGroups(): array { return $this->groups; }
+        public function remove(CategoryGroup $group): void {}
+        public function isInUse(CategoryGroup $group): bool { return false; }
+    };
+}
+
+/**
+ * @param list<Category> $categories
+ */
+function categoryRepositoryForTests(array $categories = []): CategoryRepositoryInterface
+{
+    return new class ($categories) implements CategoryRepositoryInterface {
+        /** @param list<Category> $categories */
+        public function __construct(private readonly array $categories)
+        {
+        }
+
+        public function save(Category $category): Category { return $category; }
+        public function findById(int $id): ?Category { return null; }
+        public function findBySlugInGroup(CategoryGroup $group, string $slug): ?Category
+        {
+            foreach ($this->categories as $category) {
+                if ($category->groupId() === $group->id() && $category->slug()->value() === $slug) {
+                    return $category;
+                }
+            }
+
+            return null;
+        }
+        public function findCategoriesByGroup(CategoryGroup $group): array { return []; }
+        public function findRootCategoriesByGroup(CategoryGroup $group): array { return []; }
+        public function findChildrenOf(Category $category): array { return []; }
+        public function findCategoriesForContentItem(ContentItem $item): array { return []; }
+        public function attachCategoryToContentItem(ContentItem $item, Category $category): void {}
+        public function detachCategoryFromContentItem(ContentItem $item, Category $category): void {}
+        public function remove(Category $category): void {}
+        public function isAssignedToContentItems(Category $category): bool { return false; }
+        public function hasChildren(Category $category): bool { return false; }
     };
 }
 

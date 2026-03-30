@@ -25,6 +25,11 @@ final class PublicContentRouteRegistrar
             return;
         }
 
+        $routeRegistry->get('/categories/{groupSlug}/{categorySlug}', $this->middlewareStackBuilder->wrap([
+            $this->contentController,
+            'showCategoryCollection',
+        ], [$this->csrf]));
+
         // Keep the universal catch-all route last so explicit routes always win.
         $routeRegistry->get('/{slug}', $this->middlewareStackBuilder->wrap([
             $this->contentController,

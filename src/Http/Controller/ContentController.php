@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controller;
 
 use App\Domain\Content\Exception\InvalidSlugException;
+use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
+use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
+use App\Domain\Content\ContentItem;
 use App\Domain\Content\Slug;
 use App\Http\Request;
 use App\Http\Response;
@@ -16,6 +19,8 @@ use App\Infrastructure\View\TemplateResolver;
 final class ContentController
 {
     public function __construct(
+        private readonly CategoryGroupRepositoryInterface $categoryGroups,
+        private readonly CategoryRepositoryInterface $categories,
         private readonly ContentItemRepositoryInterface $contentItems,
         private readonly TemplateResolver $templateResolver,
         private readonly TemplateRenderer $templateRenderer,
@@ -87,6 +92,73 @@ final class ContentController
         $html = $this->templateRenderer->render($templatePath, $viewData);
 
         return Response::html($html);
+    }
+
+    public function showCategoryCollection(Request $request): Response
+    {
+        $groupSlug = $request->attribute('groupSlug');
+        $categorySlug = $request->attribute('categorySlug');
+
+        if (!is_string($groupSlug) || trim($groupSlug) === '' || !is_string($categorySlug) || trim($categorySlug) === '') {
+            return $this->renderNotFound($request);
+        }
+
+        $categoryGroup = $this->categoryGroups->findBySlug($groupSlug);
+
+        if ($categoryGroup === null) {
+            return $this->renderNotFound($request);
+        }
+
+        $category = $this->categories->findBySlugInGroup($categoryGroup, $categorySlug);
+
+        if ($category === null) {
+            return $this->renderNotFound($request);
+        }
+
+        $page = $this->positiveIntQueryParam($request, 'page', 1);
+        $perPage = $this->positiveIntQueryParam($request, 'perPage', ContentItemRepositoryInterface::DEFAULT_LIMIT);
+        $offset = ($page - 1) * $perPage;
+        $result = $this->contentItems->findPublishedByCategory($category, $perPage, $offset);
+
+        $templatePath = $this->templateResolver->resolveCategoryCollectionTemplate(
+            $categoryGroup,
+            $this->resolveCollectionTypeFromItems($result['items'])
+        );
+
+        $html = $this->templateRenderer->render($templatePath, [
+            'request' => $request,
+            'categoryGroup' => $categoryGroup,
+            'category' => $category,
+            'collectionItems' => $result['items'],
+            'pagination' => [
+                'totalCount' => $result['total_count'],
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'offset' => $result['offset'],
+                'totalPages' => $perPage > 0 ? (int) ceil($result['total_count'] / $perPage) : 0,
+            ],
+            'breadcrumbs' => [
+                ['label' => 'Categories', 'url' => '/categories'],
+                ['label' => $categoryGroup->name(), 'url' => '/categories/' . $categoryGroup->slug()->value()],
+                ['label' => $category->name(), 'url' => '/categories/' . $categoryGroup->slug()->value() . '/' . $category->slug()->value()],
+            ],
+            'editorModeActive' => $this->editorMode->isActive(),
+            'editorCanUse' => $this->editorMode->canUse(),
+        ]);
+
+        return Response::html($html);
+    }
+
+    /**
+     * @param list<ContentItem> $items
+     */
+    private function resolveCollectionTypeFromItems(array $items): ?\App\Domain\Content\ContentType
+    {
+        if ($items === []) {
+            return null;
+        }
+
+        return $items[0]->type();
     }
 
     private function resolveCanonicalRedirect(Request $request, string $slug, ?string $canonicalUrl): ?string

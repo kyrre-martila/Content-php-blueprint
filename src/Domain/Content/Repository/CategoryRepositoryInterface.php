@@ -14,6 +14,8 @@ interface CategoryRepositoryInterface
 
     public function findById(int $id): ?Category;
 
+    public function findBySlugInGroup(CategoryGroup $group, string $slug): ?Category;
+
     /**
      * @return list<Category>
      */

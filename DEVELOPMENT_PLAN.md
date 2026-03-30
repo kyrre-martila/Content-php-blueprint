@@ -85,6 +85,7 @@ This ordering is the active runtime route-priority model.
 
 ### Public content catch-all route
 
+- `GET /categories/{groupSlug}/{categorySlug}` → category collection rendering via `ContentController::showCategoryCollection`
 - `GET /{slug}` → published content rendering via `ContentController`
 - must remain last so system/admin/editor/dev/auth routes resolve first
 
@@ -111,6 +112,22 @@ Template runtime is intentionally minimal and deterministic.
 - `resolveCategoryCollectionTemplate(CategoryGroup $group, ?ContentType $type = null)` → `templates/categories/{category_group_slug}.php`, then `templates/collections/{content_type}.php` when applicable, fallback `templates/system/404.php`
 - `resolveSystemTemplate(string $route)` → `templates/system/{route}.php`, fallback `templates/system/404.php`
 - `resolveNotFound()` → `resolveSystemTemplate('404')`
+
+### Category collection runtime behavior
+
+- route params: `groupSlug`, `categorySlug`
+- controller resolves category group by slug, then category by slug within that group
+- if group/category is missing, runtime renders system 404
+- if category exists but has no published assigned content, runtime still renders category collection template with:
+  - `collectionItems = []`
+  - `pagination.totalCount = 0`
+- category collection context includes:
+  - `categoryGroup`
+  - `category`
+  - `collectionItems`
+  - `pagination`
+  - `breadcrumbs` (`/categories` → group → category)
+- pagination expectations match collection routes (`page`, `perPage`, positive integer parsing with defaults)
 
 ### Layout behavior
 
