@@ -62,32 +62,18 @@ final class RelationshipAdminController
                 $incoming = $this->relationships->findIncomingRelationships($selectedItem);
 
                 foreach ($outgoing as $relationship) {
-                    $from = $this->contentItems->findById($relationship->fromContentItemId());
-                    $to = $this->contentItems->findById($relationship->toContentItemId());
-
-                    if ($from === null || $to === null) {
-                        continue;
-                    }
-
                     $relationshipRows[] = [
-                        'from_item' => $from->title(),
-                        'to_item' => $to->title(),
+                        'from_item' => $relationship->fromContentItemTitle(),
+                        'to_item' => $relationship->toContentItemTitle(),
                         'relation_type' => $relationship->relationType(),
                         'sort_order' => $relationship->sortOrder(),
                     ];
                 }
 
                 foreach ($incoming as $relationship) {
-                    $from = $this->contentItems->findById($relationship->fromContentItemId());
-                    $to = $this->contentItems->findById($relationship->toContentItemId());
-
-                    if ($from === null || $to === null) {
-                        continue;
-                    }
-
                     $relationshipRows[] = [
-                        'from_item' => $from->title(),
-                        'to_item' => $to->title(),
+                        'from_item' => $relationship->fromContentItemTitle(),
+                        'to_item' => $relationship->toContentItemTitle(),
                         'relation_type' => $relationship->relationType(),
                         'sort_order' => $relationship->sortOrder(),
                     ];

@@ -7,6 +7,7 @@ namespace App\Domain\Content\Repository;
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentRelationship;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\EnrichedContentRelationship;
 
 interface ContentRelationshipRepositoryInterface
 {
@@ -29,12 +30,12 @@ interface ContentRelationshipRepositoryInterface
     public function findRelationshipRulesForContentType(ContentType $type): array;
 
     /**
-     * @return list<ContentRelationship>
+     * @return list<EnrichedContentRelationship>
      */
     public function findOutgoingRelationships(ContentItem $item): array;
 
     /**
-     * @return list<ContentRelationship>
+     * @return list<EnrichedContentRelationship>
      */
     public function findIncomingRelationships(ContentItem $item): array;
 
