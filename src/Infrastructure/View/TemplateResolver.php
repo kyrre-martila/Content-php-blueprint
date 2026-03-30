@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\View;
 
+use App\Domain\Content\CategoryGroup;
 use App\Domain\Content\ContentType;
 
 final class TemplateResolver
@@ -40,6 +41,29 @@ final class TemplateResolver
         return $this->resolveTemplatePath('system/404.php');
     }
 
+    public function resolveCategoryCollectionTemplate(CategoryGroup $group, ?ContentType $type = null): string
+    {
+        // Category collection route resolution order:
+        // 1) templates/categories/{category_group_slug}.php
+        // 2) templates/collections/{content_type}.php (when content type is applicable)
+        // 3) templates/system/404.php fallback
+        $groupTemplate = $this->resolveTemplatePath('categories/' . $group->slug()->value() . '.php');
+
+        if ($this->templateExists($groupTemplate)) {
+            return $groupTemplate;
+        }
+
+        if ($type !== null) {
+            $collectionTemplate = $this->resolveTemplatePath('collections/' . $type->name() . '.php');
+
+            if ($this->templateExists($collectionTemplate)) {
+                return $collectionTemplate;
+            }
+        }
+
+        return $this->resolveTemplatePath('system/404.php');
+    }
+
     public function resolveNotFound(): string
     {
         return $this->resolveSystemTemplate('404');
@@ -64,7 +88,7 @@ final class TemplateResolver
      * @param list<string> $directories
      * @return array<string, bool>
      */
-    public function templateExistsMap(array $directories = ['content', 'collections']): array
+    public function templateExistsMap(array $directories = ['content', 'collections', 'categories']): array
     {
         $map = [];
 
