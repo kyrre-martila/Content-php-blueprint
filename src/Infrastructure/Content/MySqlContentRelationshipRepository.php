@@ -19,6 +19,116 @@ final class MySqlContentRelationshipRepository implements ContentRelationshipRep
     {
     }
 
+    public function listRelationshipRules(): array
+    {
+        $rows = $this->connection->fetchAll(
+            'SELECT
+                from_ct.slug AS from_slug,
+                from_ct.name AS from_label,
+                to_ct.slug AS to_slug,
+                to_ct.name AS to_label,
+                rule.relation_type
+             FROM content_type_relationship_rules rule
+             INNER JOIN content_types from_ct ON from_ct.id = rule.from_content_type_id
+             INNER JOIN content_types to_ct ON to_ct.id = rule.to_content_type_id
+             ORDER BY from_ct.slug ASC, to_ct.slug ASC, rule.relation_type ASC'
+        );
+
+        return array_map(
+            fn (array $row): array => [
+                'from_slug' => $this->rowString($row, 'from_slug'),
+                'from_label' => $this->rowString($row, 'from_label'),
+                'to_slug' => $this->rowString($row, 'to_slug'),
+                'to_label' => $this->rowString($row, 'to_label'),
+                'relation_type' => $this->rowString($row, 'relation_type'),
+            ],
+            $rows
+        );
+    }
+
+    public function listRulesForContentType(ContentType $contentType): array
+    {
+        $contentTypeId = $this->requireContentTypeId($contentType);
+        $rows = $this->connection->fetchAll(
+            'SELECT
+                CASE
+                    WHEN rule.from_content_type_id = :content_type_id THEN "outgoing"
+                    ELSE "incoming"
+                END AS direction,
+                from_ct.slug AS from_slug,
+                from_ct.name AS from_label,
+                to_ct.slug AS to_slug,
+                to_ct.name AS to_label,
+                rule.relation_type
+             FROM content_type_relationship_rules rule
+             INNER JOIN content_types from_ct ON from_ct.id = rule.from_content_type_id
+             INNER JOIN content_types to_ct ON to_ct.id = rule.to_content_type_id
+             WHERE rule.from_content_type_id = :content_type_id
+                OR rule.to_content_type_id = :content_type_id
+             ORDER BY direction DESC, from_ct.slug ASC, to_ct.slug ASC, rule.relation_type ASC',
+            ['content_type_id' => $contentTypeId]
+        );
+
+        return array_map(
+            fn (array $row): array => [
+                'direction' => $this->rowString($row, 'direction') === 'outgoing' ? 'outgoing' : 'incoming',
+                'from_slug' => $this->rowString($row, 'from_slug'),
+                'from_label' => $this->rowString($row, 'from_label'),
+                'to_slug' => $this->rowString($row, 'to_slug'),
+                'to_label' => $this->rowString($row, 'to_label'),
+                'relation_type' => $this->rowString($row, 'relation_type'),
+            ],
+            $rows
+        );
+    }
+
+    public function inspectRelationshipsForItem(ContentItem $item): array
+    {
+        $itemId = $this->requireItemId($item, 'inspector');
+        $rows = $this->connection->fetchAll(
+            'SELECT
+                rel.from_content_item_id AS from_item_id,
+                from_item.title AS from_item_title,
+                from_item.slug AS from_item_slug,
+                from_type.slug AS from_type_slug,
+                from_type.name AS from_type_label,
+                rel.to_content_item_id AS to_item_id,
+                to_item.title AS to_item_title,
+                to_item.slug AS to_item_slug,
+                to_type.slug AS to_type_slug,
+                to_type.name AS to_type_label,
+                rel.relation_type,
+                rel.sort_order
+             FROM content_item_relationships rel
+             INNER JOIN content_items from_item ON from_item.id = rel.from_content_item_id
+             INNER JOIN content_items to_item ON to_item.id = rel.to_content_item_id
+             INNER JOIN content_types from_type ON from_type.id = from_item.content_type_id
+             INNER JOIN content_types to_type ON to_type.id = to_item.content_type_id
+             WHERE rel.from_content_item_id = :item_id
+                OR rel.to_content_item_id = :item_id
+             ORDER BY rel.relation_type ASC, rel.sort_order ASC, rel.id ASC',
+            ['item_id' => $itemId]
+        );
+
+        return array_map(
+            fn (array $row): array => [
+                'from_item_id' => $this->rowInt($row, 'from_item_id'),
+                'from_item_title' => $this->rowString($row, 'from_item_title'),
+                'from_item_slug' => $this->rowString($row, 'from_item_slug'),
+                'from_type_slug' => $this->rowString($row, 'from_type_slug'),
+                'from_type_label' => $this->rowString($row, 'from_type_label'),
+                'to_item_id' => $this->rowInt($row, 'to_item_id'),
+                'to_item_title' => $this->rowString($row, 'to_item_title'),
+                'to_item_slug' => $this->rowString($row, 'to_item_slug'),
+                'to_type_slug' => $this->rowString($row, 'to_type_slug'),
+                'to_type_label' => $this->rowString($row, 'to_type_label'),
+                'relation_type' => $this->rowString($row, 'relation_type'),
+                'sort_order' => $this->rowInt($row, 'sort_order'),
+            ],
+            $rows
+        );
+    }
+
     public function findOutgoingRelationships(ContentItem $item): array
     {
         $itemId = $this->requireItemId($item, 'source');

@@ -11,6 +11,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Application\Auth\LoginUser;
 use App\Application\Composition\CompositionExporter;
@@ -25,6 +26,7 @@ use App\Application\SEO\SitemapGenerator;
 use App\Application\Validation\ContentItemValidator;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
+use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
@@ -64,8 +66,9 @@ final class ControllerFactory
      *   authController: AuthController,
  *   dashboardController: DashboardController,
  *   patternController: PatternController,
- *   templateAdminController: ?TemplateAdminController,
- *   contentTypeAdminController: ?ContentTypeAdminController,
+     *   templateAdminController: ?TemplateAdminController,
+     *   contentTypeAdminController: ?ContentTypeAdminController,
+     *   relationshipAdminController: ?RelationshipAdminController,
      *   devModeController: DevModeController,
      *   installController: ?InstallController,
      *   contentAdminController: ?ContentAdminController,
@@ -79,6 +82,7 @@ final class ControllerFactory
         UserRepositoryInterface $userRepository,
         ?ContentItemRepositoryInterface $contentItemRepository,
         ?ContentTypeRepositoryInterface $contentTypeRepository,
+        ?ContentRelationshipRepositoryInterface $contentRelationshipRepository,
         TemplateResolver $templateResolver,
         TemplateRenderer $templateRenderer,
         PatternRegistry $patternRegistry,
@@ -118,6 +122,7 @@ final class ControllerFactory
         $contentAdminController = null;
         $templateAdminController = null;
         $contentTypeAdminController = null;
+        $relationshipAdminController = null;
         $editorModeController = null;
         $contentController = null;
         $sitemapController = null;
@@ -126,6 +131,7 @@ final class ControllerFactory
             $repositoriesAvailable
             && $contentItemRepository !== null
             && $contentTypeRepository !== null
+            && $contentRelationshipRepository !== null
             && $editorContentService !== null
         ) {
             $listContentItems = new ListContentItems($contentItemRepository);
@@ -159,9 +165,19 @@ final class ControllerFactory
             $contentTypeAdminController = new ContentTypeAdminController(
                 $templateRenderer,
                 $contentTypeRepository,
+                $contentRelationshipRepository,
                 $authSession,
                 $sessionManager,
                 $templateResolver
+            );
+
+            $relationshipAdminController = new RelationshipAdminController(
+                $templateRenderer,
+                $contentTypeRepository,
+                $contentItemRepository,
+                $contentRelationshipRepository,
+                $authSession,
+                $sessionManager
             );
 
             $editorModeController = new EditorModeController(
@@ -198,6 +214,7 @@ final class ControllerFactory
             'patternController' => new PatternController($patternRegistry),
             'templateAdminController' => $templateAdminController,
             'contentTypeAdminController' => $contentTypeAdminController,
+            'relationshipAdminController' => $relationshipAdminController,
             'devModeController' => new DevModeController(
                 $templateRenderer,
                 $authSession,

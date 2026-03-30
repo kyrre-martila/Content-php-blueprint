@@ -7,6 +7,7 @@ namespace App\Admin\Controller;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Exception\InvalidContentTypeException;
+use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Request;
 use App\Http\Response;
@@ -29,6 +30,7 @@ final class ContentTypeAdminController
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
+        private readonly ContentRelationshipRepositoryInterface $relationships,
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly TemplateResolver $templateResolver,
@@ -283,6 +285,9 @@ final class ContentTypeAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'templateExistsMap' => $this->templateResolver->templateExistsMap(),
+                'relationshipRulesSummary' => isset($context['contentType']) && $context['contentType'] instanceof ContentType
+                    ? $this->relationships->listRulesForContentType($context['contentType'])
+                    : [],
                 ...$context,
             ]
         );

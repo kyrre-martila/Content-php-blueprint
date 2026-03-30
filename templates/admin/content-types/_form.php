@@ -7,6 +7,7 @@ $errors = is_array($errors ?? null) ? $errors : [];
 $slug = (string) ($old['slug'] ?? '');
 $selectedViewType = (string) ($old['view_type'] ?? 'single');
 $templateExistsMap = is_array($templateExistsMap ?? null) ? $templateExistsMap : [];
+$relationshipRulesSummary = is_array($relationshipRulesSummary ?? null) ? $relationshipRulesSummary : [];
 
 $initialTemplatePath = $selectedViewType === 'collection'
     ? sprintf('templates/collections/%s.php', $slug)
@@ -89,6 +90,50 @@ $initialTemplateStatus = ($templateExistsMap[str_replace('templates/', '', $init
         </div>
     </form>
 </article>
+
+<?php if (($slugReadonly ?? false) === true): ?>
+    <article class="admin-panel admin-card">
+        <div class="admin-card__header">
+            <h3 class="admin-card__title">Relationship Rules Summary</h3>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <caption>Incoming and outgoing relationship rules for this content type</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Direction</th>
+                        <th scope="col">From type</th>
+                        <th scope="col">To type</th>
+                        <th scope="col">Relation type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($relationshipRulesSummary === []): ?>
+                        <tr>
+                            <td colspan="4">No relationship rules configured for this type yet.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($relationshipRulesSummary as $rule): ?>
+                            <tr>
+                                <td>
+                                    <?php if (($rule['direction'] ?? '') === 'outgoing'): ?>
+                                        <span class="admin-badge admin-badge--primary">Outgoing</span>
+                                    <?php else: ?>
+                                        <span class="admin-badge admin-badge--muted">Incoming</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= $e((string) $rule['from_label']) ?> <code><?= $e((string) $rule['from_slug']) ?></code></td>
+                                <td><?= $e((string) $rule['to_label']) ?> <code><?= $e((string) $rule['to_slug']) ?></code></td>
+                                <td><code><?= $e((string) $rule['relation_type']) ?></code></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </article>
+<?php endif; ?>
 
 <script>
 (() => {

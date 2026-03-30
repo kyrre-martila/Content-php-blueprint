@@ -35,11 +35,17 @@ $navigationSections = [
                 'active' => $currentPath === '/admin/content-types' || str_starts_with($currentPath, '/admin/content-types/'),
             ],
             [
-                'label' => 'Collections',
+                'label' => 'Categories',
                 'href' => null,
                 'icon' => '◫',
                 'active' => false,
                 'future' => true,
+            ],
+            [
+                'label' => 'Relationships',
+                'href' => '/admin/relationships',
+                'icon' => '⇄',
+                'active' => str_starts_with($currentPath, '/admin/relationships'),
             ],
             [
                 'label' => 'Templates',

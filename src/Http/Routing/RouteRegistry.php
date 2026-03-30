@@ -11,6 +11,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
@@ -50,6 +51,7 @@ final class RouteRegistry
         ?ContentAdminController $contentAdminController = null,
         ?TemplateAdminController $templateAdminController = null,
         ?ContentTypeAdminController $contentTypeAdminController = null,
+        ?RelationshipAdminController $relationshipAdminController = null,
         ?EditorModeController $editorModeController = null,
         ?ContentController $contentController = null,
         ?SitemapController $sitemapController = null,
@@ -82,6 +84,7 @@ final class RouteRegistry
             contentAdminController: $contentAdminController,
             templateAdminController: $templateAdminController,
             contentTypeAdminController: $contentTypeAdminController,
+            relationshipAdminController: $relationshipAdminController,
             csrf: $csrf,
             requireAuth: $requireAuth,
             requireRole: $requireAdminRole,

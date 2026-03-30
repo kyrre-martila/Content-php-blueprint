@@ -9,6 +9,7 @@ use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Admin\Controller\PatternController;
+use App\Admin\Controller\RelationshipAdminController;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
@@ -22,6 +23,7 @@ final class AdminRouteRegistrar
         private readonly ?ContentAdminController $contentAdminController,
         private readonly ?TemplateAdminController $templateAdminController,
         private readonly ?ContentTypeAdminController $contentTypeAdminController,
+        private readonly ?RelationshipAdminController $relationshipAdminController,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
         private readonly RequireRoleMiddleware $requireRole,
@@ -90,6 +92,21 @@ final class AdminRouteRegistrar
             $routeRegistry->post('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'destroy',
+            ], $middleware));
+        }
+
+        if ($this->relationshipAdminController !== null) {
+            $routeRegistry->get('/admin/relationships', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'index',
+            ], $middleware));
+            $routeRegistry->post('/admin/relationships/rules', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'storeRule',
+            ], $middleware));
+            $routeRegistry->post('/admin/relationships/rules/delete', $this->middlewareStackBuilder->wrap([
+                $this->relationshipAdminController,
+                'destroyRule',
             ], $middleware));
         }
 
