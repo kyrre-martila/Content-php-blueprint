@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Auth\Role;
 use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
@@ -11,12 +12,15 @@ use App\Infrastructure\Auth\AuthSession;
 final class RequireRoleMiddleware
 {
     /**
-     * @param list<string> $allowedRoles
+     * @var list<Role>
      */
+    private array $allowedRoles;
+
     public function __construct(
         private readonly AuthSession $authSession,
-        private readonly array $allowedRoles,
+        Role ...$allowedRoles
     ) {
+        $this->allowedRoles = $allowedRoles;
     }
 
     /**
@@ -28,13 +32,18 @@ final class RequireRoleMiddleware
             return Response::redirect('/admin/login');
         }
 
-        $user = $this->authSession->user();
-        $role = $user['role'] ?? null;
+        $role = $this->authSession->role();
 
-        if (!is_string($role) || !in_array($role, $this->allowedRoles, true)) {
+        if ($role === null) {
             return Response::html('Forbidden', 403);
         }
 
-        return $next($request);
+        foreach ($this->allowedRoles as $allowedRole) {
+            if ($role->equals($allowedRole)) {
+                return $next($request);
+            }
+        }
+
+        return Response::html('Forbidden', 403);
     }
 }
