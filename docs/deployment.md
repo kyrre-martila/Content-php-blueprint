@@ -14,7 +14,7 @@ Local runtime storage expectations:
 
 - writable: `storage/`, `storage/logs/`, `storage/exports/`, `storage/exports/composition/`, `storage/exports/ocf/`
 - persistent between local restarts: `.env`, `storage/`
-- auto-created if missing: required `storage/*` runtime directories during bootstrap/install checks
+- auto-created if missing: required `storage/*` runtime directories during HTTP bootstrap (`public/index.php`)
 
 ## Deployment strategy (staging + production)
 
@@ -55,12 +55,13 @@ Operationally: do not run upgrade steps that delete/replace these runtime-state 
 
 `App\Infrastructure\Application\RuntimeStorage` defines required runtime directories and creates them when missing.
 
-Creation points:
+Creation point (single source of truth):
 
 - HTTP bootstrap (`public/index.php`) before logger/kernel boot
-- install environment checks (`EnvironmentCheck::run`)
 
-This guarantees fresh staging/production instances can self-initialize required runtime folders before first write.
+`EnvironmentCheck::run` does not create directories; it only verifies that required runtime directories already exist and are writable.
+
+This keeps runtime directory creation centralized while still surfacing deploy/runtime misconfiguration during install checks.
 
 ## Release artifact notes
 

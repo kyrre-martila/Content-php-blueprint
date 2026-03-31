@@ -115,6 +115,8 @@ Must persist across deploys/upgrades:
 
 `public/index.php` calls `RuntimeStorage::ensure($projectRoot)` during bootstrap to create missing runtime directories.
 
+`EnvironmentCheck` verifies runtime directories are present and writable, but does not create them.
+
 ## Release artifact deployment workflow (current)
 
 Production should deploy from the release zip artifact (built by `scripts/build-release.sh`):
