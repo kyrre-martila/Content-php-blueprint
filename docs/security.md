@@ -1,10 +1,12 @@
 # Security deployment notes: trusted proxies and client IP resolution
 
-This project uses `security.trusted_proxies` (configured via `TRUSTED_PROXIES` in `.env`) to decide when proxy headers are trusted.
+This document covers **current deployment requirements** for trusted proxy configuration.
 
-## Configuration key
+## Current implementation
 
-Set trusted proxy addresses as a comma-separated list of individual IPs and/or CIDR ranges:
+### Configuration source
+
+Set trusted proxy addresses via `.env`:
 
 ```dotenv
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
@@ -12,50 +14,44 @@ TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
 
 Runtime mapping:
 
-- `.env` `TRUSTED_PROXIES` -> `config/security.php` -> `security.trusted_proxies`
+- `.env` `TRUSTED_PROXIES`
+- `config/security.php` -> `security.trusted_proxies`
 
-## Behavior
+### Resolution behavior
 
-### When `TRUSTED_PROXIES` is empty
+#### If `TRUSTED_PROXIES` is empty
 
-- Client IP resolves from `REMOTE_ADDR`.
-- `X-Forwarded-For` is ignored.
+- client IP = `REMOTE_ADDR`
+- `X-Forwarded-For` is ignored
 
-This is safe for direct deployments where the client connects straight to PHP/web server.
+#### If `TRUSTED_PROXIES` is configured
 
-### When `TRUSTED_PROXIES` is configured
+- runtime only trusts `X-Forwarded-For` when immediate `REMOTE_ADDR` is inside configured trusted proxies
+- otherwise runtime falls back to `REMOTE_ADDR`
 
-- `X-Forwarded-For` is only used when `REMOTE_ADDR` matches a trusted proxy IP/CIDR.
-- If `REMOTE_ADDR` is not trusted, resolver falls back to `REMOTE_ADDR`.
+### Why this matters
 
-This protects against forged `X-Forwarded-For` headers from untrusted clients.
+Login rate limiting uses resolved client IP.
 
-## Cloudflare deployment example
+Misconfigured proxy trust can cause unrelated users to share one effective IP identity, producing false lockouts and weaker abuse detection.
 
-If traffic flows through Cloudflare (including Cloudflare Tunnel), your app usually sees a proxy address unless your edge/proxy chain is configured correctly.
+---
 
-Recommended approach:
+## Deployment checklist (current requirement)
 
-1. Ensure your nginx/load balancer forwards `X-Forwarded-For` correctly.
-2. Add only your *actual upstream proxy addresses/ranges* to `TRUSTED_PROXIES`.
-3. Keep the list current whenever infrastructure changes.
+Use this for nginx reverse proxies, managed load balancers, Cloudflare, and Cloudflare Tunnel:
 
-### Client IP resolution in Cloudflare-like topologies
+- [ ] `TRUSTED_PROXIES` contains only actual trusted upstream hops that directly connect to the app.
+- [ ] Proxy chain forwards `X-Forwarded-For` correctly.
+- [ ] Deployment runbook includes a step to review/update trusted proxies after infra/network changes.
+- [ ] Login/rate-limit behavior is validated from multiple real client IPs.
 
-- Correct config: application resolves the real visitor IP from `X-Forwarded-For` (trusted hop), so auth and rate limiting behave per user.
-- Incorrect config: application resolves the proxy/tunnel/load balancer IP, making many users appear as one source.
+---
 
-### Rate limiter dependency
+## Future roadmap (not implemented)
 
-Login rate limiting depends on resolved client IP. If proxy trust is wrong, users share one effective IP identity.
+Potential future security-hardening additions (not current behavior):
 
-> ⚠️ Warning: incorrect trusted proxy configuration can cause a shared rate-limit bucket across unrelated users, resulting in noisy lockouts and reduced abuse-detection accuracy.
-
-## Reverse proxy and load balancer checklist
-
-Use this checklist for nginx reverse proxy, managed load balancers, and Cloudflare Tunnel:
-
-- [ ] `TRUSTED_PROXIES` contains only trusted hops that directly connect to your app.
-- [ ] Proxy chain passes `X-Forwarded-For` without stripping or malformed rewrites.
-- [ ] A deploy/runbook step exists to update `TRUSTED_PROXIES` after network changes.
-- [ ] Login attempts are tested from different client IPs to confirm independent rate-limit buckets.
+- environment-specific trusted-proxy validation tooling
+- startup diagnostics for suspicious proxy-header chains
+- admin health warnings for likely proxy misconfiguration

@@ -1,81 +1,79 @@
-# Admin Design System (Foundation)
+# Admin Design System
 
-This document describes how admin UI styles are organized in the modular stylesheet stack under `public/assets/css/admin/`.
+This document defines how the admin UI stylesheet system works today and how contributors should extend it.
 
-## File structure and load order
+## Current implementation
 
-Admin CSS is split into four layers and loaded in this order:
+### CSS file structure and required load order
 
-1. `admin-tokens.css`
-2. `admin-shell.css`
-3. `admin-components.css`
-4. `admin-screens.css`
+Admin CSS is loaded from `templates/layouts/admin.php` in this order:
 
-Load order matters: each layer can rely on variables/selectors defined in previous layers, but should not redefine concerns owned by earlier layers.
+1. `public/assets/css/admin/admin-tokens.css`
+2. `public/assets/css/admin/admin-shell.css`
+3. `public/assets/css/admin/admin-components.css`
+4. `public/assets/css/admin/admin-screens.css`
 
-### 1) `admin-tokens.css`
+Load order is contractual: later layers may consume earlier-layer tokens/primitives but should not redefine earlier-layer responsibilities.
 
-Owns all global CSS custom properties (`:root`):
+### Layer ownership
 
-- Color primitives (`--admin-color-*`) for canvas, surfaces, text, borders, accents, and semantic states.
-- Spacing scale (`--admin-space-*`).
-- Radius scale (`--admin-radius-*`).
-- Shadow scale (`--admin-shadow-*`).
-- Typography scale (`--admin-font-*`).
-- Shell sizing and motion tokens (`--admin-sidebar-width`, `--admin-topbar-height`, `--admin-motion-*`).
+#### 1) `admin-tokens.css`
 
-### 2) `admin-shell.css`
+Owns global CSS custom properties (`:root`), including:
 
-Owns admin layout and structural chrome:
+- color tokens (`--admin-color-*`)
+- spacing/radius/shadow scales
+- typography tokens
+- shell sizing + motion tokens
 
-- Root admin context and base box model.
-- Main shell grid (`.admin__layout`, `.admin__workspace`, `.admin__content`).
-- Sidebar shell and navigation scaffolding.
-- Topbar shell and utility region.
-- Shell-responsive behavior (desktop/sidebar and mobile/topbar flow).
+#### 2) `admin-shell.css`
 
-### 3) `admin-components.css`
+Owns admin layout/chrome:
 
-Owns reusable primitives and shared building blocks:
+- root admin context
+- shell grid/workspace/content regions
+- sidebar/topbar structure
+- responsive shell behavior
 
-- Panels/cards/stats and utility stacks.
-- Buttons, actions, badges, inputs.
-- Reusable table system (`admin-table` block/elements/modifiers).
-- Forms and form utilities.
-- Shared list/action/section composition helpers.
+#### 3) `admin-components.css`
 
-### 4) `admin-screens.css`
+Owns reusable UI primitives:
 
-Owns screen-level variants and page-specific styling:
+- cards/panels/stats
+- inputs/buttons/badges
+- tables/forms/shared utility patterns
 
-- Dashboard selectors (`.admin-dashboard*`).
-- Template manager selectors (`.admin-template-manager*`, template row variants).
-- Category manager selectors (`.admin-category-*`, category row/tree variants).
-- Relationship manager selectors (`.admin-relationship-*`, relationship row variants).
-- Screen-specific responsive adjustments.
+#### 4) `admin-screens.css`
 
-## Token usage rules
+Owns page-specific variants:
 
-- Always use existing tokens before introducing literal values.
-- Add new tokens only in `admin-tokens.css`.
-- Prefer semantic token names (`--admin-color-danger`) over hard-coded hex values in component/screen files.
-- Keep component and screen files token-driven; no ad-hoc design constants.
+- dashboard screen styles
+- template manager styles
+- category manager styles
+- relationship manager styles
 
-## Naming patterns
+### Usage rules
 
-The admin CSS follows a BEM-inspired convention:
+- prefer existing tokens before introducing literal values
+- add new design tokens only in `admin-tokens.css`
+- keep structural rules in shell layer, reusable rules in components, and page-specific rules in screens
+- use existing naming convention (`admin-*`, `__`, `--`)
 
-- `admin-*` prefixes admin-specific blocks (`.admin-panel`, `.admin-btn`, `.admin-table`).
-- Elements use `__` (`.admin-panel__title`, `.admin-table__cell`).
-- Modifiers use `--` (`.admin-btn--primary`, `.admin-table--compact`).
+### Authoring workflow
 
-## Authoring guidance
+When adding or changing admin UI:
 
-When adding/updating admin UI:
+1. Add/update token(s) in `admin-tokens.css` if necessary.
+2. Apply structural layout changes in `admin-shell.css`.
+3. Add reusable primitives in `admin-components.css`.
+4. Add screen-only styles in `admin-screens.css`.
 
-1. Add/adjust primitives in `admin-tokens.css` only if needed.
-2. Put structural layout/chrome changes in `admin-shell.css`.
-3. Put reusable UI patterns in `admin-components.css`.
-4. Keep page-specific selectors in `admin-screens.css`.
+---
 
-This keeps concerns isolated, reduces cascade conflicts, and makes long-term admin styling maintenance predictable.
+## Future roadmap (not implemented)
+
+Potential future design-system work:
+
+- design token documentation generation
+- visual regression checks for admin screens
+- stricter linting/validation for layer ownership
