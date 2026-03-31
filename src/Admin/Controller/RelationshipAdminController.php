@@ -17,7 +17,7 @@ use InvalidArgumentException;
 final class RelationshipAdminController
 {
     private const RELATION_TYPE_MAX_LENGTH = 60;
-    private const RELATION_TYPE_PATTERN = '/^[a-z]*$/';
+    private const RELATION_TYPE_PATTERN = '/^[a-z]+$/';
 
     public function __construct(
         private readonly TemplateRenderer $templateRenderer,
@@ -228,6 +228,7 @@ final class RelationshipAdminController
         }
 
         if (preg_match(self::RELATION_TYPE_PATTERN, $relationType) !== 1) {
+            // Keep admin validation aligned with repository normalization rules.
             // Relation types are stable identifiers used by rules, not free-form admin labels.
             return 'Relation type must contain lowercase letters only (a-z).';
         }

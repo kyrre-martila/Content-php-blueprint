@@ -17,7 +17,7 @@ use RuntimeException;
 final class MySqlContentRelationshipRepository implements ContentRelationshipRepositoryInterface
 {
     private const RELATION_TYPE_MAX_LENGTH = 60;
-    private const RELATION_TYPE_PATTERN = '/^[a-z]*$/';
+    private const RELATION_TYPE_PATTERN = '/^[a-z]+$/';
 
     public function __construct(private readonly Connection $connection)
     {
