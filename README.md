@@ -328,22 +328,21 @@ Canonical routing is enforced automatically for content item routes as part of B
 Template mapping in runtime:
 
 - content template resolution:
-  1. `templates/content/{content-type}.php`
+  1. `templates/content/{content_type}.php`
   2. `templates/index.php` (index fallback)
 - collection template resolution:
-  1. `templates/collections/{content-type}.php`
+  1. `templates/collections/{content_type}.php`
   2. `templates/system/404.php`
 - category collection template resolution (for routes such as `/categories/blog/news`):
-  1. `templates/categories/{category-group-slug}.php`
-  2. `templates/collections/{content-type}.php` (when applicable)
-  3. `templates/system/404.php`
+  1. `templates/collections/categories/{group_slug}.php`
+  2. `templates/system/404.php`
 - system template resolution:
   1. `templates/system/{route}.php`
   2. `templates/system/404.php`
 
 Important boundary:
 
-- no item-level template overrides are used for category collections.
+- no item-level template overrides are used.
 - category collection routes 404 only when category group or category does not exist; empty categories still render with `collectionItems = []` and pagination metadata.
 
 Category collection runtime context includes:

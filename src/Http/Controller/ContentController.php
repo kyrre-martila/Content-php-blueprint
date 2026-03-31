@@ -8,7 +8,6 @@ use App\Domain\Content\Exception\InvalidSlugException;
 use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
-use App\Domain\Content\ContentItem;
 use App\Domain\Content\Slug;
 use App\Http\Request;
 use App\Http\Response;
@@ -120,10 +119,7 @@ final class ContentController
         $offset = ($page - 1) * $perPage;
         $result = $this->contentItems->findPublishedByCategory($category, $perPage, $offset);
 
-        $templatePath = $this->templateResolver->resolveCategoryCollectionTemplate(
-            $categoryGroup,
-            $this->resolveCollectionTypeFromItems($result['items'])
-        );
+        $templatePath = $this->templateResolver->resolveCategoryCollectionTemplate($categoryGroup);
 
         $html = $this->templateRenderer->render($templatePath, [
             'request' => $request,
@@ -147,18 +143,6 @@ final class ContentController
         ]);
 
         return Response::html($html);
-    }
-
-    /**
-     * @param list<ContentItem> $items
-     */
-    private function resolveCollectionTypeFromItems(array $items): ?\App\Domain\Content\ContentType
-    {
-        if ($items === []) {
-            return null;
-        }
-
-        return $items[0]->type();
     }
 
     private function resolveCanonicalRedirect(Request $request, string $slug, ?string $canonicalUrl): ?string

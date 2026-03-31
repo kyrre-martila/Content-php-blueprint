@@ -148,9 +148,9 @@ it('renders collection template for content types configured as collection view'
 
 it('renders category collection pages with category context and breadcrumbs', function (): void {
     $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-' . uniqid('', true);
-    mkdir($templatesBasePath . '/categories', 0777, true);
+    mkdir($templatesBasePath . '/collections/categories', 0777, true);
     mkdir($templatesBasePath . '/system', 0777, true);
-    file_put_contents($templatesBasePath . '/categories/blog.php', '<?php echo $categoryGroup->name() . "|" . $category->name() . "|" . count($collectionItems) . "|" . $pagination["totalCount"] . "|" . $breadcrumbs[2]["url"];');
+    file_put_contents($templatesBasePath . '/collections/categories/blog.php', '<?php echo $categoryGroup->name() . "|" . $category->name() . "|" . count($collectionItems) . "|" . $pagination["totalCount"] . "|" . $breadcrumbs[2]["url"];');
     file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
 
     $group = makeCategoryGroup('blog', 'Blog');
@@ -184,9 +184,9 @@ it('renders category collection pages with category context and breadcrumbs', fu
 
 it('renders category collection pages with empty state data and no 404', function (): void {
     $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-empty-' . uniqid('', true);
-    mkdir($templatesBasePath . '/categories', 0777, true);
+    mkdir($templatesBasePath . '/collections/categories', 0777, true);
     mkdir($templatesBasePath . '/system', 0777, true);
-    file_put_contents($templatesBasePath . '/categories/blog.php', '<?php echo count($collectionItems) . "|" . $pagination["totalCount"];');
+    file_put_contents($templatesBasePath . '/collections/categories/blog.php', '<?php echo count($collectionItems) . "|" . $pagination["totalCount"];');
     file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
 
     $group = makeCategoryGroup('blog', 'Blog');
@@ -220,9 +220,9 @@ it('renders category collection pages with empty state data and no 404', functio
 
 it('returns system 404 when category group or category does not exist', function (): void {
     $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-404-' . uniqid('', true);
-    mkdir($templatesBasePath . '/categories', 0777, true);
+    mkdir($templatesBasePath . '/collections/categories', 0777, true);
     mkdir($templatesBasePath . '/system', 0777, true);
-    file_put_contents($templatesBasePath . '/categories/blog.php', '<?php echo "ok";');
+    file_put_contents($templatesBasePath . '/collections/categories/blog.php', '<?php echo "ok";');
     file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
 
     $group = makeCategoryGroup('blog', 'Blog');
