@@ -65,6 +65,11 @@ final class Response
         return $this->headers[$name] ?? null;
     }
 
+    public function body(): string
+    {
+        return $this->body;
+    }
+
 
     public function withHeader(string $name, string $value): self
     {

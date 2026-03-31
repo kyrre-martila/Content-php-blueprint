@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Content\ContentType;
 use App\Domain\Content\CategoryGroup;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateResolver;
 
 it('resolves content template by content type first', function (): void {
@@ -12,7 +13,7 @@ it('resolves content template by content type first', function (): void {
         'content/page.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveContentTemplate(makeContentType('page')))
         ->toBe($templatesPath . '/content/page.php');
@@ -23,19 +24,36 @@ it('falls back to index template when content type template is missing', functio
         'index.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveContentTemplate(makeContentType('article')))
         ->toBe($templatesPath . '/index.php');
 });
 
+
+
+it('resolves template fallbacks in architecture-defined order', function (): void {
+    $templatesPath = createTemplateDirectory([
+        'index.php' => '<?php',
+        'system/404.php' => '<?php',
+    ]);
+
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
+
+    expect($resolver->resolveContentTemplate(makeContentType('missing')))
+        ->toBe($templatesPath . '/index.php')
+        ->and($resolver->resolveSystemTemplate('missing'))
+        ->toBe($templatesPath . '/system/404.php')
+        ->and($resolver->resolveCollectionTemplate(makeContentType('missing')))
+        ->toBe($templatesPath . '/system/404.php');
+});
 it('resolves collection template by content type first', function (): void {
     $templatesPath = createTemplateDirectory([
         'system/404.php' => '<?php',
         'collections/page.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveCollectionTemplate(makeContentType('page')))
         ->toBe($templatesPath . '/collections/page.php');
@@ -46,7 +64,7 @@ it('falls back to system 404 when collection template is missing', function (): 
         'system/404.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveCollectionTemplate(makeContentType('article')))
         ->toBe($templatesPath . '/system/404.php');
@@ -58,7 +76,7 @@ it('resolves category collection template by category group first', function ():
         'collections/categories/blog.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog')))
         ->toBe($templatesPath . '/collections/categories/blog.php');
@@ -69,7 +87,7 @@ it('falls back to system 404 when category group template is missing', function 
         'system/404.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog')))
         ->toBe($templatesPath . '/system/404.php');
@@ -81,7 +99,7 @@ it('resolves system template by route first', function (): void {
         'system/search.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveSystemTemplate('search'))
         ->toBe($templatesPath . '/system/search.php');
@@ -92,7 +110,7 @@ it('falls back to system 404 when system route template is missing', function ()
         'system/404.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->resolveSystemTemplate('missing'))
         ->toBe($templatesPath . '/system/404.php');
@@ -142,7 +160,7 @@ it('reports template file existence for relative and templates-prefixed paths', 
         'content/page.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->templateExists('content/page.php'))->toBeTrue()
         ->and($resolver->templateExists('templates/content/page.php'))->toBeTrue()
@@ -156,7 +174,7 @@ it('builds template existence map for configured directories', function (): void
         'collections/categories/blog.php' => '<?php',
     ]);
 
-    $resolver = new TemplateResolver($templatesPath);
+    $resolver = new TemplateResolver($templatesPath, new TemplatePathMap());
 
     expect($resolver->templateExistsMap())
         ->toMatchArray([
