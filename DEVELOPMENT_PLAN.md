@@ -88,6 +88,7 @@ Category collection extras:
 
 These systems are distinct:
 
+- **Field schemas**: `content_type_fields` define per-content-type structured fields.
 - **Hierarchy**: `content_items.parent_id` + `sort_order`
 - **Categories**: `content_item_categories` + `category_groups`/`categories`
 - **Relationships**: `content_item_relationships` constrained by `content_type_relationship_rules`

@@ -14,6 +14,11 @@ $templateExistsMap = is_array($templateExistsMap ?? null) ? $templateExistsMap :
 $categoryGroups = is_array($categoryGroups ?? null) ? $categoryGroups : [];
 $outgoingRelationshipRules = is_array($outgoingRelationshipRules ?? null) ? $outgoingRelationshipRules : [];
 $incomingRelationshipRules = is_array($incomingRelationshipRules ?? null) ? $incomingRelationshipRules : [];
+$fieldRows = is_array($old['fields'] ?? null) ? $old['fields'] : [];
+if ($fieldRows === []) {
+    $fieldRows = [['name' => '', 'label' => '', 'field_type' => 'text', 'is_required' => false, 'default_value' => null, 'settings_json' => null]];
+}
+$supportedFieldTypes = ['text', 'textarea', 'richtext', 'number', 'boolean', 'date', 'image', 'file', 'select'];
 
 $initialTemplatePath = $selectedViewType === 'collection'
     ? sprintf('templates/collections/%s.php', $slug)
@@ -102,6 +107,60 @@ $initialTemplateStatus = ($templateExistsMap[str_replace('templates/', '', $init
                 <?php endforeach; ?>
             </select>
             <p class="admin-form__help">Hold Ctrl (Windows) or Command (Mac) to select multiple groups.</p>
+        </div>
+
+        <div class="admin-form__group">
+            <span class="admin-form__label">Field schema</span>
+            <p class="admin-form__help">Define structured fields for this content type.</p>
+            <?php foreach ($fieldRows as $index => $fieldRow): ?>
+                <fieldset class="admin-panel admin-card" style="margin-bottom:12px; padding:12px;">
+                    <legend>Field <?= $e((string) ($index + 1)) ?></legend>
+                    <div class="admin-form__group">
+                        <label class="admin-form__label" for="field_name_<?= $e((string) $index) ?>">Name</label>
+                        <input class="admin-form__input" id="field_name_<?= $e((string) $index) ?>" name="field_name[]" type="text" value="<?= $e((string) ($fieldRow['name'] ?? '')) ?>">
+                        <?php if (isset($errors['fields.' . $index . '.name'])): ?>
+                            <p class="admin-form__help admin-form__help--danger" role="alert"><?= $e((string) $errors['fields.' . $index . '.name']) ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <div class="admin-form__group">
+                        <label class="admin-form__label" for="field_label_<?= $e((string) $index) ?>">Label</label>
+                        <input class="admin-form__input" id="field_label_<?= $e((string) $index) ?>" name="field_label[]" type="text" value="<?= $e((string) ($fieldRow['label'] ?? '')) ?>">
+                        <?php if (isset($errors['fields.' . $index . '.label'])): ?>
+                            <p class="admin-form__help admin-form__help--danger" role="alert"><?= $e((string) $errors['fields.' . $index . '.label']) ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <div class="admin-form__group">
+                        <label class="admin-form__label" for="field_type_<?= $e((string) $index) ?>">Field Type</label>
+                        <select class="admin-form__input" id="field_type_<?= $e((string) $index) ?>" name="field_type[]">
+                            <?php $selectedFieldType = (string) ($fieldRow['field_type'] ?? 'text'); ?>
+                            <?php foreach ($supportedFieldTypes as $supportedFieldType): ?>
+                                <option value="<?= $e($supportedFieldType) ?>" <?= $supportedFieldType === $selectedFieldType ? 'selected' : '' ?>><?= $e($supportedFieldType) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (isset($errors['fields.' . $index . '.field_type'])): ?>
+                            <p class="admin-form__help admin-form__help--danger" role="alert"><?= $e((string) $errors['fields.' . $index . '.field_type']) ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <div class="admin-form__group">
+                        <label class="admin-form__label" for="field_default_value_<?= $e((string) $index) ?>">Default Value</label>
+                        <input class="admin-form__input" id="field_default_value_<?= $e((string) $index) ?>" name="field_default_value[]" type="text" value="<?= $e((string) ($fieldRow['default_value'] ?? '')) ?>">
+                    </div>
+                    <div class="admin-form__group">
+                        <label class="admin-form__label" for="field_settings_json_<?= $e((string) $index) ?>">Settings JSON</label>
+                        <textarea class="admin-form__input" id="field_settings_json_<?= $e((string) $index) ?>" name="field_settings_json[]" rows="3"><?= $e((string) ($fieldRow['settings_json'] ?? '')) ?></textarea>
+                        <?php if (isset($errors['fields.' . $index . '.settings_json'])): ?>
+                            <p class="admin-form__help admin-form__help--danger" role="alert"><?= $e((string) $errors['fields.' . $index . '.settings_json']) ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <div class="admin-form__group">
+                        <label class="admin-form__option" for="field_required_<?= $e((string) $index) ?>">
+                            <input id="field_required_<?= $e((string) $index) ?>" type="checkbox" name="field_required[<?= $e((string) $index) ?>]" value="1" <?= (($fieldRow['is_required'] ?? false) === true || (string) ($fieldRow['is_required'] ?? '') === '1') ? 'checked' : '' ?>>
+                            <span>Required</span>
+                        </label>
+                    </div>
+                </fieldset>
+            <?php endforeach; ?>
+            <p class="admin-form__help">Add more field rows by submitting additional <code>field_name[]</code>, <code>field_label[]</code>, and <code>field_type[]</code> values.</p>
         </div>
 
         <?php if ($outgoingRelationshipRules !== [] || $incomingRelationshipRules !== []): ?>

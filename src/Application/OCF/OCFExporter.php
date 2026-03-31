@@ -81,7 +81,7 @@ final class OCFExporter
             $contentTypes[] = [
                 'name' => $contentType->name(),
                 'label' => $contentType->label(),
-                'fields' => $contentType->fieldDefinitions() ?? $this->defaultPortableFieldSchema(),
+                'fields' => $contentType->fieldDefinitions() !== [] ? $contentType->fieldDefinitions() : $this->defaultPortableFieldSchema(),
             ];
 
             foreach ($this->contentItems->findByType($contentType, PHP_INT_MAX, 0)['items'] as $item) {
