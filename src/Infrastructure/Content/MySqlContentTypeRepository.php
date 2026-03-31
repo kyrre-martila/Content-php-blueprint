@@ -6,6 +6,7 @@ namespace App\Infrastructure\Content;
 
 use App\Domain\Content\CategoryGroup;
 use App\Domain\Content\ContentType;
+use App\Domain\Content\ContentTypeField;
 use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Domain\Content\Slug;
@@ -17,8 +18,11 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
 {
     private const FALLBACK_TEMPLATE = 'content/default.php';
 
-    public function __construct(private readonly Connection $connection)
+    private readonly MySqlContentTypeFieldRepository $fieldRepository;
+
+    public function __construct(private readonly Connection $connection, ?MySqlContentTypeFieldRepository $fieldRepository = null)
     {
+        $this->fieldRepository = $fieldRepository ?? new MySqlContentTypeFieldRepository($connection);
     }
 
     public function save(ContentType $contentType): ContentType
@@ -31,7 +35,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
         if ($existingRow === null) {
             $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
-            $this->connection->execute(
+            $insertedId = (int) $this->connection->insertAndGetId(
                 'INSERT INTO content_types (name, slug, description, view_type, created_at, updated_at)
                  VALUES (:name, :slug, :description, :view_type, :created_at, :updated_at)',
                 [
@@ -43,6 +47,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
                     'updated_at' => $now,
                 ]
             );
+            $this->fieldRepository->replaceForContentType($insertedId, $this->rebindFieldsToContentType($contentType->fields(), $insertedId));
 
             return $contentType;
         }
@@ -65,6 +70,8 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             ]
         );
 
+        $this->fieldRepository->replaceForContentType($id, $this->rebindFieldsToContentType($contentType->fields(), $id));
+
         if ($affectedRows < 1) {
             throw new RuntimeException('Failed to update content type record.');
         }
@@ -86,7 +93,13 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             return null;
         }
 
-        return $this->mapRowToContentType($row, $this->loadAllowedCategoryGroupIds($this->rowInt($row, 'id')));
+        $contentTypeId = $this->rowInt($row, 'id');
+
+        return $this->mapRowToContentType(
+            $row,
+            $this->fieldRepository->findByContentTypeId($contentTypeId),
+            $this->loadAllowedCategoryGroupIds($contentTypeId)
+        );
     }
 
     public function findAll(): array
@@ -100,7 +113,12 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
         $contentTypes = [];
 
         foreach ($rows as $row) {
-            $contentTypes[] = $this->mapRowToContentType($row, $this->loadAllowedCategoryGroupIds($this->rowInt($row, 'id')));
+            $contentTypeId = $this->rowInt($row, 'id');
+            $contentTypes[] = $this->mapRowToContentType(
+                $row,
+                $this->fieldRepository->findByContentTypeId($contentTypeId),
+                $this->loadAllowedCategoryGroupIds($contentTypeId)
+            );
         }
 
         return $contentTypes;
@@ -192,9 +210,10 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param list<ContentTypeField> $fields
+     * @param list<int> $allowedCategoryGroupIds
      */
-    private function mapRowToContentType(array $row, array $allowedCategoryGroupIds = []): ContentType
+    private function mapRowToContentType(array $row, array $fields = [], array $allowedCategoryGroupIds = []): ContentType
     {
         $machineName = $this->rowString($row, 'slug');
         $label = $this->rowString($row, 'name');
@@ -208,7 +227,7 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
             $machineName,
             $label,
             $defaultTemplate,
-            null,
+            $fields,
             ContentViewType::fromString($viewType),
             $allowedCategoryGroupIds
         );
@@ -230,6 +249,33 @@ final class MySqlContentTypeRepository implements ContentTypeRepositoryInterface
         return array_map(
             fn (array $row): int => $this->rowInt($row, 'category_group_id'),
             $rows
+        );
+    }
+
+
+    /**
+     * @param list<ContentTypeField> $fields
+     * @return list<ContentTypeField>
+     */
+    private function rebindFieldsToContentType(array $fields, int $contentTypeId): array
+    {
+        $now = new DateTimeImmutable();
+
+        return array_map(
+            static fn (ContentTypeField $field): ContentTypeField => new ContentTypeField(
+                id: null,
+                contentTypeId: $contentTypeId,
+                name: $field->name(),
+                label: $field->label(),
+                fieldType: $field->fieldType(),
+                isRequired: $field->isRequired(),
+                defaultValue: $field->defaultValue(),
+                settings: $field->settings(),
+                sortOrder: $field->sortOrder(),
+                createdAt: $now,
+                updatedAt: $now
+            ),
+            $fields
         );
     }
 

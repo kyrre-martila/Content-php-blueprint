@@ -8,7 +8,8 @@ Framework-light PHP 8.3+ blueprint for structured content websites with explicit
 - Deterministic template resolution (no WordPress-style hierarchy).
 - Category collection routing at `GET /categories/{groupSlug}/{categorySlug}`.
 - Content collections and category collections with shared pagination/query behavior.
-- Explicit separation of hierarchy (`parent_id`), categories (`content_item_categories`), and relationships (`content_item_relationships`).
+- Per-content-type structured field schemas via `content_type_fields` (name/label/type/required/default/settings/sort order).
+- Explicit separation of field schemas, hierarchy (`parent_id`), categories (`content_item_categories`), and relationships (`content_item_relationships`).
 - Install-state-aware admin routing, role-gated Editor Mode/Dev Mode, and trusted proxy-aware client IP resolution.
 
 ## AI operating environment
@@ -82,8 +83,9 @@ Template resolution (current runtime):
 - Category collection: `templates/collections/categories/{group_slug}.php` -> `templates/system/404.php`
 - System routes: `templates/system/{route}.php` -> `templates/system/404.php`
 
-## Category model vs hierarchy vs relationships (current)
+## Content schemas vs category model vs hierarchy vs relationships (current)
 
+- **Field schemas**: each content type owns `content_type_fields` for structured editing contracts.
 - **Hierarchy**: tree-like parent/child structure using `content_items.parent_id`.
 - **Categories**: classification via `content_item_categories` and category groups.
 - **Relationships**: directional typed links via `content_item_relationships` + type rules.

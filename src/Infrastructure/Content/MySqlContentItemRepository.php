@@ -522,7 +522,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $this->rowString($row, 'type_slug'),
             $this->rowString($row, 'type_name'),
             $defaultTemplate,
-            null,
+            [],
             ContentViewType::fromString($this->rowString($row, 'type_view_type'))
         );
 

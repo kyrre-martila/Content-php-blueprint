@@ -11,6 +11,15 @@ This document describes the **currently implemented** content model and clearly 
   - `name` (label)
   - `description` (currently used as default template path storage)
   - `view_type` (`single` or `collection`)
+- `content_type_fields`
+  - `content_type_id`
+  - `name` (stable identifier, unique per content type)
+  - `label` (admin-facing field label)
+  - `field_type` (allowed: `text`, `textarea`, `richtext`, `number`, `boolean`, `date`, `image`, `file`, `select`)
+  - `is_required`
+  - `default_value`
+  - `settings_json`
+  - `sort_order`
 - `content_items`
   - `content_type_id`
   - `title`
@@ -31,10 +40,11 @@ This document describes the **currently implemented** content model and clearly 
 
 ### Domain objects
 
-- `ContentType` (`name`, `label`, `defaultTemplate`, `viewType`)
+- `ContentType` (`name`, `label`, `defaultTemplate`, `viewType`, `fields`)
 - `ContentItem` (type, title, slug, status, timestamps, pattern blocks)
 - `Slug` value object for URL-safe slug validation
 - `ContentStatus` enum-like domain type
+- `ContentTypeField` for immutable field-schema entries with invariant validation
 - `ContentRelationship` and `EnrichedContentRelationship` for typed links between items
 
 ### Relationship rule identifiers
@@ -71,6 +81,8 @@ Content pages resolve by `ContentType.viewType`:
 
 ## Current editing boundaries
 
+Field schemas are the contract for structured content editing and are independent from category and relationship systems.
+
 - Admin content screens manage structured content records and pattern block payload.
 - Inline Editor Mode updates only:
   - `ContentItem` title
@@ -79,5 +91,5 @@ Content pages resolve by `ContentType.viewType`:
 
 ## Planned direction (not yet implemented)
 
-- Dedicated storage for richer field-value models beyond current pattern block payload.
+- Richer field-value persistence for content items that can map directly to content type field schemas.
 - Additional content type definitions and field tooling generated through reusable workflows.

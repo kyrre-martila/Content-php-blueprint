@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentViewType;
+use App\Domain\Content\ContentTypeField;
 use App\Domain\Content\Slug;
 use App\Domain\Content\Category;
 use App\Domain\Content\CategoryGroup;
@@ -30,6 +31,25 @@ function buildConnectionForRepositoryTests(): Connection
             view_type TEXT NOT NULL DEFAULT "single",
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
+        )'
+    );
+
+
+    $pdo->exec(
+        'CREATE TABLE content_type_fields (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content_type_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            label TEXT NOT NULL,
+            field_type TEXT NOT NULL,
+            is_required INTEGER NOT NULL DEFAULT 0,
+            default_value TEXT NULL,
+            settings_json TEXT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(content_type_id, name),
+            FOREIGN KEY(content_type_id) REFERENCES content_types(id)
         )'
     );
 
@@ -139,7 +159,10 @@ it('persists and reads content types', function (): void {
     $connection = buildConnectionForRepositoryTests();
     $repository = new MySqlContentTypeRepository($connection);
 
-    $articleType = new ContentType('article', 'Article', 'templates/pages/article.php', null, ContentViewType::COLLECTION);
+    $articleType = new ContentType('article', 'Article', 'templates/pages/article.php', [
+        new ContentTypeField(null, 1, 'summary', 'Summary', 'textarea', true, null, null, 0, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+        new ContentTypeField(null, 1, 'hero_image', 'Hero image', 'image', false, null, ['folder' => 'hero'], 1, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+    ], ContentViewType::COLLECTION);
 
     $repository->save($articleType);
 
@@ -150,7 +173,34 @@ it('persists and reads content types', function (): void {
         ->and($found?->label())->toBe('Article')
         ->and($found?->defaultTemplate())->toBe('templates/pages/article.php')
         ->and($found?->viewType())->toBe(ContentViewType::COLLECTION)
+        ->and($found?->fields())->toHaveCount(2)
+        ->and($found?->fields()[0]->name())->toBe('summary')
+        ->and($found?->fields()[1]->settings())->toBe(['folder' => 'hero'])
         ->and($repository->findAll())->toHaveCount(1);
+});
+
+
+it('replaces persisted content type field schema on update', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $repository = new MySqlContentTypeRepository($connection);
+
+    $type = new ContentType('event', 'Event', 'content/event.php', [
+        new ContentTypeField(null, 1, 'start_date', 'Start date', 'date', true, null, null, 0, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+    ]);
+
+    $repository->save($type);
+
+    $repository->save(new ContentType('event', 'Event', 'content/event.php', [
+        new ContentTypeField(null, 1, 'venue', 'Venue', 'text', true, null, null, 0, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+        new ContentTypeField(null, 1, 'is_online', 'Is online', 'boolean', false, '0', null, 1, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+    ]));
+
+    $loaded = $repository->findByName('event');
+
+    expect($loaded)->not->toBeNull()
+        ->and($loaded?->fields())->toHaveCount(2)
+        ->and(array_map(static fn (ContentTypeField $field): string => $field->name(), $loaded?->fields() ?? []))
+        ->toBe(['venue', 'is_online']);
 });
 
 it('loads and manages allowed category groups for a content type', function (): void {
