@@ -628,6 +628,51 @@ it('rejects invalid content relationships', function (): void {
         ->toThrow(InvalidArgumentException::class, 'is not allowed');
 });
 
+
+it('fails fast when allowing a relationship for unsaved content types', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $relationshipRepository = new MySqlContentRelationshipRepository($connection);
+
+    $missingFrom = new ContentType('missing_from', 'Missing From', 'content/default.php');
+    $missingTo = new ContentType('missing_to', 'Missing To', 'content/default.php');
+
+    expect(fn () => $relationshipRepository->allowRelationship($missingFrom, $missingTo, 'author'))
+        ->toThrow(RuntimeException::class, 'Content type "missing_from" does not exist in persistence.');
+});
+
+it('fails fast when attaching a relationship to a missing target item id', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+    $relationshipRepository = new MySqlContentRelationshipRepository($connection);
+
+    $articleType = new ContentType('article', 'Article', 'content/default.php');
+    $authorType = new ContentType('author', 'Author', 'content/default.php');
+    $typeRepository->save($articleType);
+    $typeRepository->save($authorType);
+    $relationshipRepository->allowRelationship($articleType, $authorType, 'author');
+
+    $article = $itemRepository->save(ContentItem::draft(
+        id: null,
+        type: $articleType,
+        title: 'Launch Update',
+        slug: Slug::fromString('launch-update-missing-target'),
+        createdAt: new DateTimeImmutable('2026-03-25 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-25 10:00:00')
+    ));
+
+    $missingAuthor = ContentItem::draft(
+        id: 999,
+        type: $authorType,
+        title: 'Ghost Author',
+        slug: Slug::fromString('ghost-author'),
+        createdAt: new DateTimeImmutable('2026-03-25 10:00:00'),
+        updatedAt: new DateTimeImmutable('2026-03-25 10:00:00')
+    );
+
+    expect(fn () => $relationshipRepository->attach($article, $missingAuthor, 'author'))
+        ->toThrow(RuntimeException::class, 'Content item 999 does not exist in persistence.');
+});
 it('manages relationship rules by content type and enforces them at attach time', function (): void {
     $connection = buildConnectionForRepositoryTests();
     $typeRepository = new MySqlContentTypeRepository($connection);

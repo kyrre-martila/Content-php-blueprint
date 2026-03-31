@@ -52,3 +52,26 @@ function requestWithServer(array $server): Request
 {
     return new Request('POST', '/admin/login', [], [], [], [], $server);
 }
+
+
+it('uses forwarded header when remote address matches a trusted proxy cidr', function (): void {
+    $resolver = new ClientIpResolver(['192.0.2.0/24']);
+
+    $request = requestWithServer([
+        'REMOTE_ADDR' => '192.0.2.88',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.99, 192.0.2.88',
+    ]);
+
+    expect($resolver->resolve($request))->toBe('198.51.100.99');
+});
+
+it('ignores forwarded header when remote address is outside trusted proxy cidr', function (): void {
+    $resolver = new ClientIpResolver(['192.0.2.0/24']);
+
+    $request = requestWithServer([
+        'REMOTE_ADDR' => '203.0.113.10',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.100',
+    ]);
+
+    expect($resolver->resolve($request))->toBe('203.0.113.10');
+});
