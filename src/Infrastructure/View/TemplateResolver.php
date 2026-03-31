@@ -57,11 +57,17 @@ final class TemplateResolver
 
     public function templateExists(string $path): bool
     {
-        $normalizedPath = ltrim(trim($path), '/');
+        $candidatePath = trim($path);
 
-        if ($normalizedPath === '') {
+        if ($candidatePath === '') {
             return false;
         }
+
+        if (is_file($candidatePath)) {
+            return true;
+        }
+
+        $normalizedPath = ltrim($candidatePath, '/');
 
         if (str_starts_with($normalizedPath, 'templates/')) {
             $normalizedPath = substr($normalizedPath, strlen('templates/'));

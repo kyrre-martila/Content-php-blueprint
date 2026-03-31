@@ -18,6 +18,7 @@ use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\View\TemplateRenderer;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateResolver;
 
 it('redirects non-canonical content paths with a 301 and preserves query parameters', function (): void {
@@ -27,7 +28,7 @@ it('redirects non-canonical content paths with a 301 and preserves query paramet
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -57,7 +58,7 @@ it('uses canonical_url metadata as the redirect target when defined', function (
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -87,7 +88,7 @@ it('does not redirect when the request is already canonical', function (): void 
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -123,7 +124,7 @@ it('renders collection template for content types configured as collection view'
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -146,6 +147,74 @@ it('renders collection template for content types configured as collection view'
         ->and($response->body())->toContain('collection-template');
 });
 
+
+
+it('passes collection items and pagination data to collection templates', function (): void {
+    $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-content-controller-pagination-' . uniqid('', true);
+    mkdir($templatesBasePath . '/collections', 0777, true);
+    mkdir($templatesBasePath . '/system', 0777, true);
+    file_put_contents($templatesBasePath . '/collections/page.php', '<?php echo count($collectionItems) . "|" . $pagination["currentPage"] . "|" . $pagination["perPage"] . "|" . $pagination["totalCount"] . "|" . $pagination["totalPages"];');
+    file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
+
+    $contentItem = makeContentItem('about', null, ContentViewType::COLLECTION);
+    $controller = new ContentController(
+        categoryGroupRepositoryForTests(),
+        categoryRepositoryForTests(),
+        repositoryWithCollectionItems($contentItem, [makeContentItem('post-1'), makeContentItem('post-2')]),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
+        new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
+        editorModeForTests()
+    );
+
+    $response = $controller->show(new Request(
+        'GET',
+        '/about',
+        ['page' => '2', 'perPage' => '1'],
+        [],
+        [],
+        [],
+        ['HTTP_HOST' => 'example.com', 'REQUEST_SCHEME' => 'https'],
+        ['slug' => 'about'],
+        '/about'
+    ));
+
+    expect($response->status())->toBe(200)
+        ->and($response->body())->toContain('2|2|1|2|2');
+});
+
+it('renders collection templates with empty collection data instead of 404', function (): void {
+    $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-content-controller-empty-collection-' . uniqid('', true);
+    mkdir($templatesBasePath . '/collections', 0777, true);
+    mkdir($templatesBasePath . '/system', 0777, true);
+    file_put_contents($templatesBasePath . '/collections/page.php', '<?php echo count($collectionItems) . "|" . $pagination["totalCount"];');
+    file_put_contents($templatesBasePath . '/system/404.php', '<?php echo "not-found";');
+
+    $contentItem = makeContentItem('about', null, ContentViewType::COLLECTION);
+    $controller = new ContentController(
+        categoryGroupRepositoryForTests(),
+        categoryRepositoryForTests(),
+        repositoryWithCollectionItems($contentItem, []),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
+        new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
+        editorModeForTests()
+    );
+
+    $response = $controller->show(new Request(
+        'GET',
+        '/about',
+        [],
+        [],
+        [],
+        [],
+        ['HTTP_HOST' => 'example.com', 'REQUEST_SCHEME' => 'https'],
+        ['slug' => 'about'],
+        '/about'
+    ));
+
+    expect($response->status())->toBe(200)
+        ->and($response->body())->toContain('0|0')
+        ->and($response->body())->not->toContain('not-found');
+});
 it('renders category collection pages with category context and breadcrumbs', function (): void {
     $templatesBasePath = sys_get_temp_dir() . '/content-blueprint-category-controller-' . uniqid('', true);
     mkdir($templatesBasePath . '/collections/categories', 0777, true);
@@ -161,7 +230,7 @@ it('renders category collection pages with category context and breadcrumbs', fu
         categoryGroupRepositoryForTests([$group]),
         categoryRepositoryForTests([$category]),
         repositoryWithCategoryItems($items),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -196,7 +265,7 @@ it('renders category collection pages with empty state data and no 404', functio
         categoryGroupRepositoryForTests([$group]),
         categoryRepositoryForTests([$category]),
         repositoryWithCategoryItems([]),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -232,7 +301,7 @@ it('returns system 404 when category group or category does not exist', function
         categoryGroupRepositoryForTests([$group]),
         categoryRepositoryForTests([$category]),
         repositoryWithCategoryItems([]),
-        new TemplateResolver($templatesBasePath),
+        new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
     );
@@ -380,6 +449,32 @@ function repositoryWithSingleItem(ContentItem $contentItem): ContentItemReposito
     };
 }
 
+
+
+/**
+ * @param list<ContentItem> $collectionItems
+ */
+function repositoryWithCollectionItems(ContentItem $contentItem, array $collectionItems): ContentItemRepositoryInterface
+{
+    return new class ($contentItem, $collectionItems) implements ContentItemRepositoryInterface {
+        /** @param list<ContentItem> $collectionItems */
+        public function __construct(private readonly ContentItem $contentItem, private readonly array $collectionItems)
+        {
+        }
+
+        public function save(ContentItem $contentItem): ContentItem { return $contentItem; }
+        public function findById(int $id): ?ContentItem { return $id === 1 ? $this->contentItem : null; }
+        public function findBySlug(Slug $slug): ?ContentItem { return $slug->value() === $this->contentItem->slug()->value() ? $this->contentItem : null; }
+        public function findChildrenOf(int $parentId): array { return []; }
+        public function findRootItems(): array { return []; }
+        public function findByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset]; }
+        public function findAllWithTypes(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset]; }
+        public function findPublished(int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => [$this->contentItem], 'total_count' => 1, 'limit' => $limit, 'offset' => $offset]; }
+        public function findPublishedByType(ContentType $contentType, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => $this->collectionItems, 'total_count' => count($this->collectionItems), 'limit' => $limit, 'offset' => $offset]; }
+        public function findPublishedByCategory(Category $category, int $limit = self::DEFAULT_LIMIT, int $offset = self::DEFAULT_OFFSET): array { return ['items' => [], 'total_count' => 0, 'limit' => $limit, 'offset' => $offset]; }
+        public function remove(ContentItem $contentItem): void {}
+    };
+}
 /**
  * @param list<ContentItem> $items
  */
