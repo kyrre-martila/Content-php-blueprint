@@ -2,19 +2,26 @@
 
 Framework-light PHP 8.3+ blueprint for structured content websites with explicit layered architecture.
 
+## What is implemented now
+
+- Deterministic route registration with a public catch-all route that is always last.
+- Deterministic template resolution (no WordPress-style hierarchy).
+- Category collection routing at `GET /categories/{groupSlug}/{categorySlug}`.
+- Content collections and category collections with shared pagination/query behavior.
+- Explicit separation of hierarchy (`parent_id`), categories (`content_item_categories`), and relationships (`content_item_relationships`).
+- Install-state-aware admin routing, role-gated Editor Mode/Dev Mode, and trusted proxy-aware client IP resolution.
+
 ## AI operating environment
 
-This repository is designed for AI-assisted development as well as human-led engineering.
+This repository is designed for AI-assisted and human-led development.
 
-- project documentation in `docs/` is part of the operating system for how changes are made
-- `skills/` files are reusable implementation playbooks for common work
-- OCF export and composition snapshot export exist so AI can reason about content/composition without direct database access
-- Dev Mode affects source-layer concerns (templates, patterns, CSS/JS)
-- Editor Mode affects runtime content concerns (safe content edits within guardrails)
+- `docs/` describes architecture and operating boundaries.
+- `skills/` contains reusable implementation playbooks.
+- OCF export + composition snapshot export support AI reasoning without direct DB access.
+- Dev Mode is for source-layer presentation edits (templates/patterns/CSS/JS).
+- Editor Mode is for safe runtime content edits within allowlisted fields.
 
-Use repository source code + docs + OCF + composition snapshots together when planning or implementing changes.
-
-## Developer setup
+## Developer setup (local source checkout)
 
 1. Install dependencies:
    ```bash
@@ -24,10 +31,7 @@ Use repository source code + docs + OCF + composition snapshots together when pl
    ```bash
    cp .env.example .env
    ```
-
-## Environment setup
-
-Set at minimum in `.env`:
+3. Configure required values (minimum):
 
 ```dotenv
 APP_ENV=local
@@ -53,40 +57,9 @@ SESSION_SECURE_COOKIE=false
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
 ```
 
-### Trusted proxies and client IP resolution
+## Local run
 
-Configure `security.trusted_proxies` through `TRUSTED_PROXIES` in `.env`.
-
-- If `TRUSTED_PROXIES` is empty, the app uses `REMOTE_ADDR` as the client IP.
-- If `TRUSTED_PROXIES` is configured, the app only accepts `X-Forwarded-For` when the immediate `REMOTE_ADDR` is a trusted proxy IP/CIDR.
-
-> ⚠️ Incorrect trusted proxy configuration can cause many users to share the same login rate-limit bucket (usually the proxy IP), resulting in false lockouts.
-
-See `docs/security.md` for deployment guidance (Cloudflare, nginx reverse proxy, load balancers, and Cloudflare Tunnel).
-
-## Migration commands
-
-```bash
-composer migrate
-composer migrate:status
-composer migrate:rollback
-composer migrate:create -- MigrationName
-```
-
-Direct binary equivalents:
-
-```bash
-vendor/bin/phinx migrate -c phinx.php
-vendor/bin/phinx status -c phinx.php
-vendor/bin/phinx rollback -c phinx.php
-vendor/bin/phinx create -c phinx.php MigrationName
-```
-
-## Local run instructions
-
-Serve `public/` as your web root.
-
-Quick local server option:
+Serve `public/` as the web root.
 
 ```bash
 php -S 127.0.0.1:8000 -t public
@@ -94,530 +67,79 @@ php -S 127.0.0.1:8000 -t public
 
 Then open `http://127.0.0.1:8000`.
 
-## Deployment strategy
+## Template and routing model (current)
 
-This project supports two entrypoint layouts:
+- Single content route: `GET /{slug}`.
+- Category collection route: `GET /categories/{groupSlug}/{categorySlug}`.
+- Category route resolves group slug first, then category slug inside that group.
+- If either slug is missing/invalid, runtime renders the system 404 template.
+- If a category exists but has no published content, runtime still renders the category collection template with an empty collection.
 
-1. **Recommended mode**
-   - Web root points to `public/`
-   - Requests execute `public/index.php`
+Template resolution (current runtime):
 
-2. **Compatibility mode**
-   - Web root points to project root
-   - Root `index.php` delegates to `public/index.php`
+- Single content: `templates/content/{content_type}.php` -> `templates/index.php`
+- Content collection: `templates/collections/{content_type}.php` -> `templates/system/404.php`
+- Category collection: `templates/collections/categories/{group_slug}.php` -> `templates/system/404.php`
+- System routes: `templates/system/{route}.php` -> `templates/system/404.php`
 
-## Release artifact deployment
+## Category model vs hierarchy vs relationships (current)
 
-Production deployments should prefer the generated release zip artifact.
+- **Hierarchy**: tree-like parent/child structure using `content_items.parent_id`.
+- **Categories**: classification via `content_item_categories` and category groups.
+- **Relationships**: directional typed links via `content_item_relationships` + type rules.
 
-- The release zip includes runtime files plus prebuilt `vendor/`.
-- Target servers are not expected to run Composer.
-- The intended deploy flow is:
-  1. download the release zip artifact
-  2. upload and unzip it on the target server
-  3. configure `.env`
-  4. open `/install` to complete setup
+These are independent systems and should not be conflated.
 
-This release artifact flow is distinct from local developer setup. Local development still uses `composer install`.
+## Trusted proxies (deployment-critical)
 
+Configure `TRUSTED_PROXIES` correctly in each environment:
 
-### Runtime storage and persistent state
+- Empty value: runtime uses `REMOTE_ADDR` only.
+- Configured value: runtime trusts `X-Forwarded-For` **only** when immediate `REMOTE_ADDR` is in trusted proxies.
 
-Runtime state is intentionally separated from source-managed code so deploys are predictable.
+Incorrect proxy trust configuration can collapse many users into one login rate-limit bucket.
 
-Runtime state directories/files:
+See `docs/security.md` for deployment checklists.
 
-- `.env` (environment-specific config; created from `.env.example` during setup)
-- `storage/` (runtime data root; must persist across deploys/upgrades)
-- `storage/logs/` (application/dev-mode logs; writable at runtime)
-- `storage/exports/composition/` (composition snapshot exports; writable at runtime)
-- `storage/exports/ocf/` (OCF exports; writable at runtime)
+## Runtime storage and persistent state
 
-Bootstrap behavior:
+Runtime state is intentionally separate from source files.
 
-- `public/index.php` runs `RuntimeStorage::ensure($projectRoot)` before kernel boot.
-- Missing runtime directories are auto-created during request bootstrap and installer environment checks.
+Must persist across deploys/upgrades:
 
-Upgrade/deploy rule:
+- `.env`
+- `storage/`
+- `storage/logs/`
+- `storage/exports/composition/`
+- `storage/exports/ocf/`
 
-- Do **not** overwrite or delete `.env` or `storage/` during upgrades.
-- Keep these paths outside destructive file-replacement steps (or restore them after unpack).
+`public/index.php` calls `RuntimeStorage::ensure($projectRoot)` during bootstrap to create missing runtime directories.
 
-## Installation flow and install-state logic
+## Release artifact deployment workflow (current)
 
-Installation is a runtime setup flow, separate from deployment.
+Production should deploy from the release zip artifact (built by `scripts/build-release.sh`):
 
-Browser flow:
+1. Build/download release zip artifact.
+2. Upload and unzip on target server.
+3. Preserve existing `.env` and `storage/`.
+4. Point web root to `public/` (recommended).
+5. Run `/install` only for first-time installation.
+6. For upgrades, deploy new files while preserving runtime state; runtime `UpgradeRunner` handles post-deploy upgrade hooks when version differs.
+
+Release artifacts include prebuilt `vendor/`; target servers are not expected to run Composer.
+
+## Install flow (current)
 
 1. Deploy files.
 2. Open `/install`.
 3. Submit DB settings and first admin credentials.
-4. Installer runs migrations, creates initial admin, writes `settings.install_completed = true`, and writes `settings.installed_version` from the runtime app version source.
-5. On success, user is redirected to `/admin/login`.
+4. Installer runs migrations, creates initial admin, writes install flags/version.
+5. Redirect to `/admin/login`.
 
-### Demo seed content
+Install-state checks require: migrations table + key tables, admin user, install flag true, installed version persisted.
 
-During installation, Blueprint also runs a demo seeder that creates a small example site.
+## Future roadmap (not yet implemented)
 
-- demo content is created automatically during install
-- demo content is safe to delete after setup
-- demo content demonstrates Blueprint architecture (content modeling, pattern blocks, composition intent, and export boundaries)
-
-Install-state checks require all of the following:
-
-- required tables exist (`phinxlog`/configured migrations table, `users`, `content_types`)
-- at least one admin/superadmin user exists
-- install flag is true in `settings.install_completed`
-- installed runtime version is persisted in `settings.installed_version`
-
-Routing behavior tied to install-state:
-
-- if setup is incomplete, `/admin` and `/admin/*` are redirected to `/install`
-- `/install` is available while installation is required
-- once installed, `/install` redirects to `/`
-
-
-## Application version and upgrade foundations
-
-Current version source of truth:
-
-- `config/app.php` (`app.version`, sourced from `APP_VERSION`)
-- Runtime reads this through `App\Infrastructure\Application\AppVersion`
-
-Upgrade-state detection model:
-
-- installer persists `settings.installed_version` after a successful install
-- runtime compares `app.version` (current code) against `settings.installed_version`
-- if current code version is newer, upgrade is considered pending
-
-### Upgrade lifecycle (prepared architecture)
-
-Blueprint now includes a dedicated `UpgradeRunner` execution layer that runs during bootstrap after persistence services are initialized.
-
-Lifecycle concept:
-
-1. new files are deployed (manual deploy today, future GitHub updater later)
-2. runtime compares `app.version` with `settings.installed_version`
-3. if versions differ and install is complete, `UpgradeRunner` executes upgrade hooks
-4. on success, `settings.installed_version` is updated to the current runtime version and `install_completed` is kept true
-
-Install vs upgrade boundaries:
-
-- **Install** (`/install`): first-time setup, migrations + admin bootstrap + initial settings
-- **Upgrade** (`UpgradeRunner`): post-deploy maintenance after version change, designed for migrations/data fixes/cache/export refresh hooks
-
-Future GitHub updater integration point:
-
-- updater will handle release discovery/download/file replacement
-- immediately after files are replaced, runtime `UpgradeRunner` is the safe execution point for migrations/tasks/version persistence
-
-This is intentionally a foundation layer only. The updater workflow is planned to evolve into:
-
-1. check latest GitHub release
-2. download release artifact
-3. replace application files safely
-4. run upgrade tasks/migrations via `UpgradeRunner`
-5. preserve runtime state
-
-Not implemented yet: release download, file replacement, GitHub API integration, rollback, or automatic updates.
-
-
-## Content relationships (free-form links)
-
-Blueprint supports a dedicated relationships system for explicit content-to-content links via `content_item_relationships`.
-Allowed combinations are controlled by `content_type_relationship_rules`.
-
-Important boundaries:
-
-- relationships are for free-form directional connections between content items
-- relationships are **not** hierarchy (`parent_id` / tree structure)
-- relationships are **not** categories (`content_item_categories`)
-
-Current intended usage examples:
-
-- article -> author
-- article -> related-article
-- event -> venue
-- page -> featured-case
-- team-member -> department-page
-
-Validation behavior:
-
-- `relation_type` must be a non-empty string
-- self-reference is blocked by default (same item cannot point to itself)
-- duplicate identical links (`from + to + relation_type`) are prevented through a unique index and repository-level guard
-- a relationship can only be saved when a matching content-type rule exists in `content_type_relationship_rules`
-
-Rule examples:
-
-- `Article -> Author` allowed
-- `Article -> Event` not allowed (unless explicitly added as a rule)
-- `Event -> Venue` allowed
-- `Page -> Page` allowed
-
-## Category Group availability per Content Type
-
-Category Groups are now explicitly enabled per Content Type through the `content_type_category_groups` pivot table.
-
-What this enables:
-
-- each content type can define which category groups are valid for classification
-- editors only see/select category options relevant to the selected content type
-- invalid category assignment is rejected when a category group is not allowed for the content item content type
-
-Example mapping:
-
-- `BlogPost` -> `Blog categories`
-- `Event` -> `Locations`
-- `Product` -> `Product categories`
-
-## Admin category management UI
-
-Admin now includes a dedicated **Categories** section using a vertical split layout modeled after the template manager pattern:
-
-- left column: Category Groups list + group management forms
-- right column: nested Categories for the selected group + category management forms
-
-Routes are role-protected (`RequireRoleMiddleware`) and all write operations require CSRF tokens.
-
-### Category Groups in admin
-
-- create category group (`name`, `slug`, `description`)
-- edit category group (`name`, `slug`, `description`)
-- delete category group only when not in use
-
-“In use” currently includes:
-
-- at least one category exists in that group
-- at least one content type is mapped to that group in `content_type_category_groups`
-
-### Categories in admin
-
-- create category (`name`, `slug`, `description`, optional `parent`, `sort_order`)
-- edit category (`name`, `slug`, `description`, optional `parent`, `sort_order`)
-- delete category with safeguards
-
-Deletion safeguards:
-
-- cannot delete categories assigned to content items (`content_item_categories`)
-- cannot delete categories that still have child categories
-
-### Content Type editor integration
-
-Content Type create/edit forms include a multi-select for **Allowed Category Groups**.
-
-This controls which category groups are valid for content items of that type.
-Assignments are persisted through the `content_type_category_groups` mapping table.
-
-## Runtime routing architecture
-
-Routing uses a registrar-based architecture coordinated by `src/Http/Routing/RouteRegistry.php`.
-
-- `SystemRouteRegistrar`: core system routes (`/`, `/health`, `/search`, `/sitemap.xml`, `/robots.txt`, `/install`).
-- `AuthRouteRegistrar`: login/logout routes and aliases.
-- `AdminRouteRegistrar`: authenticated admin dashboard, pattern, and content-management routes.
-- `DevModeRouteRegistrar`: authenticated + CSRF-protected dev-mode routes and aliases.
-- `EditorModeRouteRegistrar`: authenticated editor-mode routes and aliases.
-- `PublicContentRouteRegistrar`: category collection route (`/categories/{groupSlug}/{categorySlug}`) and catch-all content route (`/{slug}`), with catch-all always registered last.
-
-This keeps route ordering deterministic while allowing each route layer to scale independently.
-
-Current public/system routes:
-
-- `GET /` (home)
-- `GET /health`
-- `GET /search`
-- `GET /sitemap.xml`
-- `GET /robots.txt`
-- `GET|POST /install` (when install is required)
-
-Current content route:
-
-- `GET /categories/{groupSlug}/{categorySlug}` for category collection pages
-- `GET /{slug}` for published content items
-
-## Canonical URL enforcement
-
-Canonical routing is enforced automatically for content item routes as part of Blueprint's SEO-first architecture.
-
-- The content item `slug` is the canonical path source of truth (`/{slug}`).
-- Incoming content requests are normalized (lowercase, duplicate slash cleanup, trailing slash normalization, and `/index` removal) before canonical comparison.
-- If a request variant is not already canonical, runtime issues an HTTP `301` redirect to the canonical target.
-- Query parameters are preserved on canonical redirects.
-- If a content item defines `canonical_url`, that value overrides slug-based canonical routing and redirects to the metadata URL.
-- System routes are excluded from canonical enforcement (`/search`, `/login`, `/logout`, `/admin/*`, `/editor/*`, `/dev/*`).
-- Template rendering auto-injects `<link rel="canonical" ...>` using `canonical_url` metadata when present, otherwise from the content slug.
-
-Template mapping in runtime:
-
-- content template resolution:
-  1. `templates/content/{content_type}.php`
-  2. `templates/index.php` (index fallback)
-- collection template resolution:
-  1. `templates/collections/{content_type}.php`
-  2. `templates/system/404.php`
-- category collection template resolution (for routes such as `/categories/blog/news`):
-  1. `templates/collections/categories/{group_slug}.php`
-  2. `templates/system/404.php`
-- system template resolution:
-  1. `templates/system/{route}.php`
-  2. `templates/system/404.php`
-
-Important boundary:
-
-- no item-level template overrides are used.
-- category collection routes 404 only when category group or category does not exist; empty categories still render with `collectionItems = []` and pagination metadata.
-
-Category collection runtime context includes:
-
-- `categoryGroup`
-- `category`
-- `collectionItems`
-- `pagination`
-- `breadcrumbs` (ready for template breadcrumb rendering):
-  - `['label' => 'Categories', 'url' => '/categories']`
-  - `['label' => <group name>, 'url' => '/categories/{groupSlug}']`
-  - `['label' => <category name>, 'url' => '/categories/{groupSlug}/{categorySlug}']`
-
-Category collection pagination uses the same query parameters as collection content routes:
-
-- `page` (default `1`)
-- `perPage` (default `20`)
-
-Template System v1 does **not** use WordPress-style fallback chains and does **not** resolve `templates/pages/{slug}.php`, `templates/page.php`, or `templates/default.php` for route selection.
-
-## Pattern System v1
-
-Patterns are reusable presentation blocks loaded from `patterns/`:
-
-- `patterns/{key}/pattern.json` metadata
-- `patterns/{key}/pattern.php` renderer
-
-Runtime behavior:
-
-- patterns are discovered by `PatternRegistry`
-- rendering is executed by `PatternRenderer`
-- data is validated by `PatternDataValidator`
-- v1 render field support is intentionally limited to `text` and `textarea`
-- registry is exposed at authenticated `GET /admin/patterns`
-
-### Pattern blocks stored on content items
-
-Content items store page composition as `pattern_blocks` JSON.
-
-Each block uses:
-
-```json
-{ "pattern": "slug", "data": { "field": "value" } }
-```
-
-`templates/index.php` renders blocks sequentially through `PatternRenderer`.
-
-## Editor Mode (current scope)
-
-Editor Mode is role-gated and session-based (`superadmin`, `admin`, `editor`).
-
-Current v1 scope:
-
-- enable/disable mode per session
-- show Editor Mode banner while active
-- load editor assets only while active
-- inline save endpoint: `POST /editor-mode/save-field`
-- editable fields are limited to:
-  - content item title
-  - content item SEO metadata (`meta_title`, `meta_description`, `og_image`, `canonical_url`, `noindex`)
-  - pattern block `text` fields
-  - pattern block `textarea` fields
-
-Out of scope in current runtime:
-
-- template/layout editing
-- pattern definition editing
-- CSS/JS editing
-- routing/PHP changes
-- pattern block reorder/insert/remove UI
-
-## Dev Mode (current scope)
-
-Dev Mode is role-gated (`superadmin`/`admin`) and session-activated.
-
-Editable roots:
-
-- `templates/`
-- `patterns/`
-- `public/assets/css/`
-- `public/assets/js/`
-
-Dev Mode does not allow unrestricted source editing (no core `src/`, migrations, `.env`, or `vendor/`).
-
-## AI and data boundary architecture
-
-This repository is AI-first for code generation/refactoring, but runtime AI invocation is out of scope.
-
-Boundary model:
-
-- **OCF = content only** (portable structured content)
-- **Composition snapshot = separate blueprint-specific layer** (pattern order/assembly and blueprint-specific composition context)
-- **Repository source layer** = templates, patterns, assets, runtime code, docs, skills
-
-This keeps portable content, blueprint composition, and source code workflows separate and predictable.
-
-## OCF export capabilities
-
-OCF export is intentionally presentation-independent while still carrying portable, structured content.
-
-Current OCF payloads include:
-
-- export metadata header:
-  - `export_format_version: 2`
-  - `ocf_version: "0.1-draft"`
-  - `generated_by`
-  - `generated_at` (ISO timestamp)
-- content type definitions with semantic field schemas
-  - uses domain-provided field definitions when available
-  - falls back to a safe default portable schema otherwise
-- content items with:
-  - core semantic fields (title/slug/status)
-  - explicit hierarchy fields (`parent_id`, `sort_order`) for tree-like structures when needed
-  - structured `pattern_blocks` semantic data (no layout/rendering instructions)
-  - semantic relationships (`content_type`, with room for future `related_items`)
-  - SEO metadata when available (`meta_title`, `meta_description`, `canonical_url`)
-  - item metadata timestamps
-
-Hierarchy support is a **capability**, not a requirement for all content types. Use `parent_id` and `sort_order` for navigation/page/doc trees where ordering and nesting matter. Keep hierarchy concerns separate from category grouping and separate from generic relationships.
-
-OCF export intentionally excludes presentation/runtime concerns such as templates, layout files, renderer entrypoints, CSS classes, and pattern rendering instructions. Those concerns belong to blueprint-specific composition snapshots and runtime rendering, not the portable OCF boundary.
-
-## Composition snapshot export
-
-Composition snapshot export is a blueprint-specific runtime assembly export designed for AI tooling and blueprint-aware assistants.
-
-- Export location: `storage/exports/composition/`
-- Separate from OCF export (OCF remains portable content model data)
-- Represents the runtime assembly layer, not source code and not content-model semantics
-
-`export_format_version: 2` snapshots describe route assembly using runtime metadata:
-
-- `scope` (`content-routes` or `system-routes`)
-- `route_type` (`content` for content item exports)
-- `renderer_entrypoint` (for content: `templates/index.php`; for system routes: `templates/system/*.php`)
-- `layout` (`templates/layout.php` unless future overrides are introduced)
-- ordered `patterns` blocks (`pattern` + `data`)
-
-This format intentionally does not encode template hierarchy assumptions or presentation source implementation details.
-
-## SEO metadata support
-
-SEO metadata is part of the structured content model (not plugin-based and not template-owned).
-
-Each content item supports:
-
-- `meta_title` (nullable string, falls back to item title at render-time)
-- `meta_description` (nullable string, falls back to a truncated content summary when possible)
-- `og_image` (nullable string/path)
-- `canonical_url` (nullable string)
-- `noindex` (boolean, default `false`)
-
-The metadata fields are persisted in the core content repositories and are provided automatically to templates through the content render payload as `meta`, so templates can consume metadata without adding plugin wiring.
-
-## OpenGraph and Twitter metadata support
-
-OpenGraph and Twitter card metadata are generated automatically through dedicated renderer services coordinated by `TemplateRenderer`.
-
-- `TemplateRenderer` resolves page metadata, then delegates head-tag output to `SeoMetaRenderer`.
-- `SeoMetaRenderer` renders canonical, meta description, OpenGraph tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`), and Twitter tags (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`).
-- Fallback behavior remains runtime-driven (title, description summary fallback, canonical URL fallback, and optional default image support).
-- Guardrail: `TemplateRenderer` is a coordinator, not a rendering dumping ground; new cross-cutting head concerns must use dedicated services.
-
-## Structured data support
-
-Schema.org JSON-LD metadata is generated automatically by `StructuredDataRenderer`, coordinated by `TemplateRenderer`.
-
-- `TemplateRenderer` delegates structured-data construction/injection to `StructuredDataRenderer`.
-- JSON-LD is injected into `<head>` using `<script type="application/ld+json">` and rendered once per page.
-- Renderer-managed schema types are selected from metadata/context:
-  - `WebSite` (global)
-  - `Organization` (global)
-  - `WebPage` (per page)
-  - `Article` (for `article` content type)
-  - `BreadcrumbList` (when hierarchy/breadcrumb data exists)
-- No plugin is required; behavior is metadata-driven and resolved in core runtime rendering.
-- Templates should not implement schema.org logic directly.
-- Guardrail: future cross-cutting rendering concerns should follow this delegation pattern (new dedicated renderer service + TemplateRenderer coordination).
-
-
-## Sitemap generation
-
-`/sitemap.xml` is generated automatically as a core platform feature.
-
-- Sitemap output is valid XML sitemap format and returned as `application/xml; charset=utf-8`.
-- Only published content items are included.
-- Each entry includes `loc` and `lastmod` (`updated_at` as ISO-8601).
-- `canonical_url` metadata is used for `loc` when present.
-- When `canonical_url` is missing, absolute URLs are generated from `APP_URL` + `slug`.
-
-## robots.txt generation
-
-`/robots.txt` is generated automatically as a core platform feature (not a static file requirement).
-
-- Non-production environments (`APP_ENV` not equal to `production`) return:
-  - `User-agent: *`
-  - `Disallow: /`
-- Production environments return:
-  - `User-agent: *`
-  - `Allow: /`
-  - `Disallow: /admin`
-  - `Disallow: /editor`
-  - `Disallow: /editor-mode`
-  - `Disallow: /dev`
-  - `Disallow: /install`
-  - `Sitemap: {APP_URL}/sitemap.xml`
-- `APP_URL` is used dynamically to build the sitemap URL in robots output.
-- Runtime route registration guarantees the dynamic `/robots.txt` endpoint takes precedence over catch-all content slug routing.
-- In front-controller deployments, requests resolved by the router always use the dynamic controller response for `/robots.txt` even if `public/robots.txt` also exists.
-
-## Test commands
-
-```bash
-composer test
-vendor/bin/pest
-```
-
-## Static analysis commands
-
-```bash
-composer analyse
-vendor/bin/phpstan analyse -c phpstan.neon.dist
-```
-
-
-## Category Groups and Categories
-
-Blueprint includes a classification system built around **Category Groups** and **Categories**.
-
-- A **Category Group** contains Categories (for example: Blog categories, Product categories, Locations, Departments).
-- A **Category** classifies content items (for example: News, Events, Kirkenes, Senior team).
-- Categories are not the same as content relationships/hierarchy between content items.
-- Categories support optional hierarchy through `parent_id`, so nested categories are supported.
-
-Data model summary:
-
-- `category_groups`: stores the high-level grouping container.
-- `categories`: stores individual categories and optional parent/child nesting.
-- `content_item_categories`: pivot table linking content items to categories.
-
-Domain and persistence summary:
-
-- Domain models: `CategoryGroup`, `Category`.
-- Repository contracts: `CategoryGroupRepositoryInterface`, `CategoryRepositoryInterface`.
-- Infrastructure implementations: `MySqlCategoryGroupRepository`, `MySqlCategoryRepository`.
-
-Repository helper methods include:
-
-- `findAllGroups()`
-- `findCategoriesByGroup(CategoryGroup $group)`
-- `findRootCategoriesByGroup(CategoryGroup $group)`
-- `findChildrenOf(Category $category)`
-- `findCategoriesForContentItem(ContentItem $item)`
-- `attachCategoryToContentItem(ContentItem $item, Category $category)`
-- `detachCategoryFromContentItem(ContentItem $item, Category $category)`
+- In-admin GitHub release updater (release discovery/download/file replacement orchestration).
+- Expanded automated deployment orchestration around existing release artifact flow.
+- Additional upgrade tasks as `UpgradeRunner` hooks evolve.
