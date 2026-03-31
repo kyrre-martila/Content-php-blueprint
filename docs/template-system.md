@@ -13,6 +13,8 @@ templates/
     {content_type}.php
   collections/
     {content_type}.php
+    categories/
+      {group_slug}.php
   system/
     {route}.php
     404.php
@@ -22,6 +24,7 @@ templates/
 
 - Content routes try `templates/content/{content_type}.php` first, then fall back to `templates/index.php`.
 - Collection routes try `templates/collections/{content_type}.php` first, then fall back to `templates/system/404.php`.
+- Category collection routes try `templates/collections/categories/{group_slug}.php` first, then fall back to `templates/system/404.php`.
 - System routes try `templates/system/{route}.php` first, then fall back to `templates/system/404.php`.
 - Pattern blocks remain the primary mechanism for page structure within content templates.
 
@@ -42,6 +45,7 @@ Not included:
 
 - `resolveContentTemplate(ContentType $type)` → `templates/content/{content_type}.php`, then `templates/index.php`
 - `resolveCollectionTemplate(ContentType $type)` → `templates/collections/{content_type}.php`, then `templates/system/404.php`
+- `resolveCategoryCollectionTemplate(CategoryGroup $group)` → `templates/collections/categories/{group_slug}.php`, then `templates/system/404.php`
 - `resolveSystemTemplate(string $route)` → `templates/system/{route}.php`, then `templates/system/404.php`
 - `resolveNotFound()` → `resolveSystemTemplate('404')`
 

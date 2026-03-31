@@ -69,7 +69,7 @@ final class TemplateAdminController
             $entries[] = $this->createTemplateEntry(
                 $group->name(),
                 'Category Collection',
-                sprintf('templates/categories/%s.php', $group->slug()->value()),
+                sprintf('templates/collections/categories/%s.php', $group->slug()->value()),
                 'templates/system/404.php'
             );
         }

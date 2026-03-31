@@ -10,7 +10,7 @@ Used for content types with `view_type = single`.
 
 Resolver order:
 
-1. `templates/content/{content-type}.php`
+1. `templates/content/{content_type}.php`
 2. `templates/index.php` (index fallback)
 
 ### 2) Collection templates (content-type collection routes)
@@ -19,7 +19,7 @@ Used for content types with `view_type = collection`.
 
 Resolver order:
 
-1. `templates/collections/{content-type}.php`
+1. `templates/collections/{content_type}.php`
 2. `templates/system/404.php`
 
 ### 3) Category collection templates (category-group collection routes)
@@ -31,11 +31,10 @@ Used for category collection pages such as:
 
 Resolver order:
 
-1. `templates/categories/{category-group-slug}.php`
-2. `templates/collections/{content-type}.php` (when a relevant content type context is available)
-3. `templates/system/404.php`
+1. `templates/collections/categories/{group_slug}.php`
+2. `templates/system/404.php`
 
-Important: category collection support is route-level only. There are no item-level category template overrides.
+Important: category collection support is route-level only. There are no item-level template overrides.
 Category collection routes are `GET /categories/{groupSlug}/{categorySlug}`.
 If either slug does not resolve, runtime renders the system 404 template.
 If the category resolves but contains no published items, runtime still renders the category collection template with empty `$collectionItems`.
@@ -48,6 +47,23 @@ Resolver order:
 
 1. `templates/system/{route}.php`
 2. `templates/system/404.php`
+
+## Official runtime architecture (resolution order)
+
+This is the enforced runtime template model:
+
+- **Content routes**
+  1. `templates/content/{content_type}.php`
+  2. `templates/index.php`
+- **Content type collection routes**
+  1. `templates/collections/{content_type}.php`
+  2. `templates/system/404.php`
+- **Category collection routes**
+  1. `templates/collections/categories/{group_slug}.php`
+  2. `templates/system/404.php`
+- **System routes**
+  1. `templates/system/{route}.php`
+  2. `templates/system/404.php`
 
 ## Public template variables
 

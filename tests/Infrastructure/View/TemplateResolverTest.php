@@ -55,36 +55,23 @@ it('falls back to system 404 when collection template is missing', function (): 
 it('resolves category collection template by category group first', function (): void {
     $templatesPath = createTemplateDirectory([
         'system/404.php' => '<?php',
-        'categories/blog.php' => '<?php',
-        'collections/article.php' => '<?php',
+        'collections/categories/blog.php' => '<?php',
     ]);
 
     $resolver = new TemplateResolver($templatesPath);
 
-    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog'), makeContentType('article')))
-        ->toBe($templatesPath . '/categories/blog.php');
+    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog')))
+        ->toBe($templatesPath . '/collections/categories/blog.php');
 });
 
-it('falls back to collection template when category group template is missing', function (): void {
-    $templatesPath = createTemplateDirectory([
-        'system/404.php' => '<?php',
-        'collections/article.php' => '<?php',
-    ]);
-
-    $resolver = new TemplateResolver($templatesPath);
-
-    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog'), makeContentType('article')))
-        ->toBe($templatesPath . '/collections/article.php');
-});
-
-it('falls back to system 404 when category and collection templates are missing', function (): void {
+it('falls back to system 404 when category group template is missing', function (): void {
     $templatesPath = createTemplateDirectory([
         'system/404.php' => '<?php',
     ]);
 
     $resolver = new TemplateResolver($templatesPath);
 
-    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog'), makeContentType('article')))
+    expect($resolver->resolveCategoryCollectionTemplate(makeCategoryGroup('blog')))
         ->toBe($templatesPath . '/system/404.php');
 });
 
@@ -166,7 +153,7 @@ it('builds template existence map for configured directories', function (): void
     $templatesPath = createTemplateDirectory([
         'content/page.php' => '<?php',
         'collections/article.php' => '<?php',
-        'categories/blog.php' => '<?php',
+        'collections/categories/blog.php' => '<?php',
     ]);
 
     $resolver = new TemplateResolver($templatesPath);
@@ -175,6 +162,6 @@ it('builds template existence map for configured directories', function (): void
         ->toMatchArray([
             'content/page.php' => true,
             'collections/article.php' => true,
-            'categories/blog.php' => true,
+            'collections/categories/blog.php' => true,
         ]);
 });
