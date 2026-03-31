@@ -74,18 +74,12 @@ final class ContentController
             $offset = ($page - 1) * $perPage;
 
             $result = $this->contentItems->findPublishedByType($contentItem->type(), $perPage, $offset);
-
-            $viewData['collectionItems'] = $result['items'];
-            $viewData['totalCount'] = $result['total_count'];
-            $viewData['currentPage'] = $page;
-            $viewData['perPage'] = $perPage;
-            $viewData['pagination'] = [
-                'totalCount' => $result['total_count'],
-                'currentPage' => $page,
-                'perPage' => $perPage,
-                'offset' => $result['offset'],
-                'totalPages' => $perPage > 0 ? (int) ceil($result['total_count'] / $perPage) : 0,
-            ];
+            $viewData = array_merge($viewData, $this->buildCollectionViewModel(
+                $result,
+                $page,
+                $perPage,
+                ['contentItem' => $contentItem]
+            ));
         }
 
         $html = $this->templateRenderer->render($templatePath, $viewData);
@@ -121,18 +115,11 @@ final class ContentController
 
         $templatePath = $this->templateResolver->resolveCategoryCollectionTemplate($categoryGroup);
 
-        $html = $this->templateRenderer->render($templatePath, [
+        $viewData = $this->buildCollectionViewModel($result, $page, $perPage, [
             'request' => $request,
+            'contentItem' => null,
             'categoryGroup' => $categoryGroup,
             'category' => $category,
-            'collectionItems' => $result['items'],
-            'pagination' => [
-                'totalCount' => $result['total_count'],
-                'currentPage' => $page,
-                'perPage' => $perPage,
-                'offset' => $result['offset'],
-                'totalPages' => $perPage > 0 ? (int) ceil($result['total_count'] / $perPage) : 0,
-            ],
             'breadcrumbs' => [
                 ['label' => 'Categories', 'url' => '/categories'],
                 ['label' => $categoryGroup->name(), 'url' => '/categories/' . $categoryGroup->slug()->value()],
@@ -141,6 +128,7 @@ final class ContentController
             'editorModeActive' => $this->editorMode->isActive(),
             'editorCanUse' => $this->editorMode->canUse(),
         ]);
+        $html = $this->templateRenderer->render($templatePath, $viewData);
 
         return Response::html($html);
     }
@@ -282,6 +270,50 @@ final class ContentController
         }
 
         return $fallback;
+    }
+
+    /**
+     * @param array{
+     *   items?: list<mixed>,
+     *   total_count?: int,
+     *   offset?: int
+     * } $result
+     * @param array<string, mixed> $extra
+     * @return array{
+     *   contentItem: mixed,
+     *   collectionItems: list<mixed>,
+     *   pagination: array{
+     *      totalCount: int,
+     *      currentPage: int,
+     *      perPage: int,
+     *      offset: int,
+     *      totalPages: int
+     *   },
+     *   totalCount: int,
+     *   currentPage: int,
+     *   perPage: int
+     * }&array<string, mixed>
+     */
+    private function buildCollectionViewModel(array $result, int $page, int $perPage, array $extra = []): array
+    {
+        $items = $result['items'] ?? [];
+        $totalCount = $result['total_count'] ?? 0;
+        $offset = $result['offset'] ?? (($page - 1) * $perPage);
+
+        return array_merge([
+            'contentItem' => null,
+            'collectionItems' => is_array($items) ? array_values($items) : [],
+            'pagination' => [
+                'totalCount' => is_int($totalCount) ? $totalCount : 0,
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'offset' => is_int($offset) ? max(0, $offset) : 0,
+                'totalPages' => $perPage > 0 && is_int($totalCount) ? (int) ceil($totalCount / $perPage) : 0,
+            ],
+            'totalCount' => is_int($totalCount) ? $totalCount : 0,
+            'currentPage' => $page,
+            'perPage' => $perPage,
+        ], $extra);
     }
 
     private function renderNotFound(Request $request): Response

@@ -79,7 +79,7 @@ This is the enforced runtime template model:
 
 ### Collection content templates
 
-Collection templates receive all single-template variables, plus:
+Collection templates always receive the following collection contract (in addition to the single-template variables):
 
 - `$collectionItems` (`list<App\Domain\Content\ContentItem>`): published sibling items for the same content type, paginated.
 - `$totalCount` (`int`): total number of published items available for this content type.
@@ -91,6 +91,28 @@ Collection templates receive all single-template variables, plus:
   - `perPage` (`int`)
   - `offset` (`int`)
   - `totalPages` (`int`)
+- `$contentItem` (`App\Domain\Content\ContentItem`): the current collection route item.
+
+Empty collections are rendered without a 404. In that case, `$collectionItems` is an empty list and pagination keys remain present.
+
+Example usage:
+
+```php
+<?php /** @var list<App\Domain\Content\ContentItem> $collectionItems */ ?>
+<h1><?= htmlspecialchars($contentItem->title(), ENT_QUOTES, 'UTF-8') ?></h1>
+
+<?php if ($collectionItems === []): ?>
+    <p>No entries yet.</p>
+<?php else: ?>
+    <ul>
+        <?php foreach ($collectionItems as $item): ?>
+            <li><a href="/<?= htmlspecialchars($item->slug()->value(), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($item->title(), ENT_QUOTES, 'UTF-8') ?></a></li>
+        <?php endforeach; ?>
+    </ul>
+<?php endif; ?>
+
+<p>Page <?= $currentPage ?> of <?= max(1, $pagination['totalPages']) ?></p>
+```
 
 Pagination query parameters:
 
@@ -101,16 +123,45 @@ Only positive integer values are accepted; invalid values fall back to defaults.
 
 ### Category collection templates
 
-Category collection templates receive:
+Category collection templates receive the same collection contract:
+
+- `$contentItem` (`null`): always `null` for category collections (provided for contract consistency).
+- `$collectionItems` (`list<App\Domain\Content\ContentItem>`) — may be empty.
+- `$totalCount` (`int`)
+- `$currentPage` (`int`)
+- `$perPage` (`int`)
+- `$pagination` (`array`) with the same shape as collection template pagination metadata.
+
+Plus category-specific context:
 
 - `$request` (`App\Http\Request`)
 - `$categoryGroup` (`App\Domain\Content\CategoryGroup`)
 - `$category` (`App\Domain\Content\Category`)
-- `$collectionItems` (`list<App\Domain\Content\ContentItem>`) — may be empty.
-- `$pagination` (`array`) with the same shape as collection template pagination metadata.
 - `$breadcrumbs` (`list<array{label: string, url: string}>`) ready for breadcrumb rendering:
   1. `/categories`
   2. `/categories/{groupSlug}`
   3. `/categories/{groupSlug}/{categorySlug}`
 - `$editorModeActive` (`bool`)
 - `$editorCanUse` (`bool`)
+
+Example usage:
+
+```php
+<h1><?= htmlspecialchars($category->name(), ENT_QUOTES, 'UTF-8') ?></h1>
+<p>Group: <?= htmlspecialchars($categoryGroup->name(), ENT_QUOTES, 'UTF-8') ?></p>
+
+<?php if ($collectionItems === []): ?>
+    <p>No published content in this category yet.</p>
+<?php else: ?>
+    <?php foreach ($collectionItems as $item): ?>
+        <article>
+            <h2><a href="/<?= htmlspecialchars($item->slug()->value(), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($item->title(), ENT_QUOTES, 'UTF-8') ?></a></h2>
+        </article>
+    <?php endforeach; ?>
+<?php endif; ?>
+
+<nav aria-label="pagination">
+    <span><?= $totalCount ?> total items</span>
+    <span>Page <?= $currentPage ?></span>
+</nav>
+```
