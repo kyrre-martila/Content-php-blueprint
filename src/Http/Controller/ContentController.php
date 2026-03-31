@@ -117,7 +117,6 @@ final class ContentController
 
         $viewData = $this->buildCollectionViewModel($result, $page, $perPage, [
             'request' => $request,
-            'contentItem' => null,
             'categoryGroup' => $categoryGroup,
             'category' => $category,
             'breadcrumbs' => [
@@ -128,6 +127,8 @@ final class ContentController
             'editorModeActive' => $this->editorMode->isActive(),
             'editorCanUse' => $this->editorMode->canUse(),
         ]);
+        unset($viewData['contentItem']);
+
         $html = $this->templateRenderer->render($templatePath, $viewData);
 
         return Response::html($html);
