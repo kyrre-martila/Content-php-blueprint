@@ -21,7 +21,10 @@ $metaDescription = is_string($meta['description'] ?? null) && trim((string) $met
     <?php if ($metaDescription !== null): ?>
         <meta name="description" content="<?= $e($metaDescription) ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/admin-main.css">
+    <link rel="stylesheet" href="/assets/css/admin/admin-tokens.css">
+    <link rel="stylesheet" href="/assets/css/admin/admin-shell.css">
+    <link rel="stylesheet" href="/assets/css/admin/admin-components.css">
+    <link rel="stylesheet" href="/assets/css/admin/admin-screens.css">
 </head>
 <body class="admin">
 <div class="admin__layout">
