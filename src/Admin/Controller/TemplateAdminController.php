@@ -15,6 +15,7 @@ use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Editor\EditableFileRegistry;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -29,6 +30,7 @@ final class TemplateAdminController
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly TemplateResolver $templateResolver,
+        private readonly TemplatePathMap $templatePathMap,
         private readonly EditableFileRegistry $fileRegistry,
         private readonly DevFileService $devFileService,
         private readonly LoggerInterface $logger,
@@ -69,8 +71,8 @@ final class TemplateAdminController
             $entries[] = $this->createTemplateEntry(
                 $group->name(),
                 'Category Collection',
-                sprintf('templates/collections/categories/%s.php', $group->slug()->value()),
-                'templates/system/404.php'
+                $this->templatePathMap->categoryCollectionTemplate($group),
+                $this->templatePathMap->systemTemplate('404')
             );
         }
 
@@ -224,7 +226,7 @@ final class TemplateAdminController
             $this->createTemplateEntry(
                 'Default index template',
                 'Index',
-                'templates/index.php',
+                $this->templatePathMap->indexFallbackTemplate(),
                 null,
                 true,
             ),
@@ -243,8 +245,8 @@ final class TemplateAdminController
             $entries[] = $this->createTemplateEntry(
                 $contentType->label(),
                 'Content',
-                sprintf('templates/content/%s.php', $contentType->name()),
-                'templates/index.php'
+                $this->templatePathMap->contentTemplate($contentType),
+                $this->templatePathMap->indexFallbackTemplate()
             );
         }
 
@@ -267,8 +269,8 @@ final class TemplateAdminController
             $entries[] = $this->createTemplateEntry(
                 $contentType->label(),
                 'Collection',
-                sprintf('templates/collections/%s.php', $contentType->name()),
-                'templates/system/404.php'
+                $this->templatePathMap->collectionTemplate($contentType),
+                $this->templatePathMap->systemTemplate('404')
             );
         }
 
@@ -281,8 +283,8 @@ final class TemplateAdminController
     private function buildSystemTemplates(): array
     {
         return [
-            $this->createTemplateEntry('404 template', 'System', 'templates/system/404.php', null),
-            $this->createTemplateEntry('Search template', 'System', 'templates/system/search.php', null),
+            $this->createTemplateEntry('404 template', 'System', $this->templatePathMap->systemTemplate('404'), null),
+            $this->createTemplateEntry('Search template', 'System', $this->templatePathMap->systemTemplate('search'), null),
         ];
     }
 

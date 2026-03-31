@@ -11,6 +11,7 @@ use App\Infrastructure\Application\UpgradeState;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Editor\DevMode;
 use App\Infrastructure\Editor\EditorMode;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -21,6 +22,7 @@ final class DashboardController
         private readonly AuthSession $authSession,
         private readonly UpgradeState $upgradeState,
         private readonly TemplateResolver $templateResolver,
+        private readonly TemplatePathMap $templatePathMap,
         private readonly ?ContentTypeRepositoryInterface $contentTypeRepository,
         private readonly ?EditorMode $editorMode = null,
         private readonly ?DevMode $devMode = null
@@ -43,14 +45,14 @@ final class DashboardController
 
         $missingContentTemplateCount = 0;
         foreach ($contentTypes as $contentType) {
-            $contentTemplatePath = sprintf('templates/content/%s.php', $contentType->name());
+            $contentTemplatePath = $this->templatePathMap->contentTemplate($contentType);
 
             if (!$this->templateResolver->templateExists($contentTemplatePath)) {
                 $missingContentTemplateCount++;
             }
 
             if ($contentType->isCollectionView()) {
-                $collectionTemplatePath = sprintf('templates/collections/%s.php', $contentType->name());
+                $collectionTemplatePath = $this->templatePathMap->collectionTemplate($contentType);
 
                 if (!$this->templateResolver->templateExists($collectionTemplatePath)) {
                     $missingContentTemplateCount++;
@@ -59,8 +61,8 @@ final class DashboardController
         }
 
         $systemTemplatePaths = [
-            'templates/system/404.php',
-            'templates/system/search.php',
+            $this->templatePathMap->systemTemplate('404'),
+            $this->templatePathMap->systemTemplate('search'),
         ];
 
         $missingSystemTemplateCount = 0;
@@ -70,7 +72,7 @@ final class DashboardController
             }
         }
 
-        $indexTemplateExists = $this->templateResolver->templateExists('templates/index.php');
+        $indexTemplateExists = $this->templateResolver->templateExists($this->templatePathMap->indexFallbackTemplate());
 
         $html = $this->templateRenderer->renderTemplate(
             'admin/dashboard.php',

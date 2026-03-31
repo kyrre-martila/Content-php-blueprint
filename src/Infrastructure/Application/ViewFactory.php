@@ -8,6 +8,7 @@ use App\Infrastructure\Editor\EditableFieldRenderer;
 use App\Infrastructure\Pattern\PatternDataValidator;
 use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\View\PatternRenderer;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 
@@ -22,6 +23,7 @@ final class ViewFactory
 
     /**
      * @return array{
+     *   templatePathMap: TemplatePathMap,
      *   templateResolver: TemplateResolver,
      *   editableFieldRenderer: EditableFieldRenderer,
      *   patternRegistry: PatternRegistry,
@@ -33,7 +35,8 @@ final class ViewFactory
     {
         $templatesPath = $this->projectRoot . '/templates';
         $patternRegistry = new PatternRegistry($this->projectRoot . '/patterns');
-        $templateResolver = new TemplateResolver($templatesPath);
+        $templatePathMap = new TemplatePathMap();
+        $templateResolver = new TemplateResolver($templatesPath, $templatePathMap);
 
         $editableFieldRenderer = new EditableFieldRenderer();
         $patternDataValidator = new PatternDataValidator();
@@ -48,6 +51,7 @@ final class ViewFactory
         );
 
         return [
+            'templatePathMap' => $templatePathMap,
             'templateResolver' => $templateResolver,
             'editableFieldRenderer' => $editableFieldRenderer,
             'patternRegistry' => $patternRegistry,
