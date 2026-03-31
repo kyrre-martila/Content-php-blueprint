@@ -81,7 +81,7 @@ ON DUPLICATE KEY UPDATE
 SQL,
                 [
                     'name' => 'Admin',
-                    'slug' => Role::ADMIN,
+                    'slug' => Role::admin()->value(),
                     'description' => 'Administrative access for site management',
                 ]
             );
@@ -93,7 +93,7 @@ FROM roles
 WHERE slug = :slug
 LIMIT 1
 SQL,
-                ['slug' => Role::ADMIN]
+                ['slug' => Role::admin()->value()]
             );
 
             if ($roleRow === null) {
@@ -132,7 +132,7 @@ SQL,
      */
     private function mapUser(array $row): User
     {
-        $roleSlug = is_string($row['role_slug'] ?? null) ? $row['role_slug'] : Role::EDITOR;
+        $roleSlug = is_string($row['role_slug'] ?? null) ? $row['role_slug'] : Role::editor()->value();
 
         return new User(
             (int) ($row['id'] ?? 0),

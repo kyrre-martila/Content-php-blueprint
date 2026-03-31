@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Auth;
 
+use App\Domain\Auth\Role;
 use App\Domain\Auth\User;
 
 final class AuthSession
@@ -57,5 +58,20 @@ final class AuthSession
         }
 
         return $user;
+    }
+
+    public function role(): ?Role
+    {
+        $user = $this->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        try {
+            return Role::fromString($user['role']);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
     }
 }

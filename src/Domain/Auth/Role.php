@@ -8,18 +8,9 @@ use InvalidArgumentException;
 
 final class Role
 {
-    public const SUPERADMIN = 'superadmin';
-    public const ADMIN = 'admin';
-    public const EDITOR = 'editor';
-
-    /**
-     * @var array<int, string>
-     */
-    private const ALLOWED = [
-        self::SUPERADMIN,
-        self::ADMIN,
-        self::EDITOR,
-    ];
+    private const SUPERADMIN = 'superadmin';
+    private const ADMIN = 'admin';
+    private const EDITOR = 'editor';
 
     private function __construct(private readonly string $value)
     {
@@ -29,11 +20,26 @@ final class Role
     {
         $normalized = strtolower(trim($value));
 
-        if (!in_array($normalized, self::ALLOWED, true)) {
+        if (!in_array($normalized, self::allowedValues(), true)) {
             throw new InvalidArgumentException(sprintf('Unsupported role "%s".', $value));
         }
 
         return new self($normalized);
+    }
+
+    public static function superadmin(): self
+    {
+        return new self(self::SUPERADMIN);
+    }
+
+    public static function admin(): self
+    {
+        return new self(self::ADMIN);
+    }
+
+    public static function editor(): self
+    {
+        return new self(self::EDITOR);
     }
 
     public function value(): string
@@ -44,5 +50,17 @@ final class Role
     public function equals(self $other): bool
     {
         return $this->value === $other->value;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function allowedValues(): array
+    {
+        return [
+            self::SUPERADMIN,
+            self::ADMIN,
+            self::EDITOR,
+        ];
     }
 }

@@ -12,7 +12,7 @@ use App\Infrastructure\Auth\SessionManager;
 it('redirects to login when no authenticated session exists', function (): void {
     $session = new SessionManager(['name' => 'require_role_guest_session']);
     $authSession = new AuthSession($session);
-    $middleware = new RequireRoleMiddleware($authSession, [Role::ADMIN, Role::SUPERADMIN]);
+    $middleware = new RequireRoleMiddleware($authSession, Role::admin(), Role::superadmin());
 
     $request = new Request('GET', '/admin', [], [], [], [], []);
 
@@ -28,11 +28,11 @@ it('returns 403 when authenticated user is missing required role', function (): 
         'id' => 10,
         'email' => 'editor@example.com',
         'display_name' => 'Editor',
-        'role' => Role::EDITOR,
+        'role' => Role::editor()->value(),
     ]);
 
     $authSession = new AuthSession($session);
-    $middleware = new RequireRoleMiddleware($authSession, [Role::ADMIN, Role::SUPERADMIN]);
+    $middleware = new RequireRoleMiddleware($authSession, Role::admin(), Role::superadmin());
 
     $request = new Request('GET', '/admin', [], [], [], [], []);
 
@@ -47,11 +47,11 @@ it('allows authenticated users with an allowed role', function (): void {
         'id' => 1,
         'email' => 'superadmin@example.com',
         'display_name' => 'Super Admin',
-        'role' => Role::SUPERADMIN,
+        'role' => Role::superadmin()->value(),
     ]);
 
     $authSession = new AuthSession($session);
-    $middleware = new RequireRoleMiddleware($authSession, [Role::ADMIN, Role::SUPERADMIN]);
+    $middleware = new RequireRoleMiddleware($authSession, Role::admin(), Role::superadmin());
 
     $request = new Request('GET', '/admin', [], [], [], [], []);
 

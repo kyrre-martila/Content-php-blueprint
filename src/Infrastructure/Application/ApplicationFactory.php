@@ -64,7 +64,8 @@ final class ApplicationFactory
         $requireAuth = new RequireAuthMiddleware($authSession);
         $requireAdminRole = new RequireRoleMiddleware(
             $authSession,
-            [Role::ADMIN, Role::SUPERADMIN]
+            Role::admin(),
+            Role::superadmin()
         );
         $securityHeaders = new SecurityHeadersMiddleware();
         $configuredRateLimitAttempts = $this->config->get('security.login_rate_limit_attempts', 5);

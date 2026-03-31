@@ -30,19 +30,13 @@ final class DevMode
 
     public function canUse(): bool
     {
-        $user = $this->authSession->user();
+        $role = $this->authSession->role();
 
-        if (!is_array($user)) {
+        if ($role === null) {
             return false;
         }
 
-        $role = $user['role'] ?? null;
-
-        if (!is_string($role)) {
-            return false;
-        }
-
-        return in_array($role, [Role::SUPERADMIN, Role::ADMIN], true);
+        return $role->equals(Role::superadmin()) || $role->equals(Role::admin());
     }
 
     /**
