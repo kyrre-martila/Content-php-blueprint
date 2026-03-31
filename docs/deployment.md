@@ -1,16 +1,22 @@
 # Deployment
 
-This document separates developer setup, deployment, and installation so AI/human operators follow the same lifecycle.
+This document separates developer setup, deployment, installation, and runtime-state handling so releases are repeatable across local, staging, and production.
 
-## Developer setup (current)
+## Developer setup (local)
 
 1. `composer install`
 2. `cp .env.example .env`
-3. Configure DB and app env values.
+3. Configure DB/app values in `.env`.
 4. Run migrations (`composer migrate`).
 5. Serve with web root on `public/`.
 
-## Deployment strategy (current)
+Local runtime storage expectations:
+
+- writable: `storage/`, `storage/logs/`, `storage/exports/`, `storage/exports/composition/`, `storage/exports/ocf/`
+- persistent between local restarts: `.env`, `storage/`
+- auto-created if missing: required `storage/*` runtime directories during bootstrap/install checks
+
+## Deployment strategy (staging + production)
 
 ### Recommended mode (public mode)
 
@@ -24,7 +30,49 @@ This document separates developer setup, deployment, and installation so AI/huma
 - Root `index.php` delegates to `public/index.php`.
 - This is supported for hosting compatibility, not preferred security posture.
 
-## Installation strategy (current)
+## Runtime storage contract
+
+Runtime state (must not be treated as replaceable release files):
+
+- `.env`
+- `storage/`
+- `storage/logs/`
+- `storage/exports/composition/`
+- `storage/exports/ocf/`
+
+Writable at runtime:
+
+- `storage/` and all runtime subdirectories above
+
+Preserve during upgrades:
+
+- `.env`
+- entire `storage/` tree
+
+Operationally: do not run upgrade steps that delete/replace these runtime-state paths.
+
+## Automatic runtime directory creation
+
+`App\Infrastructure\Application\RuntimeStorage` defines required runtime directories and creates them when missing.
+
+Creation points:
+
+- HTTP bootstrap (`public/index.php`) before logger/kernel boot
+- install environment checks (`EnvironmentCheck::run`)
+
+This guarantees fresh staging/production instances can self-initialize required runtime folders before first write.
+
+## Release artifact notes
+
+`scripts/build-release.sh` pre-creates runtime directories in the release bundle:
+
+- `storage/logs`
+- `storage/exports/composition`
+- `storage/exports/ocf`
+
+Even with pre-created folders in artifacts, deployed environments must still preserve `.env` and `storage/` across updates.
+
+## Installation strategy
 
 After files are deployed:
 
@@ -37,7 +85,3 @@ Deployment and installation are separate by design:
 
 - deployment = shipping files
 - installation = preparing runtime state
-
-## Planned direction (not yet implemented)
-
-- Production release packaging conventions (zip artifacts with vendor and optimized autoloading) as a standardized release process.

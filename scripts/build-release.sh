@@ -20,6 +20,8 @@ copy_path() {
 }
 
 mkdir -p "${RELEASE_DIR}/storage/logs"
+mkdir -p "${RELEASE_DIR}/storage/exports/composition"
+mkdir -p "${RELEASE_DIR}/storage/exports/ocf"
 
 copy_path "public"
 copy_path "src"
