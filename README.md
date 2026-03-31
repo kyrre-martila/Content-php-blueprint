@@ -120,6 +120,29 @@ Production deployments should prefer the generated release zip artifact.
 
 This release artifact flow is distinct from local developer setup. Local development still uses `composer install`.
 
+
+### Runtime storage and persistent state
+
+Runtime state is intentionally separated from source-managed code so deploys are predictable.
+
+Runtime state directories/files:
+
+- `.env` (environment-specific config; created from `.env.example` during setup)
+- `storage/` (runtime data root; must persist across deploys/upgrades)
+- `storage/logs/` (application/dev-mode logs; writable at runtime)
+- `storage/exports/composition/` (composition snapshot exports; writable at runtime)
+- `storage/exports/ocf/` (OCF exports; writable at runtime)
+
+Bootstrap behavior:
+
+- `public/index.php` runs `RuntimeStorage::ensure($projectRoot)` before kernel boot.
+- Missing runtime directories are auto-created during request bootstrap and installer environment checks.
+
+Upgrade/deploy rule:
+
+- Do **not** overwrite or delete `.env` or `storage/` during upgrades.
+- Keep these paths outside destructive file-replacement steps (or restore them after unpack).
+
 ## Installation flow and install-state logic
 
 Installation is a runtime setup flow, separate from deployment.

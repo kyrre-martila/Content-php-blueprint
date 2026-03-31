@@ -15,6 +15,8 @@ final class EnvironmentCheck
      */
     public function run(): array
     {
+        RuntimeStorage::ensure($this->projectRoot);
+
         $storagePath = $this->projectRoot . '/storage';
         $envPath = $this->projectRoot . '/.env';
 

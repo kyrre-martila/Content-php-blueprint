@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Request;
 use App\Infrastructure\Application\ApplicationFactory;
+use App\Infrastructure\Application\RuntimeStorage;
 use App\Infrastructure\Config\ConfigLoader;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Error\ErrorHandler;
@@ -22,6 +23,7 @@ if (!is_file($autoload)) {
 require $autoload;
 
 $projectRoot = dirname(__DIR__);
+RuntimeStorage::ensure($projectRoot);
 Env::load($projectRoot . '/.env');
 
 $logger = new Logger($projectRoot . '/storage/logs');
