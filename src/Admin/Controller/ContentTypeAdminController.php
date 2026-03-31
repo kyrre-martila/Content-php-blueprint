@@ -14,6 +14,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateRenderer;
 use App\Infrastructure\View\TemplateResolver;
 use RuntimeException;
@@ -31,6 +32,7 @@ final class ContentTypeAdminController
         private readonly AuthSession $authSession,
         private readonly SessionManager $session,
         private readonly TemplateResolver $templateResolver,
+        private readonly TemplatePathMap $templatePathMap,
     ) {
     }
 
@@ -200,14 +202,14 @@ final class ContentTypeAdminController
     private function buildRow(ContentType $type): array
     {
         $templatePath = $type->isCollectionView()
-            ? sprintf('collections/%s.php', $type->name())
-            : sprintf('content/%s.php', $type->name());
+            ? $this->templatePathMap->collectionTemplate($type)
+            : $this->templatePathMap->contentTemplate($type);
 
         return [
             'name' => $type->label(),
             'slug' => $type->name(),
             'viewType' => $type->viewType()->value,
-            'template' => $templatePath,
+            'template' => preg_replace('#^templates/#', '', $templatePath) ?? $templatePath,
             'templateExists' => $this->templateResolver->templateExists($templatePath),
             'canDelete' => $this->canDelete($type),
             'editPath' => '/admin/content-types/' . rawurlencode($type->name()) . '/edit',

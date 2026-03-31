@@ -49,6 +49,7 @@ use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\Security\ClientIpResolver;
 use App\Infrastructure\Security\LoginRateLimiter;
 use App\Infrastructure\View\TemplateRenderer;
+use App\Infrastructure\View\TemplatePathMap;
 use App\Infrastructure\View\TemplateResolver;
 
 final class ControllerFactory
@@ -90,6 +91,7 @@ final class ControllerFactory
         ?CategoryGroupRepositoryInterface $categoryGroupRepository,
         ?CategoryRepositoryInterface $categoryRepository,
         TemplateResolver $templateResolver,
+        TemplatePathMap $templatePathMap,
         TemplateRenderer $templateRenderer,
         PatternRegistry $patternRegistry,
         AuthSession $authSession,
@@ -163,6 +165,7 @@ final class ControllerFactory
                 $authSession,
                 $sessionManager,
                 $templateResolver,
+                $templatePathMap,
                 $devModeFiles,
                 $devFileService,
                 $this->logger
@@ -175,7 +178,8 @@ final class ControllerFactory
                 $contentRelationshipRepository ?? throw new \RuntimeException('Relationship repository is required for content type admin.'),
                 $authSession,
                 $sessionManager,
-                $templateResolver
+                $templateResolver,
+                $templatePathMap
             );
 
             if ($categoryGroupRepository !== null && $categoryRepository !== null) {
@@ -220,7 +224,7 @@ final class ControllerFactory
                 $loginRateLimiter,
                 $clientIpResolver
             ),
-            'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $templateResolver, $contentTypeRepository, $editorMode, $devMode),
+            'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $templateResolver, $templatePathMap, $contentTypeRepository, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
             'templateAdminController' => $templateAdminController,
             'contentTypeAdminController' => $contentTypeAdminController,

@@ -116,6 +116,7 @@ final class ApplicationFactory
             $persistence['categoryGroupRepository'],
             $persistence['categoryRepository'],
             $views['templateResolver'],
+            $views['templatePathMap'],
             $views['templateRenderer'],
             $views['patternRegistry'],
             $authSession,

@@ -9,50 +9,45 @@ use App\Domain\Content\ContentType;
 
 final class TemplateResolver
 {
-    public function __construct(private readonly string $templatesBasePath)
-    {
+    public function __construct(
+        private readonly string $templatesBasePath,
+        private readonly TemplatePathMap $templatePathMap
+    ) {
     }
 
     public function resolveContentTemplate(ContentType $type): string
     {
-        // Content route resolution order:
-        // 1) templates/content/{content_type}.php
-        // 2) templates/index.php fallback
-        $contentTypeTemplate = $this->resolveTemplatePath('content/' . $type->name() . '.php');
+        // Path generation is delegated to TemplatePathMap.
+        // Resolver remains responsible for existence checks + fallback resolution.
+        $contentTypeTemplate = $this->absoluteTemplatePath($this->templatePathMap->contentTemplate($type));
 
         if ($this->templateExists($contentTypeTemplate)) {
             return $contentTypeTemplate;
         }
 
-        return $this->resolveTemplatePath('index.php');
+        return $this->absoluteTemplatePath($this->templatePathMap->indexFallbackTemplate());
     }
 
     public function resolveCollectionTemplate(ContentType $type): string
     {
-        // Collection route resolution order:
-        // 1) templates/collections/{content_type}.php
-        // 2) templates/system/404.php fallback
-        $collectionTemplate = $this->resolveTemplatePath('collections/' . $type->name() . '.php');
+        $collectionTemplate = $this->absoluteTemplatePath($this->templatePathMap->collectionTemplate($type));
 
         if ($this->templateExists($collectionTemplate)) {
             return $collectionTemplate;
         }
 
-        return $this->resolveTemplatePath('system/404.php');
+        return $this->absoluteTemplatePath($this->templatePathMap->systemTemplate('404'));
     }
 
     public function resolveCategoryCollectionTemplate(CategoryGroup $group): string
     {
-        // Category collection route resolution order:
-        // 1) templates/collections/categories/{group_slug}.php
-        // 2) templates/system/404.php fallback
-        $groupTemplate = $this->resolveTemplatePath('collections/categories/' . $group->slug()->value() . '.php');
+        $groupTemplate = $this->absoluteTemplatePath($this->templatePathMap->categoryCollectionTemplate($group));
 
         if ($this->templateExists($groupTemplate)) {
             return $groupTemplate;
         }
 
-        return $this->resolveTemplatePath('system/404.php');
+        return $this->absoluteTemplatePath($this->templatePathMap->systemTemplate('404'));
     }
 
     public function resolveNotFound(): string
@@ -72,7 +67,7 @@ final class TemplateResolver
             $normalizedPath = substr($normalizedPath, strlen('templates/'));
         }
 
-        return is_file($this->resolveTemplatePath($normalizedPath));
+        return is_file($this->absoluteTemplatePath($normalizedPath));
     }
 
     /**
@@ -90,7 +85,7 @@ final class TemplateResolver
                 continue;
             }
 
-            $pattern = $this->resolveTemplatePath($normalizedDirectory . '/*.php');
+            $pattern = $this->absoluteTemplatePath($normalizedDirectory . '/*.php');
             $files = glob($pattern);
 
             if ($files === false) {
@@ -108,25 +103,21 @@ final class TemplateResolver
 
     public function resolveSystemTemplate(string $route): string
     {
-        $normalizedRoute = trim($route);
-        $normalizedRoute = trim($normalizedRoute, '/');
-        $normalizedRoute = str_ends_with($normalizedRoute, '.php') ? substr($normalizedRoute, 0, -4) : $normalizedRoute;
-
-        // System route resolution order:
-        // 1) templates/system/{route}.php
-        // 2) templates/system/404.php fallback
-        $systemTemplate = $this->resolveTemplatePath('system/' . $normalizedRoute . '.php');
+        $systemTemplate = $this->absoluteTemplatePath($this->templatePathMap->systemTemplate($route));
 
         if ($this->templateExists($systemTemplate)) {
             return $systemTemplate;
         }
 
-        return $this->resolveTemplatePath('system/404.php');
+        return $this->absoluteTemplatePath($this->templatePathMap->systemTemplate('404'));
     }
 
-    private function resolveTemplatePath(string $templatePath): string
+    private function absoluteTemplatePath(string $templatePath): string
     {
         $normalizedTemplatePath = ltrim(trim($templatePath), '/');
+        if (str_starts_with($normalizedTemplatePath, 'templates/')) {
+            $normalizedTemplatePath = substr($normalizedTemplatePath, strlen('templates/'));
+        }
 
         return rtrim($this->absolutePath($this->templatesBasePath), '/\\') . '/' . $normalizedTemplatePath;
     }
