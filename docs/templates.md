@@ -35,40 +35,61 @@ Routing/lookup behavior:
 
 ---
 
-## Collection rendering contract (current)
+## Template data contracts (current runtime)
 
-Both content-type collections and category collections receive:
+### Single content templates
 
+Available variables:
+
+- `$contentItem` (`App\Domain\Content\ContentItem`)
+- `$request` (`App\Http\Request`)
+- `$slug` (`string`)
+- `$patternBlocks` (`list<mixed>`)
+- `$meta` (`array{noindex: bool}`)
+- `$editorModeActive` (`bool`)
+- `$editorCanUse` (`bool`)
+
+### Content-type collection templates
+
+Available variables:
+
+- `$contentItem` (`App\Domain\Content\ContentItem`) — the collection-page content record resolved by slug.
+- `$request` (`App\Http\Request`)
+- `$slug` (`string`)
+- `$patternBlocks` (`list<mixed>`)
+- `$meta` (`array{noindex: bool}`)
 - `$collectionItems` (`list<App\Domain\Content\ContentItem>`, may be empty)
+- `$pagination` (`array{totalCount: int, currentPage: int, perPage: int, offset: int, totalPages: int}`)
 - `$totalCount` (`int`)
 - `$currentPage` (`int`)
 - `$perPage` (`int`)
-- `$pagination` (`array`):
-  - `totalCount`
-  - `currentPage`
-  - `perPage`
-  - `offset`
-  - `totalPages`
+- `$editorModeActive` (`bool`)
+- `$editorCanUse` (`bool`)
 
-Query params:
+### Category collection templates
+
+Available variables:
+
+- `$categoryGroup` (`App\Domain\Content\CategoryGroup`)
+- `$category` (`App\Domain\Content\Category`)
+- `$collectionItems` (`list<App\Domain\Content\ContentItem>`, may be empty)
+- `$pagination` (`array{totalCount: int, currentPage: int, perPage: int, offset: int, totalPages: int}`)
+- `$totalCount` (`int`)
+- `$currentPage` (`int`)
+- `$perPage` (`int`)
+- `$breadcrumbs` (`list<array{label: string, url: string}>`)
+- `$request` (`App\Http\Request`)
+- `$editorModeActive` (`bool`)
+- `$editorCanUse` (`bool`)
+
+`$contentItem` is **absent** in category collection templates (not set to `null`).
+
+### Shared collection query params
 
 - `page` (default `1`)
 - `perPage` (default `20`)
 
 Only positive integers are accepted; invalid values fall back to defaults.
-
-### Single-content common variables
-
-- `$contentItem` (`App\Domain\Content\ContentItem` for single/content-type collection; `null` for category collection)
-- `$request` (`App\Http\Request`)
-- `$editorModeActive` (`bool`)
-- `$editorCanUse` (`bool`)
-
-### Category-collection specific variables
-
-- `$categoryGroup` (`App\Domain\Content\CategoryGroup`)
-- `$category` (`App\Domain\Content\Category`)
-- `$breadcrumbs` (`list<array{label: string, url: string}>`)
 
 Note: breadcrumb links include `/categories` and `/categories/{groupSlug}` entries for UX consistency, but only `/categories/{groupSlug}/{categorySlug}` is currently registered as a public category collection route.
 
