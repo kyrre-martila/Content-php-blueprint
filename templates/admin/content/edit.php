@@ -6,6 +6,7 @@ $layout = 'layouts/admin.php';
 $adminPageTitle = 'Edit content';
 $adminPageDescription = 'Update structured content and metadata.';
 $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks'] : [];
+$fieldValues = is_array($old['field_values'] ?? null) ? $old['field_values'] : [];
 ?>
 <section class="admin__stack">
     <header class="admin-page__header">
@@ -57,6 +58,11 @@ $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks
             <p role="alert" style="color:#b42318;"><?= $e($errors['content_type']) ?></p>
         <?php endif; ?>
 
+        <hr>
+        <h2>Structured field values</h2>
+        <p>Fields are defined by the selected Content Type schema.</p>
+        <div id="content-type-field-values"></div>
+
         <label for="body">Body</label>
         <textarea id="body" name="body" rows="8" disabled aria-describedby="body-help"><?= $e((string) ($old['body'] ?? '')) ?></textarea>
         <p id="body-help">Body persistence will be wired through field-value infrastructure in a future step.</p>
@@ -97,6 +103,8 @@ $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks
 <script>
 const availablePatterns = <?= json_encode($availablePatterns, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const existingBlocks = <?= json_encode($patternBlocks, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const contentTypeFieldSchemas = <?= json_encode($contentTypeFieldSchemas, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const existingFieldValues = <?= json_encode($fieldValues, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
 const patternBlocksContainer = document.getElementById('pattern-blocks');
 const addPatternButton = document.getElementById('add-pattern-block');
@@ -260,4 +268,95 @@ if (Object.keys(availablePatterns).length === 0) {
 }
 
 addPatternButton.addEventListener('click', () => addBlock());
+
+const contentTypeSelect = document.getElementById('content_type');
+const fieldValuesContainer = document.getElementById('content-type-field-values');
+
+function renderFieldValueInput(field) {
+    const wrapper = document.createElement('p');
+    const label = document.createElement('label');
+    label.textContent = field.label;
+
+    const errorKey = `field_values.${field.name}`;
+    const inputName = `field_values[${field.name}]`;
+    const rawValue = Object.prototype.hasOwnProperty.call(existingFieldValues, field.name)
+        ? existingFieldValues[field.name]
+        : (field.default_value ?? '');
+
+    let input = null;
+    if (field.type === 'textarea' || field.type === 'richtext') {
+        input = document.createElement('textarea');
+        input.rows = field.type === 'richtext' ? 8 : 4;
+        input.value = rawValue ?? '';
+    } else if (field.type === 'boolean') {
+        input = document.createElement('select');
+        const choices = [['', 'Select...'], ['1', 'True'], ['0', 'False']];
+        for (const [value, text] of choices) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            if (String(rawValue ?? '') === value) option.selected = true;
+            input.appendChild(option);
+        }
+    } else if (field.type === 'date') {
+        input = document.createElement('input');
+        input.type = 'date';
+        input.value = rawValue ?? '';
+    } else if (field.type === 'number') {
+        input = document.createElement('input');
+        input.type = 'number';
+        if (typeof field.settings.min !== 'undefined') input.min = String(field.settings.min);
+        if (typeof field.settings.max !== 'undefined') input.max = String(field.settings.max);
+        input.value = rawValue ?? '';
+    } else if (field.type === 'select' && Array.isArray(field.settings.options)) {
+        input = document.createElement('select');
+        const empty = document.createElement('option');
+        empty.value = '';
+        empty.textContent = 'Select...';
+        input.appendChild(empty);
+        for (const optionValue of field.settings.options) {
+            const option = document.createElement('option');
+            option.value = optionValue;
+            option.textContent = optionValue;
+            if ((rawValue ?? '') === optionValue) option.selected = true;
+            input.appendChild(option);
+        }
+    } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = rawValue ?? '';
+    }
+
+    input.name = inputName;
+    if (field.required) input.required = true;
+
+    wrapper.append(label, input);
+
+    const errorMessage = <?= json_encode($errors, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>[errorKey];
+    if (errorMessage) {
+        const error = document.createElement('p');
+        error.setAttribute('role', 'alert');
+        error.style.color = '#b42318';
+        error.textContent = errorMessage;
+        wrapper.appendChild(error);
+    }
+
+    return wrapper;
+}
+
+function renderContentTypeFieldValues() {
+    fieldValuesContainer.innerHTML = '';
+    const contentTypeKey = contentTypeSelect.value;
+    const schema = contentTypeFieldSchemas[contentTypeKey] || [];
+    if (schema.length === 0) {
+        fieldValuesContainer.innerHTML = '<p>No structured fields configured for this content type.</p>';
+        return;
+    }
+
+    schema.forEach((field) => fieldValuesContainer.appendChild(renderFieldValueInput(field)));
+}
+
+contentTypeSelect.addEventListener('change', renderContentTypeFieldValues);
+renderContentTypeFieldValues();
+
 </script>

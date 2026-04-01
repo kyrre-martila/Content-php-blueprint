@@ -8,6 +8,7 @@ use App\Application\Content\CreateContentItem;
 use App\Application\Content\Dto\ContentItemInput;
 use App\Application\Content\ListContentItems;
 use App\Application\Content\UpdateContentItem;
+use App\Domain\Content\ContentTypeField;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Request;
@@ -63,6 +64,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
                 'availablePatterns' => $this->availablePatternsForView(),
+                'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => [],
                 'old' => [
                     'title' => '',
@@ -71,6 +73,7 @@ final class ContentAdminController
                     'content_type' => '',
                     'body' => '',
                     'pattern_blocks' => [],
+                    'field_values' => [],
                     'meta_title' => '',
                     'meta_description' => '',
                     'og_image' => '',
@@ -119,6 +122,7 @@ final class ContentAdminController
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
                 'availablePatterns' => $this->availablePatternsForView(),
+                'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => [],
                 'old' => [
                     'title' => $item->title(),
@@ -127,6 +131,7 @@ final class ContentAdminController
                     'content_type' => $item->type()->name(),
                     'body' => '',
                     'pattern_blocks' => $item->patternBlocks(),
+                    'field_values' => $item->fieldValues(),
                     'meta_title' => $item->metaTitle() ?? '',
                     'meta_description' => $item->metaDescription() ?? '',
                     'og_image' => $item->ogImage() ?? '',
@@ -199,6 +204,7 @@ final class ContentAdminController
             is_string($post['content_type'] ?? null) ? $post['content_type'] : '',
             is_string($post['body'] ?? null) ? $post['body'] : null,
             $this->extractPatternBlocks($post['pattern_blocks'] ?? null),
+            $this->extractFieldValues($post['field_values'] ?? null),
             is_string($post['meta_title'] ?? null) ? $post['meta_title'] : null,
             is_string($post['meta_description'] ?? null) ? $post['meta_description'] : null,
             is_string($post['og_image'] ?? null) ? $post['og_image'] : null,
@@ -230,6 +236,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
                 'availablePatterns' => $this->availablePatternsForView(),
+                'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => $errors,
                 'old' => [
                     'title' => $input->title,
@@ -238,6 +245,7 @@ final class ContentAdminController
                     'content_type' => $input->contentType,
                     'body' => $input->body ?? '',
                     'pattern_blocks' => $input->patternBlocks,
+                    'field_values' => $input->fieldValues,
                     'meta_title' => $input->metaTitle ?? '',
                     'meta_description' => $input->metaDescription ?? '',
                     'og_image' => $input->ogImage ?? '',
@@ -269,6 +277,7 @@ final class ContentAdminController
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
                 'availablePatterns' => $this->availablePatternsForView(),
+                'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => $errors,
                 'old' => [
                     'title' => $input->title,
@@ -277,6 +286,7 @@ final class ContentAdminController
                     'content_type' => $input->contentType,
                     'body' => $input->body ?? '',
                     'pattern_blocks' => $input->patternBlocks,
+                    'field_values' => $input->fieldValues,
                     'meta_title' => $input->metaTitle ?? '',
                     'meta_description' => $input->metaDescription ?? '',
                     'og_image' => $input->ogImage ?? '',
@@ -349,6 +359,49 @@ final class ContentAdminController
         }
 
         return $blocks;
+    }
+
+
+    /** @return array<string,mixed> */
+    private function extractFieldValues(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $values = [];
+
+        foreach ($raw as $name => $value) {
+            if (!is_string($name)) {
+                continue;
+            }
+
+            $values[$name] = is_scalar($value) ? (string) $value : null;
+        }
+
+        return $values;
+    }
+
+    /** @return array<string,list<array{name:string,label:string,type:string,required:bool,default_value:?string,settings:array<string,mixed>}>> */
+    private function contentTypeFieldSchemasForView(): array
+    {
+        $schemas = [];
+
+        foreach ($this->contentTypes->findAll() as $contentType) {
+            $schemas[$contentType->name()] = array_map(
+                static fn (ContentTypeField $field): array => [
+                    'name' => $field->name(),
+                    'label' => $field->label(),
+                    'type' => $field->fieldType(),
+                    'required' => $field->isRequired(),
+                    'default_value' => $field->defaultValue(),
+                    'settings' => $field->settings() ?? [],
+                ],
+                $contentType->fields()
+            );
+        }
+
+        return $schemas;
     }
 
     private function toBoolean(mixed $value): bool

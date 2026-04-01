@@ -25,6 +25,7 @@ use App\Application\Editor\EditorContentService;
 use App\Application\OCF\OCFExporter;
 use App\Application\SEO\RobotsGenerator;
 use App\Application\SEO\SitemapGenerator;
+use App\Application\Validation\ContentItemFieldValueValidator;
 use App\Application\Validation\ContentItemValidator;
 use App\Domain\Auth\Repository\UserRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
@@ -144,8 +145,9 @@ final class ControllerFactory
         ) {
             $listContentItems = new ListContentItems($contentItemRepository);
             $contentItemValidator = new ContentItemValidator();
-            $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator);
-            $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator);
+            $fieldValueValidator = new ContentItemFieldValueValidator();
+            $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator, $fieldValueValidator);
+            $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator, $fieldValueValidator);
 
             $contentAdminController = new ContentAdminController(
                 $templateRenderer,

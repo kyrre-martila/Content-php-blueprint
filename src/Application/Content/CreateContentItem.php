@@ -6,8 +6,9 @@ namespace App\Application\Content;
 
 use App\Application\Content\Dto\ContentItemInput;
 use App\Application\Content\Dto\ContentItemValidationResult;
-use App\Domain\Content\ContentItem;
+use App\Application\Validation\ContentItemFieldValueValidator;
 use App\Application\Validation\ContentItemValidator;
+use App\Domain\Content\ContentItem;
 use App\Domain\Content\ContentStatus;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
@@ -19,7 +20,8 @@ final class CreateContentItem
     public function __construct(
         private readonly ContentItemRepositoryInterface $contentItems,
         private readonly ContentTypeRepositoryInterface $contentTypes,
-        private readonly ContentItemValidator $validator
+        private readonly ContentItemValidator $validator,
+        private readonly ContentItemFieldValueValidator $fieldValueValidator
     ) {
     }
 
@@ -28,21 +30,27 @@ final class CreateContentItem
         $errors = [];
 
         $contentTypeKey = trim($input->contentType);
-
         if ($contentTypeKey === '') {
             $errors['content_type'] = 'Content type is required.';
         }
 
         $contentType = $contentTypeKey !== '' ? $this->contentTypes->findByName($contentTypeKey) : null;
-
         if ($contentType === null && $contentTypeKey !== '') {
             $errors['content_type'] = 'Selected content type does not exist.';
         }
 
         $validationResult = $this->validator->validate($input);
-
         if (!$validationResult->isValid) {
             $errors = array_merge($errors, $validationResult->errors);
+        }
+
+        $fieldValues = [];
+        if ($contentType !== null) {
+            $fieldValidation = $this->fieldValueValidator->validate($contentType, $input->fieldValues);
+            $fieldValues = $fieldValidation->values['field_values'] ?? [];
+            if (!$fieldValidation->isValid) {
+                $errors = array_merge($errors, $fieldValidation->errors);
+            }
         }
 
         $title = $validationResult->values['title'] ?? trim($input->title);
@@ -58,10 +66,6 @@ final class CreateContentItem
         }
 
         $now = new DateTimeImmutable();
-        $metaTitle = $this->normalizeNullableText($input->metaTitle);
-        $metaDescription = $this->normalizeNullableText($input->metaDescription);
-        $ogImage = $this->normalizeNullableText($input->ogImage);
-        $canonicalUrl = $this->normalizeNullableText($input->canonicalUrl);
         $contentItem = new ContentItem(
             null,
             $contentType,
@@ -71,10 +75,11 @@ final class CreateContentItem
             $now,
             $now,
             $input->patternBlocks,
-            $metaTitle,
-            $metaDescription,
-            $ogImage,
-            $canonicalUrl,
+            $fieldValues,
+            $this->normalizeNullableText($input->metaTitle),
+            $this->normalizeNullableText($input->metaDescription),
+            $this->normalizeNullableText($input->ogImage),
+            $this->normalizeNullableText($input->canonicalUrl),
             $input->noindex
         );
 
