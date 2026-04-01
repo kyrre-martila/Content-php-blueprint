@@ -503,6 +503,45 @@ table.admin-table td .admin-actions {
     padding-top: var(--admin-space-2);
 }
 
+.admin-field-schema {
+    gap: var(--admin-space-3);
+}
+
+.admin-field-schema__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--admin-space-2);
+}
+
+.admin-field-schema__list {
+    display: grid;
+    gap: var(--admin-space-3);
+}
+
+.admin-field-schema__item {
+    gap: var(--admin-space-3);
+}
+
+.admin-field-schema__legend {
+    color: var(--admin-color-text-primary);
+    font-size: var(--admin-font-size-sm);
+    font-weight: 600;
+}
+
+.admin-field-schema__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--admin-space-2);
+}
+
+.admin-field-schema__pair {
+    display: grid;
+    gap: var(--admin-space-3);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .admin-flow {
     display: grid;
     gap: var(--admin-space-2);

@@ -68,6 +68,23 @@ When adding or changing admin UI:
 3. Add reusable primitives in `admin-components.css`.
 4. Add screen-only styles in `admin-screens.css`.
 
+### Reusable form collection pattern
+
+When an admin form needs repeatable rows (for example Content Type field schemas), use the shared collection pattern:
+
+- wrapper: `.admin-field-schema`
+- list container: `.admin-field-schema__list`
+- row container: `.admin-field-schema__item`
+- row actions: `.admin-field-schema__actions`
+- two-column setting pair: `.admin-field-schema__pair`
+
+Behavior guidelines:
+
+- keep add/remove/reorder interactions in vanilla JavaScript
+- keep server as source of truth (all rows posted back via standard inputs)
+- use `data-*` hooks for row actions and visibility toggles
+- do not use inline styles; place reusable styling in `admin-components.css`
+
 ---
 
 ## Future roadmap (not implemented)
