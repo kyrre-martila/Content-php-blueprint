@@ -70,6 +70,7 @@ function buildConnectionForRepositoryTests(): Connection
             body TEXT NULL,
             published_at TEXT NULL,
             pattern_blocks TEXT NULL,
+            field_values_json TEXT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             FOREIGN KEY(content_type_id) REFERENCES content_types(id),
@@ -283,7 +284,8 @@ it('persists updates and queries content items by id slug and type', function ()
     expect($savedItem->id())->toBeInt()
         ->and($itemRepository->findById($savedItem->id() ?? 0)?->slug()->value())->toBe('hello-world')
         ->and($itemRepository->findBySlug(Slug::fromString('hello-world'))?->title())->toBe('Hello World')
-        ->and($itemRepository->findByType($contentType)['items'])->toHaveCount(1);
+        ->and($itemRepository->findByType($contentType)['items'])->toHaveCount(1)
+        ->and($savedItem->fieldValues())->toBe([]);
 
     $updated = $savedItem
         ->withTitle('Updated Title', new DateTimeImmutable('2026-03-21 10:00:00'))
@@ -769,4 +771,36 @@ it('manages relationship rules by content type and enforces them at attach time'
     expect($relationshipRepository->isRelationshipAllowed($articleType, $authorType, 'author'))->toBeFalse()
         ->and(fn () => $relationshipRepository->attach($article, $author, 'author'))
         ->toThrow(InvalidArgumentException::class, 'is not allowed');
+});
+
+
+it('hydrates missing field keys from defaults and null fallback for old records', function (): void {
+    $connection = buildConnectionForRepositoryTests();
+    $typeRepository = new MySqlContentTypeRepository($connection);
+    $itemRepository = new MySqlContentItemRepository($connection);
+
+    $typeRepository->save(new ContentType('article', 'Article', 'content/default.php', [
+        new ContentTypeField(null, 1, 'summary', 'Summary', 'text', true, 'Fallback summary', null, 0, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+        new ContentTypeField(null, 1, 'featured', 'Featured', 'boolean', false, null, null, 1, new DateTimeImmutable('2026-03-20 10:00:00'), new DateTimeImmutable('2026-03-20 10:00:00')),
+    ]));
+
+    $connection->execute(
+        'INSERT INTO content_items (content_type_id, title, slug, status, pattern_blocks, field_values_json, created_at, updated_at)
+         VALUES (1, :title, :slug, :status, :pattern_blocks, :field_values_json, :created_at, :updated_at)',
+        [
+            'title' => 'Legacy article',
+            'slug' => 'legacy-article',
+            'status' => 'draft',
+            'pattern_blocks' => '[]',
+            'field_values_json' => '{}',
+            'created_at' => '2026-03-20 10:00:00',
+            'updated_at' => '2026-03-20 10:00:00',
+        ]
+    );
+
+    $loaded = $itemRepository->findBySlug(Slug::fromString('legacy-article'));
+
+    expect($loaded)->not->toBeNull()
+        ->and($loaded?->fieldValue('summary'))->toBe('Fallback summary')
+        ->and($loaded?->fieldValue('featured'))->toBeNull();
 });

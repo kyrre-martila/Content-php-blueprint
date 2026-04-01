@@ -12,6 +12,7 @@ use App\Domain\Content\ContentViewType;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
 use App\Infrastructure\Database\Connection;
+use App\Infrastructure\Content\MySqlContentTypeFieldRepository;
 use DateTimeImmutable;
 use JsonException;
 use RuntimeException;
@@ -20,8 +21,11 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
 {
     private const FALLBACK_TEMPLATE = 'content/default.php';
 
-    public function __construct(private readonly Connection $connection)
+    private readonly MySqlContentTypeFieldRepository $fieldRepository;
+
+    public function __construct(private readonly Connection $connection, ?MySqlContentTypeFieldRepository $fieldRepository = null)
     {
+        $this->fieldRepository = $fieldRepository ?? new MySqlContentTypeFieldRepository($connection);
     }
 
     public function save(ContentItem $contentItem): ContentItem
@@ -343,6 +347,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 slug,
                 status,
                 pattern_blocks,
+                field_values_json,
                 meta_title,
                 meta_description,
                 og_image,
@@ -375,6 +380,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 'slug' => $contentItem->slug()->value(),
                 'status' => $contentItem->status()->value,
                 'pattern_blocks' => $this->encodePatternBlocks($contentItem->patternBlocks()),
+                'field_values_json' => $this->encodeFieldValues($contentItem->fieldValues()),
                 'meta_title' => $contentItem->metaTitle(),
                 'meta_description' => $contentItem->metaDescription(),
                 'og_image' => $contentItem->ogImage(),
@@ -417,6 +423,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                  slug = :slug,
                  status = :status,
                  pattern_blocks = :pattern_blocks,
+                 field_values_json = :field_values_json,
                  meta_title = :meta_title,
                  meta_description = :meta_description,
                  og_image = :og_image,
@@ -433,6 +440,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                 'slug' => $contentItem->slug()->value(),
                 'status' => $contentItem->status()->value,
                 'pattern_blocks' => $this->encodePatternBlocks($contentItem->patternBlocks()),
+                'field_values_json' => $this->encodeFieldValues($contentItem->fieldValues()),
                 'meta_title' => $contentItem->metaTitle(),
                 'meta_description' => $contentItem->metaDescription(),
                 'og_image' => $contentItem->ogImage(),
@@ -479,6 +487,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ci.slug,
                     ci.status,
                     ci.pattern_blocks,
+                    ci.field_values_json,
                     ci.meta_title,
                     ci.meta_description,
                     ci.og_image,
@@ -488,6 +497,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
                     ci.sort_order,
                     ci.created_at,
                     ci.updated_at,
+                    ct.id AS type_id,
                     ct.slug AS type_slug,
                     ct.name AS type_name,
                     ct.description AS type_template,
@@ -522,7 +532,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             $this->rowString($row, 'type_slug'),
             $this->rowString($row, 'type_name'),
             $defaultTemplate,
-            [],
+            $this->fieldRepository->findByContentTypeId($this->rowInt($row, 'type_id')),
             ContentViewType::fromString($this->rowString($row, 'type_view_type'))
         );
 
@@ -535,6 +545,7 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
             new DateTimeImmutable($this->rowString($row, 'created_at')),
             new DateTimeImmutable($this->rowString($row, 'updated_at')),
             $this->decodePatternBlocks($row['pattern_blocks'] ?? null),
+            $this->decodeFieldValues($row['field_values_json'] ?? null),
             $this->nullableString($row, 'meta_title'),
             $this->nullableString($row, 'meta_description'),
             $this->nullableString($row, 'og_image'),
@@ -639,6 +650,35 @@ final class MySqlContentItemRepository implements ContentItemRepositoryInterface
         } catch (JsonException $exception) {
             throw new RuntimeException('Failed to encode content item pattern blocks as JSON.', 0, $exception);
         }
+    }
+
+
+    /**
+     * @param array<string,mixed> $values
+     */
+    private function encodeFieldValues(array $values): string
+    {
+        try {
+            return json_encode($values, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Failed to encode content item field values as JSON.', 0, $exception);
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function decodeFieldValues(mixed $value): array
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Stored field values JSON is invalid.', 0, $exception);
+        }
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**

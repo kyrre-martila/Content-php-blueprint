@@ -49,6 +49,25 @@ Available variables:
 - `$editorModeActive` (`bool`)
 - `$editorCanUse` (`bool`)
 
+
+### Reading structured content type fields in templates
+
+`$contentItem` now exposes schema-driven field values:
+
+- `$contentItem->fieldValues(): array<string,mixed>` returns all known fields for the item type.
+  - Missing stored keys are backfilled with field defaults (if configured) or `null`.
+- `$contentItem->fieldValue('field_name')` returns one value or `null`.
+
+Example:
+
+```php
+$summary = $contentItem->fieldValue('summary');
+$isFeatured = (bool) ($contentItem->fieldValue('is_featured') ?? false);
+$publishDate = $contentItem->fieldValue('publish_date'); // YYYY-MM-DD or null
+```
+
+Values are already normalized by the admin save flow and validation layer.
+
 ### Content-type collection templates
 
 Available variables:

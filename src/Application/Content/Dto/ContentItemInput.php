@@ -8,6 +8,7 @@ final class ContentItemInput
 {
     /**
      * @param list<array{pattern: string, data: array<string, string>}> $patternBlocks
+     * @param array<string,mixed> $fieldValues
      */
     public function __construct(
         public readonly string $title,
@@ -16,6 +17,7 @@ final class ContentItemInput
         public readonly string $contentType,
         public readonly ?string $body = null,
         public readonly array $patternBlocks = [],
+        public readonly array $fieldValues = [],
         public readonly ?string $metaTitle = null,
         public readonly ?string $metaDescription = null,
         public readonly ?string $ogImage = null,
