@@ -16,6 +16,7 @@ use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Application\Auth\LoginUser;
 use App\Application\Composition\CompositionExporter;
+use App\Application\Content\ContentTypeFieldSchemaService;
 use App\Application\Content\CreateContentItem;
 use App\Application\Content\ListContentItems;
 use App\Application\Content\UpdateContentItem;
@@ -179,7 +180,8 @@ final class ControllerFactory
                 $authSession,
                 $sessionManager,
                 $templateResolver,
-                $templatePathMap
+                $templatePathMap,
+                new ContentTypeFieldSchemaService()
             );
 
             if ($categoryGroupRepository !== null && $categoryRepository !== null) {
