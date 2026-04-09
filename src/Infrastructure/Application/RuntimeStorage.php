@@ -21,6 +21,7 @@ final class RuntimeStorage
             $storagePath . '/exports',
             $storagePath . '/exports/composition',
             $storagePath . '/exports/ocf',
+            $storagePath . '/files',
         ];
     }
 

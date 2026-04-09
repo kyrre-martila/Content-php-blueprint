@@ -9,7 +9,7 @@ Framework-light PHP 8.3+ blueprint for structured content websites with explicit
 - Category collection routing at `GET /categories/{groupSlug}/{categorySlug}`.
 - Content collections and category collections with shared pagination/query behavior.
 - Per-content-type structured field schemas via `content_type_fields` (name/label/type/required/default/settings/sort order).
-- Explicit separation of field schemas, hierarchy (`parent_id`), categories (`content_item_categories`), and relationships (`content_item_relationships`).
+- Explicit separation of field schemas, hierarchy (`parent_id`), categories (`content_item_categories`), relationships (`content_item_relationships`), and uploaded Files (`files`).
 - Install-state-aware admin routing, role-gated Editor Mode/Dev Mode, and trusted proxy-aware client IP resolution.
 
 ## AI operating environment
@@ -114,6 +114,7 @@ Must persist across deploys/upgrades:
 - `storage/logs/`
 - `storage/exports/composition/`
 - `storage/exports/ocf/`
+- `storage/files/`
 
 `public/index.php` calls `RuntimeStorage::ensure($projectRoot)` during bootstrap to create missing runtime directories.
 
@@ -147,3 +148,14 @@ Install-state checks require: migrations table + key tables, admin user, install
 - In-admin GitHub release updater (release discovery/download/file replacement orchestration).
 - Expanded automated deployment orchestration around existing release artifact flow.
 - Additional upgrade tasks as `UpgradeRunner` hooks evolve.
+
+## Files subsystem (v1 foundation)
+
+The platform now includes a first-class **Files** domain model (`FileAsset`) for uploaded images and documents.
+
+- Visibility states: `public`, `authenticated`, `private`.
+- Metadata persists in `files` via `MySqlFileRepository`.
+- Storage is abstracted behind `FileStorageInterface` with a local implementation rooted in `storage/files/`.
+- Uploads are handled by `FileUploadService`, which validates metadata, computes SHA-256 checksums, and generates stable stored names.
+
+See `docs/files.md` for details.

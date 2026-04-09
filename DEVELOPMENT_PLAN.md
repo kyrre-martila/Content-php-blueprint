@@ -115,7 +115,22 @@ Current release artifact flow uses `scripts/build-release.sh`.
 - runtime directories are created in artifact and also ensured at bootstrap by `RuntimeStorage`
 - deploy/upgrades must preserve `.env` and `storage/`
 
-### 7) Admin design system usage
+
+### 7) Files subsystem foundation
+
+A first-class **Files** subsystem is implemented for uploaded assets and documents.
+
+- persistence table: `files`
+- domain model: `FileAsset` (immutable)
+- visibility enum: `public`, `authenticated`, `private`
+- persistence adapter: `MySqlFileRepository`
+- storage abstraction: `FileStorageInterface`
+- local storage adapter: `LocalFileStorage` rooted at `storage/files/`
+- upload orchestration: `FileUploadService` (metadata validation, stable naming, checksum, persistence, storage write)
+
+This subsystem is intentionally content-item-agnostic in v1 and designed for future file-field and content-item linking.
+
+### 8) Admin design system usage
 
 Admin styles are modular and loaded in strict order from `templates/layouts/admin.php`:
 

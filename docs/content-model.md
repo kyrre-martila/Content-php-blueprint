@@ -38,6 +38,10 @@ This document describes the **currently implemented** content model and clearly 
   - `relation_type` (must match an allowed rule identifier)
   - `sort_order`
   - timestamps
+- `files`
+  - upload metadata for images and documents
+  - storage abstraction metadata (`storage_disk`, `storage_path`)
+  - visibility boundary (`public`, `authenticated`, `private`)
 
 ### Domain objects
 
@@ -116,3 +120,20 @@ Field schemas are the contract for structured content editing and are independen
 
 - Richer field-value persistence for content items that can map directly to content type field schemas.
 - Additional content type definitions and field tooling generated through reusable workflows.
+
+### Files (new v1 subsystem)
+
+The model now includes a first-class `FileAsset` domain object for uploaded Files (not Media).
+
+Current guarantees:
+
+- immutable metadata model with validation
+- checksum support (`checksum_sha256`)
+- stable storage naming strategy
+- upload persistence via repository + storage abstraction
+
+Planned extensions (not yet implemented):
+
+- file-to-content relations
+- clean file URL routing
+- protected delivery controls mapped to `visibility`
