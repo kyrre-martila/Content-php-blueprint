@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Admin\Controller;
 
+use App\Admin\Security\AdminAccessPolicy;
+use App\Domain\Auth\Role;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
 use App\Http\Request;
 use App\Http\Response;
@@ -73,6 +75,8 @@ final class DashboardController
         }
 
         $indexTemplateExists = $this->templateResolver->templateExists($this->templatePathMap->indexFallbackTemplate());
+        $currentRole = $this->authSession->role() ?? Role::editor();
+        $accessPolicy = new AdminAccessPolicy();
 
         $html = $this->templateRenderer->renderTemplate(
             'admin/dashboard.php',
@@ -86,29 +90,33 @@ final class DashboardController
                 'upgradeRequired' => $this->upgradeState->isUpgradeRequired(),
                 'currentVersion' => $this->upgradeState->currentVersion(),
                 'installedVersion' => $this->upgradeState->installedVersion(),
-                'quickActions' => [
-                    [
+                'quickActions' => array_values(array_filter([
+                    $accessPolicy->canAccessSystemManagement($currentRole) ? [
                         'label' => 'Create Content Type',
                         'href' => '/admin/content-types/create',
                         'class' => 'admin-action admin-action--primary',
-                    ],
-                    [
+                    ] : null,
+                    $accessPolicy->canAccessSystemManagement($currentRole) ? [
                         'label' => 'Open Template Manager',
                         'href' => '/admin/templates',
                         'class' => 'admin-action admin-action--primary',
-                    ],
-                    [
+                    ] : null,
+                    $accessPolicy->canAccessSystemManagement($currentRole) ? [
                         'label' => 'Open System Templates',
                         'href' => '/admin/system-templates',
                         'class' => 'admin-action admin-action--primary',
-                    ],
-                    [
+                    ] : null,
+                    $accessPolicy->canAccessContentManagement($currentRole) ? [
                         'label' => 'Create Content Item',
-                        'href' => '#',
+                        'href' => '/admin/content/create',
                         'class' => 'admin-action admin-action--primary',
-                        'isPlaceholder' => true,
-                    ],
-                ],
+                    ] : null,
+                    $accessPolicy->canAccessFileLibrary($currentRole) ? [
+                        'label' => 'Open Files Library',
+                        'href' => '/admin/files',
+                        'class' => 'admin-action admin-action--primary',
+                    ] : null,
+                ])),
                 'templateStatus' => [
                     'indexTemplateStatus' => $indexTemplateExists ? 'Available' : 'Missing',
                     'missingContentTemplateCount' => $missingContentTemplateCount,
