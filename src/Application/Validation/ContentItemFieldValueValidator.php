@@ -6,10 +6,16 @@ namespace App\Application\Validation;
 
 use App\Domain\Content\ContentType;
 use App\Domain\Content\ContentTypeField;
+use App\Domain\Files\Repository\FileRepositoryInterface;
 use DateTimeImmutable;
 
 final class ContentItemFieldValueValidator
 {
+    public function __construct(
+        private readonly ?FileRepositoryInterface $files = null
+    ) {
+    }
+
     /**
      * @param array<string,mixed> $inputValues
      */
@@ -78,13 +84,60 @@ final class ContentItemFieldValueValidator
         $key = 'field_values.' . $field->name();
 
         return match ($field->fieldType()) {
-            'text', 'textarea', 'richtext', 'image', 'file' => $this->normalizeString($raw),
+            'text', 'textarea', 'richtext' => $this->normalizeString($raw),
+            'image', 'file' => $this->normalizeFileReference($field, $raw, $errors, $key),
             'number' => $this->normalizeNumber($field, $raw, $errors, $key),
             'boolean' => $this->normalizeBoolean($raw, $errors, $key),
             'date' => $this->normalizeDate($raw, $errors, $key),
             'select' => $this->normalizeSelect($field, $raw, $errors, $key),
             default => null,
         };
+    }
+
+    /** @param array<string,string> $errors */
+    private function normalizeFileReference(ContentTypeField $field, mixed $raw, array &$errors, string $errorKey): int|string|null
+    {
+        if (is_int($raw)) {
+            return $this->normalizeFileId($field, $raw, $errors, $errorKey);
+        }
+
+        if (is_float($raw) && floor($raw) === $raw) {
+            return $this->normalizeFileId($field, (int) $raw, $errors, $errorKey);
+        }
+
+        if (!is_scalar($raw)) {
+            $errors[$errorKey] = sprintf('%s must reference a valid file.', $field->label());
+            return null;
+        }
+
+        $value = trim((string) $raw);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (ctype_digit($value)) {
+            return $this->normalizeFileId($field, (int) $value, $errors, $errorKey);
+        }
+
+        // Backward compatibility path for legacy rows that persisted URL strings.
+        return $value;
+    }
+
+    /** @param array<string,string> $errors */
+    private function normalizeFileId(ContentTypeField $field, int $id, array &$errors, string $errorKey): ?int
+    {
+        if ($id < 1) {
+            $errors[$errorKey] = sprintf('%s must reference a valid file ID.', $field->label());
+            return null;
+        }
+
+        if ($this->files !== null && $this->files->findById($id) === null) {
+            $errors[$errorKey] = sprintf('%s must reference an existing file.', $field->label());
+            return null;
+        }
+
+        return $id;
     }
 
     private function normalizeString(mixed $raw): ?string

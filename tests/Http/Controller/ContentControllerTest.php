@@ -12,8 +12,11 @@ use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Slug;
+use App\Domain\Files\FileAsset;
+use App\Domain\Files\Repository\FileRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Request;
+use App\Application\Files\ContentItemFileFieldResolver;
 use App\Infrastructure\Auth\AuthSession;
 use App\Infrastructure\Auth\SessionManager;
 use App\Infrastructure\Editor\EditorMode;
@@ -28,6 +31,7 @@ it('redirects non-canonical content paths with a 301 and preserves query paramet
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -58,6 +62,7 @@ it('uses canonical_url metadata as the redirect target when defined', function (
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -88,6 +93,7 @@ it('does not redirect when the request is already canonical', function (): void 
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -124,6 +130,7 @@ it('renders collection template for content types configured as collection view'
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithSingleItem($contentItem),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -161,6 +168,7 @@ it('passes collection items and pagination data to collection templates', functi
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithCollectionItems($contentItem, [makeContentItem('post-1'), makeContentItem('post-2')]),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -194,6 +202,7 @@ it('renders collection templates with empty collection data instead of 404', fun
         categoryGroupRepositoryForTests(),
         categoryRepositoryForTests(),
         repositoryWithCollectionItems($contentItem, []),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -230,6 +239,7 @@ it('renders category collection pages with category context and breadcrumbs', fu
         categoryGroupRepositoryForTests([$group]),
         categoryRepositoryForTests([$category]),
         repositoryWithCategoryItems($items),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -265,6 +275,7 @@ it('renders category collection pages with empty state data and no 404', functio
         categoryGroupRepositoryForTests([$group]),
         categoryRepositoryForTests([$category]),
         repositoryWithCategoryItems([]),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -301,6 +312,7 @@ it('returns system 404 when category group or category does not exist', function
         categoryGroupRepositoryForTests([$group]),
         categoryRepositoryForTests([$category]),
         repositoryWithCategoryItems([]),
+        fileFieldResolverForTests(),
         new TemplateResolver($templatesBasePath, new TemplatePathMap()),
         new TemplateRenderer($templatesBasePath, null, null, 'https://example.com'),
         editorModeForTests()
@@ -572,4 +584,33 @@ function editorModeForTests(): EditorMode
     ]);
 
     return new EditorMode(new AuthSession($session), $session);
+}
+
+function fileFieldResolverForTests(): ContentItemFileFieldResolver
+{
+    return new ContentItemFileFieldResolver(new class implements FileRepositoryInterface {
+        public function save(FileAsset $fileAsset): FileAsset
+        {
+            return $fileAsset;
+        }
+
+        public function findById(int $id): ?FileAsset
+        {
+            return null;
+        }
+
+        public function findBySlug(string $slug): ?FileAsset
+        {
+            return null;
+        }
+
+        public function findAll(): array
+        {
+            return [];
+        }
+
+        public function delete(FileAsset $fileAsset): void
+        {
+        }
+    });
 }

@@ -105,6 +105,7 @@ const availablePatterns = <?= json_encode($availablePatterns, JSON_HEX_TAG | JSO
 const existingBlocks = <?= json_encode($patternBlocks, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const contentTypeFieldSchemas = <?= json_encode($contentTypeFieldSchemas, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const existingFieldValues = <?= json_encode($fieldValues, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const availableFiles = <?= json_encode($filesForSelection, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
 const patternBlocksContainer = document.getElementById('pattern-blocks');
 const addPatternButton = document.getElementById('add-pattern-block');
@@ -319,6 +320,42 @@ function renderFieldValueInput(field) {
             option.value = optionValue;
             option.textContent = optionValue;
             if ((rawValue ?? '') === optionValue) option.selected = true;
+            input.appendChild(option);
+        }
+    } else if (field.type === 'image' || field.type === 'file') {
+        input = document.createElement('select');
+
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = field.required ? 'Select a file...' : 'No file selected';
+        input.appendChild(emptyOption);
+
+        const normalizedRawValue = rawValue === null || typeof rawValue === 'undefined'
+            ? ''
+            : String(rawValue).trim();
+        const isLegacyValue = normalizedRawValue !== '' && !/^\d+$/.test(normalizedRawValue);
+
+        if (isLegacyValue) {
+            const legacyOption = document.createElement('option');
+            legacyOption.value = normalizedRawValue;
+            legacyOption.textContent = `Legacy value: ${normalizedRawValue}`;
+            legacyOption.selected = true;
+            input.appendChild(legacyOption);
+        }
+
+        for (const file of availableFiles) {
+            if (field.type === 'image' && typeof file.mime_type === 'string' && !file.mime_type.startsWith('image/')) {
+                continue;
+            }
+
+            const option = document.createElement('option');
+            option.value = String(file.id);
+            option.textContent = file.label;
+
+            if (normalizedRawValue === String(file.id)) {
+                option.selected = true;
+            }
+
             input.appendChild(option);
         }
     } else {

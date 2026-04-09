@@ -23,6 +23,7 @@ use App\Application\Content\ListContentItems;
 use App\Application\Content\UpdateContentItem;
 use App\Application\DevMode\DevFileService;
 use App\Application\Files\DeleteFileService;
+use App\Application\Files\ContentItemFileFieldResolver;
 use App\Application\Files\FileUploadService;
 use App\Application\Files\UpdateFileMetadataService;
 use App\Application\Editor\EditorContentService;
@@ -155,7 +156,7 @@ final class ControllerFactory
         ) {
             $listContentItems = new ListContentItems($contentItemRepository);
             $contentItemValidator = new ContentItemValidator();
-            $fieldValueValidator = new ContentItemFieldValueValidator();
+            $fieldValueValidator = new ContentItemFieldValueValidator($fileRepository);
             $createContentItem = new CreateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator, $fieldValueValidator);
             $updateContentItem = new UpdateContentItem($contentItemRepository, $contentTypeRepository, $contentItemValidator, $fieldValueValidator);
 
@@ -163,6 +164,7 @@ final class ControllerFactory
                 $templateRenderer,
                 $contentTypeRepository,
                 $contentItemRepository,
+                $fileRepository,
                 $listContentItems,
                 $createContentItem,
                 $updateContentItem,
@@ -225,6 +227,7 @@ final class ControllerFactory
                 $categoryGroupRepository ?? throw new \RuntimeException('Category group repository is required for content controller.'),
                 $categoryRepository ?? throw new \RuntimeException('Category repository is required for content controller.'),
                 $contentItemRepository,
+                new ContentItemFileFieldResolver($fileRepository),
                 $templateResolver,
                 $templateRenderer,
                 $editorMode

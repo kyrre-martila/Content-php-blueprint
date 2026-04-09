@@ -79,12 +79,12 @@ final class ContentItem
             $name = $field->name();
 
             if (array_key_exists($name, $this->fieldValues)) {
-                $values[$name] = $this->fieldValues[$name];
+                $values[$name] = $this->normalizeFieldValue($field->fieldType(), $this->fieldValues[$name]);
                 continue;
             }
 
             $defaultValue = $field->defaultValue();
-            $values[$name] = $defaultValue === null ? null : $defaultValue;
+            $values[$name] = $this->normalizeFieldValue($field->fieldType(), $defaultValue);
         }
 
         foreach ($this->fieldValues as $name => $value) {
@@ -96,6 +96,46 @@ final class ContentItem
         }
 
         return $values;
+    }
+
+    private function normalizeFieldValue(string $fieldType, mixed $value): mixed
+    {
+        if (!in_array($fieldType, ['image', 'file'], true)) {
+            return $value;
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_int($value)) {
+            return $value > 0 ? $value : null;
+        }
+
+        if (is_float($value) && floor($value) === $value) {
+            $integerValue = (int) $value;
+
+            return $integerValue > 0 ? $integerValue : null;
+        }
+
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (ctype_digit($normalized)) {
+            $integerValue = (int) $normalized;
+
+            return $integerValue > 0 ? $integerValue : null;
+        }
+
+        // Backward compatibility for legacy URL/string values.
+        return $normalized;
     }
 
     public function fieldValue(string $name): mixed

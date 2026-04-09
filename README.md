@@ -157,5 +157,6 @@ The platform now includes a first-class **Files** domain model (`FileAsset`) for
 - Metadata persists in `files` via `MySqlFileRepository`.
 - Storage is abstracted behind `FileStorageInterface` with a local implementation rooted in `storage/files/`.
 - Uploads are handled by `FileUploadService`, which validates metadata, computes SHA-256 checksums, and generates stable stored names.
+- Content type `image`/`file` fields persist file references as `files.id` integers in `field_values_json` (legacy URL strings are tolerated for backward compatibility).
 
 See `docs/files.md` for details.

@@ -11,6 +11,7 @@ use App\Application\Content\UpdateContentItem;
 use App\Domain\Content\ContentTypeField;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
+use App\Domain\Files\Repository\FileRepositoryInterface;
 use App\Http\Request;
 use App\Http\Response;
 use App\Infrastructure\Auth\AuthSession;
@@ -24,6 +25,7 @@ final class ContentAdminController
         private readonly TemplateRenderer $templateRenderer,
         private readonly ContentTypeRepositoryInterface $contentTypes,
         private readonly ContentItemRepositoryInterface $contentItems,
+        private readonly FileRepositoryInterface $files,
         private readonly ListContentItems $listContentItems,
         private readonly CreateContentItem $createContentItem,
         private readonly UpdateContentItem $updateContentItem,
@@ -63,6 +65,7 @@ final class ContentAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
+                'filesForSelection' => $this->filesForSelection(),
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => [],
@@ -121,6 +124,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
+                'filesForSelection' => $this->filesForSelection(),
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => [],
@@ -235,6 +239,7 @@ final class ContentAdminController
                 'request' => $request,
                 'authUser' => $this->authSession->user(),
                 'contentTypes' => $this->contentTypes->findAll(),
+                'filesForSelection' => $this->filesForSelection(),
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => $errors,
@@ -276,6 +281,7 @@ final class ContentAdminController
                 'authUser' => $this->authSession->user(),
                 'contentItem' => $item,
                 'contentTypes' => $this->contentTypes->findAll(),
+                'filesForSelection' => $this->filesForSelection(),
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => $errors,
@@ -297,6 +303,31 @@ final class ContentAdminController
         );
 
         return Response::html($html, 422);
+    }
+
+    /**
+     * @return list<array{id:int,label:string,mime_type:string,extension:string}>
+     */
+    private function filesForSelection(): array
+    {
+        $options = [];
+
+        foreach ($this->files->findAll() as $file) {
+            $id = $file->id();
+
+            if ($id === null) {
+                continue;
+            }
+
+            $options[] = [
+                'id' => $id,
+                'label' => sprintf('#%d · %s (%s)', $id, $file->originalName(), $file->mimeType()),
+                'mime_type' => $file->mimeType(),
+                'extension' => $file->extension(),
+            ];
+        }
+
+        return $options;
     }
 
 

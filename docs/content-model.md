@@ -82,6 +82,8 @@ Behavior guarantees:
 - Values are validated against `content_type_fields` schema before save.
 - Required/select/type constraints are enforced in application validation.
 - Number/boolean/date values are normalized to typed JSON values where practical.
+- `image` and `file` field values are stored as `files.id` integers (or `null`) for new writes.
+- Legacy rows that still contain URL/string values for `image`/`file` fields are read safely for backward compatibility; they should be migrated to file IDs over time.
 - Older rows missing new keys are read safely; defaults are applied when configured, otherwise `null`.
 
 ### Pattern block storage format (current)

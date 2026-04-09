@@ -48,6 +48,7 @@ Available variables:
 - `$meta` (`array{noindex: bool}`)
 - `$editorModeActive` (`bool`)
 - `$editorCanUse` (`bool`)
+- `$fileFieldResolver` (`App\Application\Files\ContentItemFileFieldResolver`)
 
 
 ### Reading structured content type fields in templates
@@ -67,6 +68,22 @@ $publishDate = $contentItem->fieldValue('publish_date'); // YYYY-MM-DD or null
 ```
 
 Values are already normalized by the admin save flow and validation layer.
+
+For `image`/`file` fields, stored values are file IDs (`int`) in v1. Resolve them when needed:
+
+```php
+$heroImageId = $contentItem->fieldValue('hero_image'); // int|null (or legacy string on old rows)
+$heroImage = $fileFieldResolver->resolveField($contentItem, 'hero_image'); // ?FileAsset
+
+if ($heroImage !== null) {
+    echo $heroImage->originalName();
+}
+```
+
+Backward compatibility note:
+
+- Some legacy content rows may still contain URL/string values for `image`/`file` fields.
+- Use `$fileFieldResolver->isLegacyValue($contentItem->fieldValue('hero_image'))` if you need to branch rendering logic during migration.
 
 ### Content-type collection templates
 

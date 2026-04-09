@@ -67,6 +67,22 @@ Administrators manage uploaded Files (not Media) from:
 
 Delete flow is storage-safe: deleting a file in admin removes both the database row and the storage object through `FileStorageInterface`.
 
+## Content field integration (v1)
+
+`content_type_fields.field_type` values `image` and `file` are integrated with the Files subsystem:
+
+- Admin content create/edit renders these fields as file selectors sourced from uploaded `files`.
+- New writes persist `content_items.field_values_json` values as:
+  - file ID (`int`) when selected
+  - `null` when cleared (if field is not required)
+- Validation enforces that selected IDs reference existing `FileAsset` rows.
+
+Backward compatibility:
+
+- Older rows may still contain legacy URL/string values for `image`/`file` fields.
+- Runtime reads these values safely (no fatal errors).
+- Legacy values should be migrated to file IDs during data cleanup or content re-save workflows.
+
 ## Future extension points
 
 This v1 foundation is intentionally minimal but future-ready for:
