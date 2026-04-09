@@ -10,6 +10,7 @@ use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
+use App\Domain\Files\Repository\FileRepositoryInterface;
 use App\Infrastructure\Auth\MySqlUserRepository;
 use App\Infrastructure\Config\ConfigRepository;
 use App\Infrastructure\Content\MySqlCategoryGroupRepository;
@@ -18,6 +19,7 @@ use App\Infrastructure\Content\MySqlContentItemRepository;
 use App\Infrastructure\Content\MySqlContentRelationshipRepository;
 use App\Infrastructure\Content\MySqlContentTypeRepository;
 use App\Infrastructure\Database\Connection;
+use App\Infrastructure\Files\MySqlFileRepository;
 use App\Infrastructure\Database\PdoFactory;
 use App\Domain\Logging\LoggerInterface;
 use RuntimeException;
@@ -51,7 +53,8 @@ final class PersistenceFactory
      *   contentTypeRepository: ContentTypeRepositoryInterface,
      *   contentRelationshipRepository: ContentRelationshipRepositoryInterface,
      *   categoryGroupRepository: CategoryGroupRepositoryInterface,
-     *   categoryRepository: CategoryRepositoryInterface
+     *   categoryRepository: CategoryRepositoryInterface,
+     *   fileRepository: FileRepositoryInterface
      * }
      */
     public function build(): array
@@ -95,6 +98,7 @@ final class PersistenceFactory
             'contentRelationshipRepository' => $repositories['contentRelationshipRepository'],
             'categoryGroupRepository' => $repositories['categoryGroupRepository'],
             'categoryRepository' => $repositories['categoryRepository'],
+            'fileRepository' => $repositories['fileRepository'],
         ];
     }
 
@@ -105,7 +109,8 @@ final class PersistenceFactory
      *   contentTypeRepository: ContentTypeRepositoryInterface,
      *   contentRelationshipRepository: ContentRelationshipRepositoryInterface,
      *   categoryGroupRepository: CategoryGroupRepositoryInterface,
-     *   categoryRepository: CategoryRepositoryInterface
+     *   categoryRepository: CategoryRepositoryInterface,
+     *   fileRepository: FileRepositoryInterface
      * }
      */
     private function buildRepositories(Connection $connection): array
@@ -117,6 +122,7 @@ final class PersistenceFactory
             'contentRelationshipRepository' => new MySqlContentRelationshipRepository($connection),
             'categoryGroupRepository' => new MySqlCategoryGroupRepository($connection),
             'categoryRepository' => new MySqlCategoryRepository($connection),
+            'fileRepository' => new MySqlFileRepository($connection),
         ];
     }
 }
