@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controller;
 
+use App\Application\Files\ContentItemFileFieldResolver;
 use App\Domain\Content\Exception\InvalidSlugException;
 use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\CategoryRepositoryInterface;
@@ -21,6 +22,7 @@ final class ContentController
         private readonly CategoryGroupRepositoryInterface $categoryGroups,
         private readonly CategoryRepositoryInterface $categories,
         private readonly ContentItemRepositoryInterface $contentItems,
+        private readonly ContentItemFileFieldResolver $fileFieldResolver,
         private readonly TemplateResolver $templateResolver,
         private readonly TemplateRenderer $templateRenderer,
         private readonly EditorMode $editorMode
@@ -61,6 +63,7 @@ final class ContentController
             'request' => $request,
             'slug' => $slug->value(),
             'patternBlocks' => $contentItem->patternBlocks(),
+            'fileFieldResolver' => $this->fileFieldResolver,
             'meta' => [
                 'noindex' => $contentItem->noindex(),
             ],
