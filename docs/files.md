@@ -57,6 +57,16 @@ Table: `files`
 - writes content through `FileStorageInterface`
 - persists `FileAsset` through `FileRepositoryInterface`
 
+## Admin UI
+
+Administrators manage uploaded Files (not Media) from:
+
+- `/admin/files` list and browse
+- `/admin/files/upload` multipart upload flow
+- `/admin/files/{id}/edit` metadata inspection/edit (`slug`, `visibility`)
+
+Delete flow is storage-safe: deleting a file in admin removes both the database row and the storage object through `FileStorageInterface`.
+
 ## Future extension points
 
 This v1 foundation is intentionally minimal but future-ready for:

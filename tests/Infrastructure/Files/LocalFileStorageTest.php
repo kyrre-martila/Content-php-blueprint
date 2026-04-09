@@ -17,5 +17,8 @@ it('stores files under normalized relative paths and prevents traversal', functi
         ->and($storage->read('ab/cd/manual.pdf'))->toBe('file-contents')
         ->and($storage->absolutePath('ab/cd/manual.pdf'))->toEndWith('/ab/cd/manual.pdf');
 
+    $storage->delete('ab/cd/manual.pdf');
+    expect($storage->exists('ab/cd/manual.pdf'))->toBeFalse();
+
     $storage->write('../outside.txt', 'nope');
 })->throws(RuntimeException::class);

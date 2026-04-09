@@ -11,6 +11,7 @@ use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
+use App\Admin\Controller\FileAdminController;
 use App\Admin\Controller\PatternController;
 use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
@@ -51,6 +52,7 @@ final class RouteRegistry
         ?InstallController $installController = null,
         ?ContentAdminController $contentAdminController = null,
         ?TemplateAdminController $templateAdminController = null,
+        ?FileAdminController $fileAdminController = null,
         ?ContentTypeAdminController $contentTypeAdminController = null,
         ?CategoryAdminController $categoryAdminController = null,
         ?RelationshipAdminController $relationshipAdminController = null,
@@ -85,6 +87,7 @@ final class RouteRegistry
             patternController: $patternController,
             contentAdminController: $contentAdminController,
             templateAdminController: $templateAdminController,
+            fileAdminController: $fileAdminController,
             contentTypeAdminController: $contentTypeAdminController,
             categoryAdminController: $categoryAdminController,
             relationshipAdminController: $relationshipAdminController,

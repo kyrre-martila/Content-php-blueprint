@@ -11,6 +11,7 @@ use App\Admin\Controller\ContentTypeAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\DevModeController;
 use App\Admin\Controller\EditorModeController;
+use App\Admin\Controller\FileAdminController;
 use App\Admin\Controller\PatternController;
 use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
@@ -21,6 +22,9 @@ use App\Application\Content\CreateContentItem;
 use App\Application\Content\ListContentItems;
 use App\Application\Content\UpdateContentItem;
 use App\Application\DevMode\DevFileService;
+use App\Application\Files\DeleteFileService;
+use App\Application\Files\FileUploadService;
+use App\Application\Files\UpdateFileMetadataService;
 use App\Application\Editor\EditorContentService;
 use App\Application\OCF\OCFExporter;
 use App\Application\SEO\RobotsGenerator;
@@ -33,6 +37,7 @@ use App\Domain\Content\Repository\ContentRelationshipRepositoryInterface;
 use App\Domain\Content\Repository\CategoryGroupRepositoryInterface;
 use App\Domain\Content\Repository\CategoryRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
+use App\Domain\Files\Repository\FileRepositoryInterface;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
@@ -46,6 +51,7 @@ use App\Infrastructure\Editor\DevMode;
 use App\Infrastructure\Editor\EditableFileRegistry;
 use App\Infrastructure\Editor\EditorMode;
 use App\Infrastructure\Editor\EditHistoryLogger;
+use App\Infrastructure\Files\FileStorageInterface;
 use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\Pattern\PatternRegistry;
 use App\Infrastructure\Security\ClientIpResolver;
@@ -73,6 +79,7 @@ final class ControllerFactory
  *   dashboardController: DashboardController,
  *   patternController: PatternController,
  *   templateAdminController: ?TemplateAdminController,
+ *   fileAdminController: ?FileAdminController,
      *   contentTypeAdminController: ?ContentTypeAdminController,
      *   categoryAdminController: ?CategoryAdminController,
      *   relationshipAdminController: ?RelationshipAdminController,
@@ -92,6 +99,7 @@ final class ControllerFactory
         ?ContentRelationshipRepositoryInterface $contentRelationshipRepository,
         ?CategoryGroupRepositoryInterface $categoryGroupRepository,
         ?CategoryRepositoryInterface $categoryRepository,
+        FileRepositoryInterface $fileRepository,
         TemplateResolver $templateResolver,
         TemplatePathMap $templatePathMap,
         TemplateRenderer $templateRenderer,
@@ -114,7 +122,8 @@ final class ControllerFactory
         bool $installationRequired,
         bool $repositoriesAvailable,
         string $migrationsTable,
-        ?EditorContentService $editorContentService
+        ?EditorContentService $editorContentService,
+        FileStorageInterface $fileStorage
     ): array {
         $loginUser = new LoginUser($userRepository, $authSession);
 
@@ -133,6 +142,7 @@ final class ControllerFactory
         $templateAdminController = null;
         $contentTypeAdminController = null;
         $categoryAdminController = null;
+        $fileAdminController = null;
         $editorModeController = null;
         $contentController = null;
         $sitemapController = null;
@@ -196,6 +206,16 @@ final class ControllerFactory
                 );
             }
 
+            $fileAdminController = new FileAdminController(
+                $templateRenderer,
+                $fileRepository,
+                new FileUploadService($fileRepository, $fileStorage),
+                new UpdateFileMetadataService($fileRepository),
+                new DeleteFileService($fileRepository, $fileStorage),
+                $authSession,
+                $sessionManager
+            );
+
             $editorModeController = new EditorModeController(
                 $editorMode,
                 $editorContentService
@@ -231,6 +251,7 @@ final class ControllerFactory
             'dashboardController' => new DashboardController($templateRenderer, $authSession, $upgradeState, $templateResolver, $templatePathMap, $contentTypeRepository, $editorMode, $devMode),
             'patternController' => new PatternController($patternRegistry),
             'templateAdminController' => $templateAdminController,
+            'fileAdminController' => $fileAdminController,
             'contentTypeAdminController' => $contentTypeAdminController,
             'categoryAdminController' => $categoryAdminController,
             'relationshipAdminController' => $repositoriesAvailable

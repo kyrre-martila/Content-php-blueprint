@@ -13,4 +13,11 @@ interface FileRepositoryInterface
     public function findById(int $id): ?FileAsset;
 
     public function findBySlug(string $slug): ?FileAsset;
+
+    /**
+     * @return list<FileAsset>
+     */
+    public function findAll(): array;
+
+    public function delete(FileAsset $fileAsset): void;
 }

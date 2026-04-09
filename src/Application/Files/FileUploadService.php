@@ -25,7 +25,8 @@ final class FileUploadService
 
         $checksum = hash('sha256', $input->contents);
         $baseSlug = $this->slugify(pathinfo($input->originalName, PATHINFO_FILENAME));
-        $storedName = sprintf('%s-%s.%s', $baseSlug, substr($checksum, 0, 12), $input->extension);
+        $slug = $this->generateUniqueSlug($baseSlug);
+        $storedName = sprintf('%s-%s.%s', $slug, substr($checksum, 0, 12), $input->extension);
         $storagePath = sprintf('%s/%s/%s', substr($checksum, 0, 2), substr($checksum, 2, 2), $storedName);
         $now = new DateTimeImmutable();
 
@@ -33,7 +34,7 @@ final class FileUploadService
             id: null,
             originalName: $input->originalName,
             storedName: $storedName,
-            slug: $baseSlug,
+            slug: $slug,
             mimeType: $input->mimeType,
             extension: $input->extension,
             sizeBytes: $input->sizeBytes,
@@ -69,6 +70,10 @@ final class FileUploadService
             throw new InvalidArgumentException('Size bytes must be zero or greater.');
         }
 
+        if ($input->sizeBytes === 0 || $input->contents === '') {
+            throw new InvalidArgumentException('Uploaded file cannot be empty.');
+        }
+
         if (strlen($input->contents) !== $input->sizeBytes) {
             throw new InvalidArgumentException('Size bytes does not match uploaded content length.');
         }
@@ -89,5 +94,22 @@ final class FileUploadService
         }
 
         return $normalized;
+    }
+
+    private function generateUniqueSlug(string $baseSlug): string
+    {
+        if ($this->fileRepository->findBySlug($baseSlug) === null) {
+            return $baseSlug;
+        }
+
+        for ($suffix = 2; $suffix <= 9999; $suffix++) {
+            $candidate = $baseSlug . '-' . $suffix;
+
+            if ($this->fileRepository->findBySlug($candidate) === null) {
+                return $candidate;
+            }
+        }
+
+        throw new InvalidArgumentException('Unable to generate unique slug for uploaded file.');
     }
 }

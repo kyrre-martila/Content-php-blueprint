@@ -14,12 +14,15 @@ it('rejects invalid uploaded metadata when size does not match contents', functi
         public function save(FileAsset $fileAsset): FileAsset { return $fileAsset; }
         public function findById(int $id): ?FileAsset { return null; }
         public function findBySlug(string $slug): ?FileAsset { return null; }
+        public function findAll(): array { return []; }
+        public function delete(FileAsset $fileAsset): void {}
     };
 
     $storage = new class() implements FileStorageInterface {
         public function write(string $storagePath, string $contents): void {}
         public function read(string $storagePath): string { return ''; }
         public function exists(string $storagePath): bool { return false; }
+        public function delete(string $storagePath): void {}
         public function absolutePath(string $storagePath): string { return $storagePath; }
     };
 

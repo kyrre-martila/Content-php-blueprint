@@ -43,6 +43,19 @@ final class LocalFileStorage implements FileStorageInterface
         return is_file($this->absolutePath($storagePath));
     }
 
+    public function delete(string $storagePath): void
+    {
+        $absolutePath = $this->absolutePath($storagePath);
+
+        if (!is_file($absolutePath)) {
+            return;
+        }
+
+        if (!unlink($absolutePath)) {
+            throw new RuntimeException(sprintf('Unable to delete file from storage path: %s', $storagePath));
+        }
+    }
+
     public function absolutePath(string $storagePath): string
     {
         $normalizedPath = $this->normalizePath($storagePath);
