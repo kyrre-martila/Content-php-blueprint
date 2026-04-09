@@ -8,6 +8,7 @@ use App\Admin\Controller\ContentAdminController;
 use App\Admin\Controller\CategoryAdminController;
 use App\Admin\Controller\DashboardController;
 use App\Admin\Controller\ContentTypeAdminController;
+use App\Admin\Controller\FileAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Admin\Controller\PatternController;
 use App\Admin\Controller\RelationshipAdminController;
@@ -23,6 +24,7 @@ final class AdminRouteRegistrar
         private readonly PatternController $patternController,
         private readonly ?ContentAdminController $contentAdminController,
         private readonly ?TemplateAdminController $templateAdminController,
+        private readonly ?FileAdminController $fileAdminController,
         private readonly ?ContentTypeAdminController $contentTypeAdminController,
         private readonly ?CategoryAdminController $categoryAdminController,
         private readonly ?RelationshipAdminController $relationshipAdminController,
@@ -63,6 +65,37 @@ final class AdminRouteRegistrar
             $routeRegistry->post('/admin/templates/edit', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'update',
+            ], $middleware));
+        }
+
+        if ($this->fileAdminController !== null) {
+            $routeRegistry->get('/admin/files', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'index',
+            ], $middleware));
+            $routeRegistry->get('/admin/files/upload', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'upload',
+            ], $middleware));
+            $routeRegistry->post('/admin/files/upload', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'storeUpload',
+            ], $middleware));
+            $routeRegistry->get('/admin/files/{id}/edit', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'edit',
+            ], $middleware));
+            $routeRegistry->post('/admin/files/{id}/edit', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'update',
+            ], $middleware));
+            $routeRegistry->delete('/admin/files/{id}', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'destroy',
+            ], $middleware));
+            $routeRegistry->post('/admin/files/{id}', $this->middlewareStackBuilder->wrap([
+                $this->fileAdminController,
+                'destroy',
             ], $middleware));
         }
 

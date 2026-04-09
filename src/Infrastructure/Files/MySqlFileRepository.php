@@ -40,6 +40,27 @@ final class MySqlFileRepository implements FileRepositoryInterface
         return $row === null ? null : $this->mapRowToFileAsset($row);
     }
 
+    public function findAll(): array
+    {
+        $rows = $this->connection->fetchAll('SELECT * FROM files ORDER BY created_at DESC, id DESC');
+        $results = [];
+
+        foreach ($rows as $row) {
+            $results[] = $this->mapRowToFileAsset($row);
+        }
+
+        return $results;
+    }
+
+    public function delete(FileAsset $fileAsset): void
+    {
+        if ($fileAsset->id() === null) {
+            throw new RuntimeException('Cannot delete file asset without an ID.');
+        }
+
+        $this->connection->execute('DELETE FROM files WHERE id = :id', ['id' => $fileAsset->id()]);
+    }
+
     private function create(FileAsset $fileAsset): FileAsset
     {
         $id = $this->connection->insertAndGetId(

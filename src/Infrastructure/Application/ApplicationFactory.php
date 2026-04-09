@@ -18,6 +18,7 @@ use App\Infrastructure\Database\Connection;
 use App\Domain\Logging\LoggerInterface;
 use App\Infrastructure\Security\ClientIpResolver;
 use App\Infrastructure\Security\LoginRateLimiter;
+use App\Infrastructure\Files\LocalFileStorage;
 
 final class ApplicationFactory
 {
@@ -116,6 +117,7 @@ final class ApplicationFactory
             $persistence['contentRelationshipRepository'],
             $persistence['categoryGroupRepository'],
             $persistence['categoryRepository'],
+            $persistence['fileRepository'],
             $views['templateResolver'],
             $views['templatePathMap'],
             $views['templateRenderer'],
@@ -138,7 +140,8 @@ final class ApplicationFactory
             $persistence['installationRequired'],
             $persistence['repositoriesAvailable'],
             $persistence['migrationsTable'],
-            $editors['editorContentService']
+            $editors['editorContentService'],
+            new LocalFileStorage($this->projectRoot . '/storage/files')
         );
 
         $routeRegistry = new RouteRegistry(
@@ -155,6 +158,7 @@ final class ApplicationFactory
             installController: $controllers['installController'],
             contentAdminController: $controllers['contentAdminController'],
             templateAdminController: $controllers['templateAdminController'],
+            fileAdminController: $controllers['fileAdminController'],
             contentTypeAdminController: $controllers['contentTypeAdminController'],
             categoryAdminController: $controllers['categoryAdminController'],
             relationshipAdminController: $controllers['relationshipAdminController'],

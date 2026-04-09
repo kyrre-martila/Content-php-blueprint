@@ -51,10 +51,15 @@ it('saves and loads files from mysql file repository', function (): void {
     ));
 
     $loaded = $repository->findBySlug('handbook');
+    $all = $repository->findAll();
 
     expect($created->id())->not->toBeNull()
         ->and($loaded)->not->toBeNull()
+        ->and($all)->toHaveCount(1)
         ->and($loaded?->storedName())->toBe('handbook-aabbccddeeff.docx')
         ->and($loaded?->visibility())->toBe(FileVisibility::Authenticated)
         ->and($loaded?->checksumSha256())->toBe(str_repeat('a', 64));
+
+    $repository->delete($created);
+    expect($repository->findById((int) $created->id()))->toBeNull();
 });
