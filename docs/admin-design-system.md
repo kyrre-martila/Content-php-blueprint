@@ -58,6 +58,7 @@ Owns page-specific variants:
 - add new design tokens only in `admin-tokens.css`
 - keep structural rules in shell layer, reusable rules in components, and page-specific rules in screens
 - use existing naming convention (`admin-*`, `__`, `--`)
+- keep sidebar navigation role-aware: editor views must only expose editor-safe destinations (dashboard/content/files/view-site), while privileged links remain hidden unless role permits.
 
 ### Authoring workflow
 

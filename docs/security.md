@@ -35,6 +35,15 @@ Login rate limiting uses resolved client IP.
 
 Misconfigured proxy trust can cause unrelated users to share one effective IP identity, producing false lockouts and weaker abuse detection.
 
+### Admin authorization boundaries
+
+Admin route access is explicitly role-gated:
+
+- editor-safe routes (`/admin`, `/admin/content*`, `/admin/files*`) allow `editor`, `admin`, and `superadmin`
+- privileged admin routes (content type/category/relationship/template/system/dev management) allow only `admin` and `superadmin`
+
+This prevents editors from accessing global content-model/system-management surfaces while preserving practical content editing access.
+
 ---
 
 ## Deployment checklist (current requirement)

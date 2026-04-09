@@ -15,6 +15,7 @@ use App\Admin\Controller\FileAdminController;
 use App\Admin\Controller\PatternController;
 use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
+use App\Admin\Security\AdminAccessPolicy;
 use App\Http\Controller\ContentController;
 use App\Http\Controller\HealthController;
 use App\Http\Controller\HomeController;
@@ -47,6 +48,7 @@ final class RouteRegistry
         DevModeController $devModeController,
         CsrfMiddleware $csrf,
         RequireAuthMiddleware $requireAuth,
+        RequireRoleMiddleware $requireEditorOrAdminRole,
         RequireRoleMiddleware $requireAdminRole,
         MiddlewareStackBuilder $middlewareStackBuilder,
         ?InstallController $installController = null,
@@ -91,9 +93,11 @@ final class RouteRegistry
             contentTypeAdminController: $contentTypeAdminController,
             categoryAdminController: $categoryAdminController,
             relationshipAdminController: $relationshipAdminController,
+            accessPolicy: new AdminAccessPolicy(),
             csrf: $csrf,
             requireAuth: $requireAuth,
-            requireRole: $requireAdminRole,
+            requireEditorOrAdminRole: $requireEditorOrAdminRole,
+            requireAdminRole: $requireAdminRole,
             middlewareStackBuilder: $middlewareStackBuilder
         ))->register($this);
 

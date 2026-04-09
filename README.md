@@ -11,6 +11,10 @@ Framework-light PHP 8.3+ blueprint for structured content websites with explicit
 - Per-content-type structured field schemas via `content_type_fields` (name/label/type/required/default/settings/sort order).
 - Explicit separation of field schemas, hierarchy (`parent_id`), categories (`content_item_categories`), relationships (`content_item_relationships`), and uploaded Files (`files`).
 - Install-state-aware admin routing, role-gated Editor Mode/Dev Mode, and trusted proxy-aware client IP resolution.
+- Explicit editor-safe admin access policy:
+  - Editors can access `/admin`, content item CRUD (`/admin/content*`), and files library/upload/select flows (`/admin/files*`).
+  - Editors cannot access content types, categories, relationships, templates, system templates, dev mode, or other privileged system management routes.
+  - Admin/superadmin retain full admin-area access.
 
 ## AI operating environment
 
@@ -160,3 +164,11 @@ The platform now includes a first-class **Files** domain model (`FileAsset`) for
 - Content type `image`/`file` fields persist file references as `files.id` integers in `field_values_json` (legacy URL strings are tolerated for backward compatibility).
 
 See `docs/files.md` for details.
+
+## Admin role access policy (current)
+
+- Login is available to all configured roles (admin/superadmin/editor).
+- Admin navigation is role-filtered:
+  - **Editor**: Dashboard, Content, Files, View site.
+  - **Admin/Superadmin**: full navigation, including Content Types, Categories, Relationships, Templates, Dev Mode, and System Templates.
+- Route registration now uses explicit policy-mapped middleware so editor-safe routes and privileged routes are separate by default.

@@ -12,6 +12,8 @@ use App\Admin\Controller\FileAdminController;
 use App\Admin\Controller\TemplateAdminController;
 use App\Admin\Controller\PatternController;
 use App\Admin\Controller\RelationshipAdminController;
+use App\Admin\Security\AdminAccessPolicy;
+use App\Domain\Auth\Role;
 use App\Http\Middleware\CsrfMiddleware;
 use App\Http\Middleware\MiddlewareStackBuilder;
 use App\Http\Middleware\RequireAuthMiddleware;
@@ -28,164 +30,164 @@ final class AdminRouteRegistrar
         private readonly ?ContentTypeAdminController $contentTypeAdminController,
         private readonly ?CategoryAdminController $categoryAdminController,
         private readonly ?RelationshipAdminController $relationshipAdminController,
+        private readonly AdminAccessPolicy $accessPolicy,
         private readonly CsrfMiddleware $csrf,
         private readonly RequireAuthMiddleware $requireAuth,
-        private readonly RequireRoleMiddleware $requireRole,
+        private readonly RequireRoleMiddleware $requireEditorOrAdminRole,
+        private readonly RequireRoleMiddleware $requireAdminRole,
         private readonly MiddlewareStackBuilder $middlewareStackBuilder,
     ) {
     }
 
     public function register(RouteRegistry $routeRegistry): void
     {
-        $middleware = [$this->csrf, $this->requireAuth, $this->requireRole];
-
         $routeRegistry->get('/admin', $this->middlewareStackBuilder->wrap([
             $this->dashboardController,
             'index',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin')));
 
         $routeRegistry->get('/admin/patterns', $this->middlewareStackBuilder->wrap([
             $this->patternController,
             'index',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/patterns')));
 
         if ($this->templateAdminController !== null) {
             $routeRegistry->get('/admin/templates', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'index',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/templates')));
             $routeRegistry->get('/admin/system-templates', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'systemIndex',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/system-templates')));
             $routeRegistry->get('/admin/templates/edit', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'edit',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/templates/edit')));
             $routeRegistry->post('/admin/templates/edit', $this->middlewareStackBuilder->wrap([
                 $this->templateAdminController,
                 'update',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/templates/edit')));
         }
 
         if ($this->fileAdminController !== null) {
             $routeRegistry->get('/admin/files', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'index',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files')));
             $routeRegistry->get('/admin/files/upload', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'upload',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files/upload')));
             $routeRegistry->post('/admin/files/upload', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'storeUpload',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files/upload')));
             $routeRegistry->get('/admin/files/{id}/edit', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'edit',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files/{id}/edit')));
             $routeRegistry->post('/admin/files/{id}/edit', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'update',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files/{id}/edit')));
             $routeRegistry->delete('/admin/files/{id}', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'destroy',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files/{id}')));
             $routeRegistry->post('/admin/files/{id}', $this->middlewareStackBuilder->wrap([
                 $this->fileAdminController,
                 'destroy',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/files/{id}')));
         }
 
         if ($this->contentTypeAdminController !== null) {
             $routeRegistry->get('/admin/content-types', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'index',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types')));
             $routeRegistry->get('/admin/content-types/create', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'create',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types/create')));
             $routeRegistry->post('/admin/content-types/create', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'store',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types/create')));
             $routeRegistry->get('/admin/content-types/{id}/edit', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'edit',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types/{id}/edit')));
             $routeRegistry->post('/admin/content-types/{id}/edit', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'update',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types/{id}/edit')));
             $routeRegistry->delete('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'destroy',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types/{slug}')));
             $routeRegistry->post('/admin/content-types/{slug}', $this->middlewareStackBuilder->wrap([
                 $this->contentTypeAdminController,
                 'destroy',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/content-types/{slug}')));
         }
 
         if ($this->categoryAdminController !== null) {
             $routeRegistry->get('/admin/categories', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'index',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories')));
             $routeRegistry->post('/admin/categories/groups/create', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'storeGroup',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/groups/create')));
             $routeRegistry->post('/admin/categories/groups/{id}/edit', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'updateGroup',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/groups/{id}/edit')));
             $routeRegistry->post('/admin/categories/groups/{id}', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'destroyGroup',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/groups/{id}')));
             $routeRegistry->delete('/admin/categories/groups/{id}', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'destroyGroup',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/groups/{id}')));
             $routeRegistry->post('/admin/categories/create', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'storeCategory',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/create')));
             $routeRegistry->post('/admin/categories/{id}/edit', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'updateCategory',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/{id}/edit')));
             $routeRegistry->post('/admin/categories/{id}', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'destroyCategory',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/{id}')));
             $routeRegistry->delete('/admin/categories/{id}', $this->middlewareStackBuilder->wrap([
                 $this->categoryAdminController,
                 'destroyCategory',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/categories/{id}')));
         }
 
         if ($this->relationshipAdminController !== null) {
             $routeRegistry->get('/admin/relationships', $this->middlewareStackBuilder->wrap([
                 $this->relationshipAdminController,
                 'index',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/relationships')));
             $routeRegistry->post('/admin/relationships/rules/create', $this->middlewareStackBuilder->wrap([
                 $this->relationshipAdminController,
                 'storeRule',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/relationships/rules/create')));
             $routeRegistry->post('/admin/relationships/rules/{fromType}/{toType}/{relationType}', $this->middlewareStackBuilder->wrap([
                 $this->relationshipAdminController,
                 'destroyRule',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/relationships/rules/{fromType}/{toType}/{relationType}')));
             $routeRegistry->delete('/admin/relationships/rules/{fromType}/{toType}/{relationType}', $this->middlewareStackBuilder->wrap([
                 $this->relationshipAdminController,
                 'destroyRule',
-            ], $middleware));
+            ], $this->middlewareForPath('/admin/relationships/rules/{fromType}/{toType}/{relationType}')));
         }
 
         if ($this->contentAdminController === null) {
@@ -195,30 +197,50 @@ final class AdminRouteRegistrar
         $routeRegistry->get('/admin/content', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'index',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content')));
         $routeRegistry->get('/admin/content/create', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'create',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content/create')));
         $routeRegistry->post('/admin/content/create', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'store',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content/create')));
         $routeRegistry->get('/admin/content/{id}/edit', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'edit',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content/{id}/edit')));
         $routeRegistry->post('/admin/content/{id}/edit', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'update',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content/{id}/edit')));
         $routeRegistry->delete('/admin/content/{id}', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'destroy',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content/{id}')));
         $routeRegistry->post('/admin/content/{id}', $this->middlewareStackBuilder->wrap([
             $this->contentAdminController,
             'destroy',
-        ], $middleware));
+        ], $this->middlewareForPath('/admin/content/{id}')));
+    }
+
+    /**
+     * @return list<object>
+     */
+    private function middlewareForPath(string $path): array
+    {
+        $roles = $this->accessPolicy->allowedRolesForPath($path);
+        $containsEditor = false;
+
+        foreach ($roles as $role) {
+            if ($role->equals(Role::editor())) {
+                $containsEditor = true;
+                break;
+            }
+        }
+
+        return $containsEditor
+            ? [$this->csrf, $this->requireAuth, $this->requireEditorOrAdminRole]
+            : [$this->csrf, $this->requireAuth, $this->requireAdminRole];
     }
 }

@@ -63,6 +63,12 @@ final class ApplicationFactory
         $csrf = new CsrfMiddleware($sessionManager);
         $authSession = new AuthSession($sessionManager);
         $requireAuth = new RequireAuthMiddleware($authSession);
+        $requireEditorOrAdminRole = new RequireRoleMiddleware(
+            $authSession,
+            Role::editor(),
+            Role::admin(),
+            Role::superadmin()
+        );
         $requireAdminRole = new RequireRoleMiddleware(
             $authSession,
             Role::admin(),
@@ -154,6 +160,7 @@ final class ApplicationFactory
             devModeController: $controllers['devModeController'],
             csrf: $csrf,
             requireAuth: $requireAuth,
+            requireEditorOrAdminRole: $requireEditorOrAdminRole,
             requireAdminRole: $requireAdminRole,
             installController: $controllers['installController'],
             contentAdminController: $controllers['contentAdminController'],

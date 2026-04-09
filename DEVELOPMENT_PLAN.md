@@ -146,6 +146,25 @@ Ownership model:
 - reusable primitives in `admin-components.css`
 - page-level variants in `admin-screens.css`
 
+### 9) Admin role access policy and route gating
+
+Admin access is split into two explicit route classes:
+
+- **Editor-safe routes** (`editor`, `admin`, `superadmin`):
+  - `GET /admin` (dashboard)
+  - `/admin/content*` (content item list/create/edit/delete)
+  - `/admin/files*` (file library list/upload/edit/delete/select support)
+- **Privileged routes** (`admin`, `superadmin` only):
+  - `/admin/content-types*`
+  - `/admin/categories*`
+  - `/admin/relationships*`
+  - `/admin/templates*`
+  - `/admin/system-templates*`
+  - `/admin/patterns*`
+  - `/admin/dev-mode*`
+
+Navigation is filtered by the same policy so editors only see editor-safe sections and admins retain full navigation.
+
 ---
 
 ## Future roadmap (not current runtime behavior)
