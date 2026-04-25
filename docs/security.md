@@ -44,6 +44,23 @@ Admin route access is explicitly role-gated:
 
 This prevents editors from accessing global content-model/system-management surfaces while preserving practical content editing access.
 
+### Editor Safe Mode boundary (runtime-safe vs source-level)
+
+The admin/content experience now enforces an explicit Editor Safe Mode contract on the server side:
+
+- **Runtime-safe content editing (Editor Mode / editor role)**:
+  - title
+  - slug (policy-allowlisted)
+  - structured field values (including file/image references through field values)
+- **Privileged source/system editing (Dev Mode / admin+ only)**:
+  - templates and system templates
+  - pattern source files
+  - content type schema changes
+  - relationship rule changes
+  - dev-mode source editors and export surfaces
+
+Current policy intentionally blocks editor role from create/delete content operations and from status/template/schema/source-level controls, so editor sessions cannot escalate from runtime content edits into source-level concerns.
+
 ---
 
 ## Deployment checklist (current requirement)

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Admin\Controller;
 
+use App\Admin\Security\EditorSafeContentPolicy;
 use App\Application\Content\CreateContentItem;
 use App\Application\Content\Dto\ContentItemInput;
 use App\Application\Content\ListContentItems;
 use App\Application\Content\UpdateContentItem;
+use App\Domain\Auth\Role;
+use App\Domain\Content\ContentItem;
+use App\Domain\Content\ContentStatus;
 use App\Domain\Content\ContentTypeField;
 use App\Domain\Content\Repository\ContentItemRepositoryInterface;
 use App\Domain\Content\Repository\ContentTypeRepositoryInterface;
@@ -31,7 +35,8 @@ final class ContentAdminController
         private readonly UpdateContentItem $updateContentItem,
         private readonly PatternRegistry $patternRegistry,
         private readonly AuthSession $authSession,
-        private readonly SessionManager $session
+        private readonly SessionManager $session,
+        private readonly EditorSafeContentPolicy $editorSafeContentPolicy
     ) {
     }
 
@@ -51,6 +56,7 @@ final class ContentAdminController
                     'offset' => $listing['offset'],
                 ],
                 'success' => $this->session->pullFlash('content_success'),
+                'canCreateContent' => $this->editorSafeContentPolicy->canCreateContent($this->currentRole()),
             ]
         );
 
@@ -59,6 +65,10 @@ final class ContentAdminController
 
     public function create(Request $request): Response
     {
+        if (!$this->editorSafeContentPolicy->canCreateContent($this->currentRole())) {
+            return Response::html('<h1>Forbidden</h1>', 403);
+        }
+
         $html = $this->templateRenderer->renderTemplate(
             'admin/content/create.php',
             [
@@ -91,7 +101,12 @@ final class ContentAdminController
 
     public function store(Request $request): Response
     {
-        $input = $this->buildInput($request);
+        $role = $this->currentRole();
+        if (!$this->editorSafeContentPolicy->canCreateContent($role)) {
+            return Response::html('<h1>Forbidden</h1>', 403);
+        }
+
+        $input = $this->applyEditorSafeRestrictions($this->buildInput($request), $role, null);
         $result = $this->createContentItem->execute($input);
 
         if (!$result->isValid) {
@@ -117,6 +132,7 @@ final class ContentAdminController
             return Response::html('<h1>Not Found</h1>', 404);
         }
 
+        $role = $this->currentRole();
         $html = $this->templateRenderer->renderTemplate(
             'admin/content/edit.php',
             [
@@ -128,6 +144,7 @@ final class ContentAdminController
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => [],
+                'editorSafePolicy' => $this->editorSafePolicyView($role),
                 'old' => [
                     'title' => $item->title(),
                     'slug' => $item->slug()->value(),
@@ -156,7 +173,12 @@ final class ContentAdminController
             return Response::html('<h1>Not Found</h1>', 404);
         }
 
-        $input = $this->buildInput($request);
+        $existing = $this->contentItems->findById($id);
+        if ($existing === null) {
+            return Response::html('<h1>Not Found</h1>', 404);
+        }
+
+        $input = $this->applyEditorSafeRestrictions($this->buildInput($request), $this->currentRole(), $existing);
         $result = $this->updateContentItem->execute($id, $input);
 
         if (!$result->isValid) {
@@ -171,6 +193,9 @@ final class ContentAdminController
     public function destroy(Request $request): Response
     {
         // Access control enforced via middleware layer.
+        if (!$this->editorSafeContentPolicy->canDeleteContent($this->currentRole())) {
+            return Response::json(['success' => false], 403);
+        }
 
         if (!$this->isDeleteMethod($request)) {
             return Response::json(['success' => false], 405);
@@ -217,6 +242,55 @@ final class ContentAdminController
         );
     }
 
+    private function currentRole(): Role
+    {
+        return $this->authSession->role() ?? Role::editor();
+    }
+
+    /**
+     * @return array{
+     *   can_edit_slug: bool,
+     *   can_edit_status: bool,
+     *   can_change_content_type: bool,
+     *   can_edit_seo_metadata: bool,
+     *   can_edit_pattern_blocks: bool,
+     *   can_assign_categories: bool
+     * }
+     */
+    private function editorSafePolicyView(Role $role): array
+    {
+        return [
+            'can_edit_slug' => $this->editorSafeContentPolicy->canEditSlug($role),
+            'can_edit_status' => $this->editorSafeContentPolicy->canEditStatus($role),
+            'can_change_content_type' => $this->editorSafeContentPolicy->canChangeContentType($role),
+            'can_edit_seo_metadata' => $this->editorSafeContentPolicy->canEditSeoMetadata($role),
+            'can_edit_pattern_blocks' => $this->editorSafeContentPolicy->canEditPatternBlocks($role),
+            'can_assign_categories' => $this->editorSafeContentPolicy->canAssignCategories($role),
+        ];
+    }
+
+    private function applyEditorSafeRestrictions(ContentItemInput $input, Role $role, ?ContentItem $existing): ContentItemInput
+    {
+        if (!$role->equals(Role::editor())) {
+            return $input;
+        }
+
+        return new ContentItemInput(
+            title: $input->title,
+            slug: $this->editorSafeContentPolicy->canEditSlug($role) ? $input->slug : ($existing?->slug()->value() ?? $input->slug),
+            status: $this->editorSafeContentPolicy->canEditStatus($role) ? $input->status : ($existing?->status()->value ?? ContentStatus::Draft->value),
+            contentType: $this->editorSafeContentPolicy->canChangeContentType($role) ? $input->contentType : ($existing?->type()->name() ?? $input->contentType),
+            body: $input->body,
+            patternBlocks: $this->editorSafeContentPolicy->canEditPatternBlocks($role) ? $input->patternBlocks : ($existing?->patternBlocks() ?? []),
+            fieldValues: $input->fieldValues,
+            metaTitle: $this->editorSafeContentPolicy->canEditSeoMetadata($role) ? $input->metaTitle : $existing?->metaTitle(),
+            metaDescription: $this->editorSafeContentPolicy->canEditSeoMetadata($role) ? $input->metaDescription : $existing?->metaDescription(),
+            ogImage: $this->editorSafeContentPolicy->canEditSeoMetadata($role) ? $input->ogImage : $existing?->ogImage(),
+            canonicalUrl: $this->editorSafeContentPolicy->canEditSeoMetadata($role) ? $input->canonicalUrl : $existing?->canonicalUrl(),
+            noindex: $this->editorSafeContentPolicy->canEditSeoMetadata($role) ? $input->noindex : ($existing?->noindex() ?? false),
+        );
+    }
+
     private function resolveContentItemId(Request $request): ?int
     {
         $id = $request->attribute('id');
@@ -243,6 +317,7 @@ final class ContentAdminController
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => $errors,
+                'editorSafePolicy' => $this->editorSafePolicyView($this->currentRole()),
                 'old' => [
                     'title' => $input->title,
                     'slug' => $input->slug,
@@ -285,6 +360,7 @@ final class ContentAdminController
                 'availablePatterns' => $this->availablePatternsForView(),
                 'contentTypeFieldSchemas' => $this->contentTypeFieldSchemasForView(),
                 'errors' => $errors,
+                'editorSafePolicy' => $this->editorSafePolicyView($this->currentRole()),
                 'old' => [
                     'title' => $input->title,
                     'slug' => $input->slug,

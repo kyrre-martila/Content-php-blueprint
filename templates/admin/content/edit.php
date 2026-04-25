@@ -7,6 +7,11 @@ $adminPageTitle = 'Edit content';
 $adminPageDescription = 'Update structured content and metadata.';
 $patternBlocks = is_array($old['pattern_blocks'] ?? null) ? $old['pattern_blocks'] : [];
 $fieldValues = is_array($old['field_values'] ?? null) ? $old['field_values'] : [];
+$canEditSlug = ($editorSafePolicy['can_edit_slug'] ?? true) === true;
+$canEditStatus = ($editorSafePolicy['can_edit_status'] ?? true) === true;
+$canChangeContentType = ($editorSafePolicy['can_change_content_type'] ?? true) === true;
+$canEditSeoMetadata = ($editorSafePolicy['can_edit_seo_metadata'] ?? true) === true;
+$canEditPatternBlocks = ($editorSafePolicy['can_edit_pattern_blocks'] ?? true) === true;
 ?>
 <section class="admin__stack">
     <header class="admin-page__header">
@@ -27,35 +32,43 @@ $fieldValues = is_array($old['field_values'] ?? null) ? $old['field_values'] : [
         <?php endif; ?>
 
         <label for="slug">Slug</label>
-        <input id="slug" type="text" name="slug" value="<?= $e((string) ($old['slug'] ?? '')) ?>" required>
+        <input id="slug" type="text" name="slug" value="<?= $e((string) ($old['slug'] ?? '')) ?>" <?= $canEditSlug ? 'required' : 'readonly' ?>>
         <?php if (isset($errors['slug'])): ?>
             <p role="alert" style="color:#b42318;"><?= $e($errors['slug']) ?></p>
         <?php endif; ?>
 
-        <label for="status">Status</label>
-        <select id="status" name="status" required>
-            <option value="">Select status</option>
-            <option value="draft" <?= (($old['status'] ?? '') === 'draft') ? 'selected' : '' ?>>Draft</option>
-            <option value="published" <?= (($old['status'] ?? '') === 'published') ? 'selected' : '' ?>>Published</option>
-        </select>
-        <?php if (isset($errors['status'])): ?>
-            <p role="alert" style="color:#b42318;"><?= $e($errors['status']) ?></p>
+        <?php if ($canEditStatus): ?>
+            <label for="status">Status</label>
+            <select id="status" name="status" required>
+                <option value="">Select status</option>
+                <option value="draft" <?= (($old['status'] ?? '') === 'draft') ? 'selected' : '' ?>>Draft</option>
+                <option value="published" <?= (($old['status'] ?? '') === 'published') ? 'selected' : '' ?>>Published</option>
+            </select>
+            <?php if (isset($errors['status'])): ?>
+                <p role="alert" style="color:#b42318;"><?= $e($errors['status']) ?></p>
+            <?php endif; ?>
+        <?php else: ?>
+            <input id="status" type="hidden" name="status" value="<?= $e((string) ($old['status'] ?? 'draft')) ?>">
         <?php endif; ?>
 
-        <label for="content_type">Content Type</label>
-        <select id="content_type" name="content_type" required>
-            <option value="">Select content type</option>
-            <?php foreach ($contentTypes as $type): ?>
-                <option
-                    value="<?= $e($type->name()) ?>"
-                    <?= (($old['content_type'] ?? '') === $type->name()) ? 'selected' : '' ?>
-                >
-                    <?= $e($type->label()) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <?php if (isset($errors['content_type'])): ?>
-            <p role="alert" style="color:#b42318;"><?= $e($errors['content_type']) ?></p>
+        <?php if ($canChangeContentType): ?>
+            <label for="content_type">Content Type</label>
+            <select id="content_type" name="content_type" required>
+                <option value="">Select content type</option>
+                <?php foreach ($contentTypes as $type): ?>
+                    <option
+                        value="<?= $e($type->name()) ?>"
+                        <?= (($old['content_type'] ?? '') === $type->name()) ? 'selected' : '' ?>
+                    >
+                        <?= $e($type->label()) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <?php if (isset($errors['content_type'])): ?>
+                <p role="alert" style="color:#b42318;"><?= $e($errors['content_type']) ?></p>
+            <?php endif; ?>
+        <?php else: ?>
+            <input id="content_type" type="hidden" name="content_type" value="<?= $e((string) ($old['content_type'] ?? '')) ?>">
         <?php endif; ?>
 
         <hr>
@@ -67,34 +80,38 @@ $fieldValues = is_array($old['field_values'] ?? null) ? $old['field_values'] : [
         <textarea id="body" name="body" rows="8" disabled aria-describedby="body-help"><?= $e((string) ($old['body'] ?? '')) ?></textarea>
         <p id="body-help">Body persistence will be wired through field-value infrastructure in a future step.</p>
 
-        <hr>
-        <h2>SEO metadata</h2>
+        <?php if ($canEditSeoMetadata): ?>
+            <hr>
+            <h2>SEO metadata</h2>
 
-        <label for="meta_title">Meta title</label>
-        <input id="meta_title" type="text" name="meta_title" value="<?= $e((string) ($old['meta_title'] ?? '')) ?>">
+            <label for="meta_title">Meta title</label>
+            <input id="meta_title" type="text" name="meta_title" value="<?= $e((string) ($old['meta_title'] ?? '')) ?>">
 
-        <label for="meta_description">Meta description</label>
-        <textarea id="meta_description" name="meta_description" rows="3"><?= $e((string) ($old['meta_description'] ?? '')) ?></textarea>
+            <label for="meta_description">Meta description</label>
+            <textarea id="meta_description" name="meta_description" rows="3"><?= $e((string) ($old['meta_description'] ?? '')) ?></textarea>
 
-        <label for="og_image">Open Graph image</label>
-        <input id="og_image" type="text" name="og_image" value="<?= $e((string) ($old['og_image'] ?? '')) ?>">
+            <label for="og_image">Open Graph image</label>
+            <input id="og_image" type="text" name="og_image" value="<?= $e((string) ($old['og_image'] ?? '')) ?>">
 
-        <label for="canonical_url">Canonical URL</label>
-        <input id="canonical_url" type="url" name="canonical_url" value="<?= $e((string) ($old['canonical_url'] ?? '')) ?>">
+            <label for="canonical_url">Canonical URL</label>
+            <input id="canonical_url" type="url" name="canonical_url" value="<?= $e((string) ($old['canonical_url'] ?? '')) ?>">
 
-        <label for="noindex">
-            <input id="noindex" type="checkbox" name="noindex" value="1" <?= (($old['noindex'] ?? false) === true) ? 'checked' : '' ?>>
-            Mark this item as noindex
-        </label>
+            <label for="noindex">
+                <input id="noindex" type="checkbox" name="noindex" value="1" <?= (($old['noindex'] ?? false) === true) ? 'checked' : '' ?>>
+                Mark this item as noindex
+            </label>
+        <?php endif; ?>
 
-        <hr>
-        <h2>Pattern blocks</h2>
-        <p>Add structured blocks in order. Use Move up/down for simple reordering.</p>
+        <?php if ($canEditPatternBlocks): ?>
+            <hr>
+            <h2>Pattern blocks</h2>
+            <p>Add structured blocks in order. Use Move up/down for simple reordering.</p>
 
-        <div id="pattern-blocks"></div>
-        <p>
-            <button type="button" id="add-pattern-block">Add pattern block</button>
-        </p>
+            <div id="pattern-blocks"></div>
+            <p>
+                <button type="button" id="add-pattern-block">Add pattern block</button>
+            </p>
+        <?php endif; ?>
 
         <button type="submit">Save</button>
     </form>
@@ -107,6 +124,7 @@ const contentTypeFieldSchemas = <?= json_encode($contentTypeFieldSchemas, JSON_H
 const existingFieldValues = <?= json_encode($fieldValues, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const availableFiles = <?= json_encode($filesForSelection, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
+const canEditPatternBlocks = <?= $canEditPatternBlocks ? 'true' : 'false' ?>;
 const patternBlocksContainer = document.getElementById('pattern-blocks');
 const addPatternButton = document.getElementById('add-pattern-block');
 
@@ -259,16 +277,18 @@ function addBlock(initialBlock = null) {
     renderBlockFields(blockElement, blockIndex, select.value, initialBlock ? (initialBlock.data || {}) : {});
 }
 
-if (Object.keys(availablePatterns).length === 0) {
-    addPatternButton.disabled = true;
-    addPatternButton.textContent = 'No valid patterns available';
-} else if (Array.isArray(existingBlocks) && existingBlocks.length > 0) {
-    existingBlocks.forEach((block) => addBlock(block));
-} else {
-    addBlock();
-}
+if (canEditPatternBlocks) {
+    if (Object.keys(availablePatterns).length === 0) {
+        addPatternButton.disabled = true;
+        addPatternButton.textContent = 'No valid patterns available';
+    } else if (Array.isArray(existingBlocks) && existingBlocks.length > 0) {
+        existingBlocks.forEach((block) => addBlock(block));
+    } else {
+        addBlock();
+    }
 
-addPatternButton.addEventListener('click', () => addBlock());
+    addPatternButton.addEventListener('click', () => addBlock());
+}
 
 const contentTypeSelect = document.getElementById('content_type');
 const fieldValuesContainer = document.getElementById('content-type-field-values');
