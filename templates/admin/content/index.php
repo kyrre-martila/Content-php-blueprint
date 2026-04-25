@@ -12,7 +12,9 @@ $adminPageDescription = 'Manage content records and publishing state.';
             <h2 class="admin-page__title">Content Items</h2>
             <p class="admin-page__subtitle">Reusable table region for pages, posts, and future content types.</p>
         </div>
-        <p><a class="admin-btn admin-btn--primary" href="/admin/content/create">Create content item</a></p>
+        <?php if (($canCreateContent ?? true) === true): ?>
+            <p><a class="admin-btn admin-btn--primary" href="/admin/content/create">Create content item</a></p>
+        <?php endif; ?>
     </header>
 
     <?php if (isset($success) && is_string($success) && $success !== ''): ?>

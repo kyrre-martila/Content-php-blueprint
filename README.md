@@ -12,8 +12,9 @@ Framework-light PHP 8.3+ blueprint for structured content websites with explicit
 - Explicit separation of field schemas, hierarchy (`parent_id`), categories (`content_item_categories`), relationships (`content_item_relationships`), and uploaded Files (`files`).
 - Install-state-aware admin routing, role-gated Editor Mode/Dev Mode, and trusted proxy-aware client IP resolution.
 - Explicit editor-safe admin access policy:
-  - Editors can access `/admin`, content item CRUD (`/admin/content*`), and files library/upload/select flows (`/admin/files*`).
+  - Editors can access `/admin`, editor-safe content edit routes (`/admin/content*` with policy restrictions), and files library/upload/select flows (`/admin/files*`).
   - Editors cannot access content types, categories, relationships, templates, system templates, dev mode, or other privileged system management routes.
+  - Editor Safe Mode now enforces server-side runtime-only editing controls inside content forms (no schema/template/source-level controls for editor role).
   - Admin/superadmin retain full admin-area access.
 
 ## AI operating environment
@@ -24,7 +25,7 @@ This repository is designed for AI-assisted and human-led development.
 - `skills/` contains reusable implementation playbooks.
 - OCF export + composition snapshot export support AI reasoning without direct DB access.
 - Dev Mode is for source-layer presentation edits (templates/patterns/CSS/JS).
-- Editor Mode is for safe runtime content edits within allowlisted fields.
+- Editor Mode is for runtime-safe content edits within allowlisted fields; Dev Mode remains privileged and source-level.
 
 ## Developer setup (local source checkout)
 

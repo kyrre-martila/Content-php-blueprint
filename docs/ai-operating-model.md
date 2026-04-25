@@ -45,10 +45,20 @@ When planning or implementing changes:
 
 ## Current operational boundaries
 
-- Dev Mode: source-layer presentation-safe editing.
-- Editor Mode: runtime content-safe editing.
+- Dev Mode: source-level and privileged (templates/pattern files/source editors/exports).
+- Editor Mode: runtime-safe content editing only (title/slug policy/structured values/file refs).
 - Release deployment: artifact-driven with persistent runtime state (`.env`, `storage/`).
 - Category collections: route-level rendering at `/categories/{groupSlug}/{categorySlug}` with deterministic template resolution.
+
+### Editor Safe Mode enforcement model
+
+Editor restrictions are enforced both in UI and server-side controller policy checks:
+
+- forms hide source-level controls for editors
+- controllers sanitize/restrict incoming editor payloads to safe runtime fields
+- privileged routes remain inaccessible to editor role
+
+This prevents bypass via direct POSTs and keeps Runtime Editor Mode separate from Dev Mode capabilities.
 
 ---
 

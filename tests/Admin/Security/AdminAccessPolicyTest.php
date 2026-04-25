@@ -29,8 +29,10 @@ it('forbids editor role on restricted admin paths', function (string $path): voi
     '/admin/categories',
     '/admin/relationships',
     '/admin/templates',
+    '/admin/templates/edit',
     '/admin/system-templates',
     '/admin/dev-mode',
+    '/admin/dev-mode/edit',
     '/admin/patterns',
 ]);
 

@@ -15,6 +15,7 @@ use App\Admin\Controller\FileAdminController;
 use App\Admin\Controller\PatternController;
 use App\Admin\Controller\RelationshipAdminController;
 use App\Admin\Controller\TemplateAdminController;
+use App\Admin\Security\EditorSafeContentPolicy;
 use App\Application\Auth\LoginUser;
 use App\Application\Composition\CompositionExporter;
 use App\Application\Content\ContentTypeFieldSchemaService;
@@ -170,7 +171,8 @@ final class ControllerFactory
                 $updateContentItem,
                 $patternRegistry,
                 $authSession,
-                $sessionManager
+                $sessionManager,
+                new EditorSafeContentPolicy()
             );
 
             $templateAdminController = new TemplateAdminController(
